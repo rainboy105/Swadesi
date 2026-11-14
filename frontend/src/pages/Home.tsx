@@ -5,15 +5,18 @@ import CookPanel from "./CookPanel";
 import FeedPanel from "./FeedPanel";
 
 /**
- * Home. The buy/sell mode toggle lives here; each mode has its own bottom-tab sections.
+ * Home. Buy/sell mode is chosen from a bottom sheet (the swap icon top-right). The top toggle
+ * switches sections within the current mode (My Feed / My Orders, or Kitchen / Orders).
  */
 export default function Home({ me, onMe }: { me: Me; onMe: (me: Me) => void }) {
   const [switching, setSwitching] = useState(false);
+  const [sheetOpen, setSheetOpen] = useState(false);
   const [consumerTab, setConsumerTab] = useState<"feed" | "orders">("feed");
   const [cookTab, setCookTab] = useState<"kitchen" | "orders">("kitchen");
   const role = me.activeRole;
 
   const switchTo = async (next: Role) => {
+    setSheetOpen(false);
     if (next === role || switching) return;
     setSwitching(true);
     try {
@@ -25,15 +28,15 @@ export default function Home({ me, onMe }: { me: Me; onMe: (me: Me) => void }) {
     }
   };
 
-  const tabs =
+  const sections =
     role === "consumer"
       ? [
-          { key: "feed", label: "Feed", icon: "🍽️" },
-          { key: "orders", label: "My Orders", icon: "📦" },
+          { key: "feed", label: "My Feed" },
+          { key: "orders", label: "My Orders" },
         ]
       : [
-          { key: "kitchen", label: "Kitchen", icon: "🍳" },
-          { key: "orders", label: "Orders", icon: "📦" },
+          { key: "kitchen", label: "Kitchen" },
+          { key: "orders", label: "Orders" },
         ];
   const activeTab = role === "consumer" ? consumerTab : cookTab;
   const setTab = (k: string) =>
@@ -44,23 +47,20 @@ export default function Home({ me, onMe }: { me: Me; onMe: (me: Me) => void }) {
       <AppHeader
         title={`Namaste${me.name ? `, ${me.name.split(" ")[0]}` : ""} 👋`}
         subtitle={role === "cook" ? "You're in cook mode" : "You're in consumer mode"}
+        onSwap={() => setSheetOpen(true)}
       />
-      <div className="card with-tabs">
-        <div className="segmented" role="tablist" aria-label="Switch mode">
-          <button
-            className={role === "consumer" ? "seg active" : "seg"}
-            disabled={switching}
-            onClick={() => switchTo("consumer")}
-          >
-            🍽️ Order food
-          </button>
-          <button
-            className={role === "cook" ? "seg active" : "seg"}
-            disabled={switching}
-            onClick={() => switchTo("cook")}
-          >
-            🍳 Cook &amp; sell
-          </button>
+      <div className="card">
+        {/* Top toggle = section switcher */}
+        <div className="segmented" role="tablist" aria-label="Sections">
+          {sections.map((s) => (
+            <button
+              key={s.key}
+              className={activeTab === s.key ? "seg active" : "seg"}
+              onClick={() => setTab(s.key)}
+            >
+              {s.label}
+            </button>
+          ))}
         </div>
 
         {role === "consumer" ? (
@@ -70,18 +70,29 @@ export default function Home({ me, onMe }: { me: Me; onMe: (me: Me) => void }) {
         )}
       </div>
 
-      <nav className="bottom-nav">
-        {tabs.map((t) => (
-          <button
-            key={t.key}
-            className={activeTab === t.key ? "nav-item active" : "nav-item"}
-            onClick={() => setTab(t.key)}
-          >
-            <span className="nav-icon">{t.icon}</span>
-            <span className="nav-label">{t.label}</span>
-          </button>
-        ))}
-      </nav>
+      {/* Bottom sheet: choose buy/sell mode */}
+      {sheetOpen && (
+        <div className="sheet-overlay" onClick={() => setSheetOpen(false)}>
+          <div className="sheet" onClick={(e) => e.stopPropagation()}>
+            <div className="sheet-handle" />
+            <h3>Switch mode</h3>
+            <button
+              className={`sheet-option ${role === "consumer" ? "selected" : ""}`}
+              onClick={() => switchTo("consumer")}
+            >
+              <span>🍽️ Order food</span>
+              {role === "consumer" && <span className="tick">✓</span>}
+            </button>
+            <button
+              className={`sheet-option ${role === "cook" ? "selected" : ""}`}
+              onClick={() => switchTo("cook")}
+            >
+              <span>🍳 Cook &amp; sell</span>
+              {role === "cook" && <span className="tick">✓</span>}
+            </button>
+          </div>
+        </div>
+      )}
     </>
   );
 }
