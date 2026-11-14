@@ -2,8 +2,8 @@ import { useEffect, useState } from "react";
 import { api, type FeedItem, type Order, type OrderStatus } from "../lib/api";
 import PickupMap from "../components/PickupMap";
 
-/** Consumer mode: vicinity feed of open dishes, order with a quantity, and your orders. */
-export default function FeedPanel() {
+/** Consumer mode. view="feed": dishes to order. view="orders": your orders + pickup map. */
+export default function FeedPanel({ view }: { view: "feed" | "orders" }) {
   const [items, setItems] = useState<FeedItem[]>([]);
   const [orders, setOrders] = useState<Order[]>([]);
   const [loading, setLoading] = useState(true);
@@ -114,6 +114,62 @@ export default function FeedPanel() {
     (o) => !activeStatuses.includes(o.status) && o.status !== "pending_payment",
   );
 
+  // ---- Orders view ----
+  if (view === "orders") {
+    return (
+      <div className="mode-panel">
+        <div className="panel-head">
+          <span className="tile">📦</span>
+          <h1>My orders</h1>
+          <button className="link refresh" onClick={load} aria-label="Refresh">↻</button>
+        </div>
+
+        {loading ? (
+          <p className="hint">Loading your orders…</p>
+        ) : active.length === 0 && past.length === 0 ? (
+          <p className="hint">No orders yet. Find something tasty in the Feed!</p>
+        ) : (
+          <>
+            {active.length > 0 && (
+              <div className="orders-block">
+                <label>Active</label>
+                {active.map((o) => (
+                  <div key={o.id} className="order-item">
+                    <div className="profile-row">
+                      <span>{o.qty} × {o.listingTitle}{o.cookName ? ` · ${o.cookName}` : ""}</span>
+                      <strong>{statusLabel[o.status]}</strong>
+                    </div>
+                    {o.status === "ready" && o.pickupCode && (
+                      <div className="pickup-code">
+                        Show this code to the cook: <strong>{o.pickupCode}</strong>
+                      </div>
+                    )}
+                    {(o.status === "accepted" || o.status === "preparing" || o.status === "ready") &&
+                      o.cookLat != null && o.cookLng != null && (
+                        <PickupMap cookLat={o.cookLat} cookLng={o.cookLng} title={o.listingTitle} />
+                      )}
+                  </div>
+                ))}
+              </div>
+            )}
+            {past.length > 0 && (
+              <div className="orders-block history">
+                <label>Past orders</label>
+                {past.map((o) => (
+                  <div className="profile-row" key={o.id}>
+                    <span>{o.qty} × {o.listingTitle}{o.cookName ? ` · ${o.cookName}` : ""}</span>
+                    <strong>{statusLabel[o.status]}</strong>
+                  </div>
+                ))}
+              </div>
+            )}
+          </>
+        )}
+      </div>
+    );
+  }
+
+  // ---- Feed view ----
   return (
     <div className="mode-panel">
       <div className="panel-head">
@@ -162,41 +218,6 @@ export default function FeedPanel() {
               </div>
             );
           })}
-        </div>
-      )}
-
-      {active.length > 0 && (
-        <div className="orders-block">
-          <label>Your orders</label>
-          {active.map((o) => (
-            <div key={o.id} className="order-item">
-              <div className="profile-row">
-                <span>{o.qty} × {o.listingTitle}{o.cookName ? ` · ${o.cookName}` : ""}</span>
-                <strong>{statusLabel[o.status]}</strong>
-              </div>
-              {o.status === "ready" && o.pickupCode && (
-                <div className="pickup-code">
-                  Show this code to the cook: <strong>{o.pickupCode}</strong>
-                </div>
-              )}
-              {(o.status === "accepted" || o.status === "preparing" || o.status === "ready") &&
-                o.cookLat != null && o.cookLng != null && (
-                  <PickupMap cookLat={o.cookLat} cookLng={o.cookLng} title={o.listingTitle} />
-                )}
-            </div>
-          ))}
-        </div>
-      )}
-
-      {past.length > 0 && (
-        <div className="orders-block history">
-          <label>Order history</label>
-          {past.map((o) => (
-            <div className="profile-row" key={o.id}>
-              <span>{o.qty} × {o.listingTitle}{o.cookName ? ` · ${o.cookName}` : ""}</span>
-              <strong>{statusLabel[o.status]}</strong>
-            </div>
-          ))}
         </div>
       )}
     </div>

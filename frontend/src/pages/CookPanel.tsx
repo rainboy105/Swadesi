@@ -3,7 +3,11 @@ import { api, type Listing, type Order, type Me } from "../lib/api";
 import { downscaleToJpeg } from "../lib/image";
 
 /** Cook mode: create a dish (with serving cap + order cutoff), manage listings, handle orders. */
-export default function CookPanel({ me, onMe }: { me: Me; onMe: (me: Me) => void }) {
+export default function CookPanel({ me, onMe, view }: {
+  me: Me;
+  onMe: (me: Me) => void;
+  view: "kitchen" | "orders";
+}) {
   const [upiInput, setUpiInput] = useState("");
   const [upiBusy, setUpiBusy] = useState(false);
   const [upiErr, setUpiErr] = useState<string | null>(null);
@@ -214,6 +218,96 @@ export default function CookPanel({ me, onMe }: { me: Me; onMe: (me: Me) => void
   const timeOf = (iso: string | null) =>
     iso ? new Date(iso).toLocaleTimeString([], { hour: "numeric", minute: "2-digit" }) : null;
 
+  // ---- Orders view: incoming orders to manage ----
+  if (view === "orders") {
+    return (
+      <div className="mode-panel">
+        <div className="panel-head">
+          <span className="tile marigold">📦</span>
+          <h1>Orders</h1>
+          <button className="link refresh" onClick={load} aria-label="Refresh">↻</button>
+        </div>
+
+        {pending.length === 0 && activeOrders.length === 0 && history.length === 0 && (
+          <p className="hint">No orders yet. They'll show up here when customers order.</p>
+        )}
+
+        {pending.length > 0 && (
+          <div className="orders-block">
+            <label>New orders</label>
+            {pending.map((o) => (
+              <div className="listing" key={o.id}>
+                <div className="listing-main">
+                  <strong>{o.qty} × {o.listingTitle}</strong>
+                  {o.consumerName && <span className="muted">from {o.consumerName}</span>}
+                </div>
+                <div className="order-actions">
+                  <button className="small" onClick={() => decide(o, "accepted")}>Accept</button>
+                  <button className="secondary small" onClick={() => decide(o, "rejected")}>Reject</button>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+
+        {activeOrders.length > 0 && (
+          <div className="orders-block">
+            <label>In progress</label>
+            {activeOrders.map((o) => (
+              <div className="listing col" key={o.id}>
+                <div className="listing-main">
+                  <strong>{o.qty} × {o.listingTitle}</strong>
+                  {o.consumerName && <span className="muted">for {o.consumerName}</span>}
+                  <span className="meta">
+                    {o.status === "accepted" && "Accepted"}
+                    {o.status === "preparing" && "👨‍🍳 Preparing"}
+                    {o.status === "ready" && "🛍️ Ready for pickup"}
+                  </span>
+                </div>
+                {o.status === "accepted" && (
+                  <button className="small" onClick={() => decide(o, "preparing")}>Start preparing</button>
+                )}
+                {o.status === "preparing" && (
+                  <button className="small" onClick={() => decide(o, "ready")}>Mark ready</button>
+                )}
+                {o.status === "ready" && (
+                  <div className="pickup-confirm">
+                    <span className="muted">Ask for the pickup code:</span>
+                    <div className="order-row">
+                      <input
+                        inputMode="numeric"
+                        placeholder="4-digit code"
+                        value={codeInput[o.id] ?? ""}
+                        onChange={(e) => setCodeInput({ ...codeInput, [o.id]: e.target.value })}
+                      />
+                      <button className="small" onClick={() => decide(o, "completed", codeInput[o.id])}>
+                        Confirm pickup
+                      </button>
+                    </div>
+                    {codeErr[o.id] && <span className="error-inline">{codeErr[o.id]}</span>}
+                  </div>
+                )}
+              </div>
+            ))}
+          </div>
+        )}
+
+        {history.length > 0 && (
+          <div className="orders-block history">
+            <label>Past orders</label>
+            {history.map((o) => (
+              <div className="profile-row" key={o.id}>
+                <span>{o.qty} × {o.listingTitle}{o.consumerName ? ` · ${o.consumerName}` : ""}</span>
+                <strong>{histLabel[o.status]}</strong>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+    );
+  }
+
+  // ---- Kitchen view: UPI + create + my listings ----
   return (
     <div className="mode-panel">
       <div className="panel-head">
@@ -291,81 +385,6 @@ export default function CookPanel({ me, onMe }: { me: Me; onMe: (me: Me) => void
       )}
 
       {error && <p className="error">{error}</p>}
-
-      {/* Pending orders to accept/reject */}
-      {pending.length > 0 && (
-        <div className="orders-block">
-          <label>New orders</label>
-          {pending.map((o) => (
-            <div className="listing" key={o.id}>
-              <div className="listing-main">
-                <strong>{o.qty} × {o.listingTitle}</strong>
-                {o.consumerName && <span className="muted">from {o.consumerName}</span>}
-              </div>
-              <div className="order-actions">
-                <button className="small" onClick={() => decide(o, "accepted")}>Accept</button>
-                <button className="secondary small" onClick={() => decide(o, "rejected")}>Reject</button>
-              </div>
-            </div>
-          ))}
-        </div>
-      )}
-
-      {/* Orders in progress: accepted -> preparing -> ready -> completed (with pickup code) */}
-      {activeOrders.length > 0 && (
-        <div className="orders-block">
-          <label>In progress</label>
-          {activeOrders.map((o) => (
-            <div className="listing col" key={o.id}>
-              <div className="listing-main">
-                <strong>{o.qty} × {o.listingTitle}</strong>
-                {o.consumerName && <span className="muted">for {o.consumerName}</span>}
-                <span className="meta">
-                  {o.status === "accepted" && "Accepted"}
-                  {o.status === "preparing" && "👨‍🍳 Preparing"}
-                  {o.status === "ready" && "🛍️ Ready for pickup"}
-                </span>
-              </div>
-              {o.status === "accepted" && (
-                <button className="small" onClick={() => decide(o, "preparing")}>Start preparing</button>
-              )}
-              {o.status === "preparing" && (
-                <button className="small" onClick={() => decide(o, "ready")}>Mark ready</button>
-              )}
-              {o.status === "ready" && (
-                <div className="pickup-confirm">
-                  <span className="muted">Ask for the pickup code:</span>
-                  <div className="order-row">
-                    <input
-                      inputMode="numeric"
-                      placeholder="4-digit code"
-                      value={codeInput[o.id] ?? ""}
-                      onChange={(e) => setCodeInput({ ...codeInput, [o.id]: e.target.value })}
-                    />
-                    <button className="small" onClick={() => decide(o, "completed", codeInput[o.id])}>
-                      Confirm pickup
-                    </button>
-                  </div>
-                  {codeErr[o.id] && <span className="error-inline">{codeErr[o.id]}</span>}
-                </div>
-              )}
-            </div>
-          ))}
-        </div>
-      )}
-
-      {/* Order history */}
-      {history.length > 0 && (
-        <div className="orders-block history">
-          <label>Order history</label>
-          {history.map((o) => (
-            <div className="profile-row" key={o.id}>
-              <span>{o.qty} × {o.listingTitle}{o.consumerName ? ` · ${o.consumerName}` : ""}</span>
-              <strong>{histLabel[o.status]}</strong>
-            </div>
-          ))}
-        </div>
-      )}
 
       {/* My listings */}
       {loading ? (

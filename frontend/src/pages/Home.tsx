@@ -6,10 +6,12 @@ import FeedPanel from "./FeedPanel";
 
 /**
  * Home. Every account can be both a cook and a consumer; the segmented toggle switches the
- * active mode (persisted). Profile lives on its own /profile page (top-right icon).
+ * active mode. Each mode has its own bottom-tab sections. Profile lives at /profile.
  */
 export default function Home({ me, onMe }: { me: Me; onMe: (me: Me) => void }) {
   const [switching, setSwitching] = useState(false);
+  const [consumerTab, setConsumerTab] = useState<"feed" | "orders">("feed");
+  const [cookTab, setCookTab] = useState<"kitchen" | "orders">("kitchen");
   const role = me.activeRole;
 
   const switchTo = async (next: Role) => {
@@ -24,13 +26,27 @@ export default function Home({ me, onMe }: { me: Me; onMe: (me: Me) => void }) {
     }
   };
 
+  const tabs =
+    role === "consumer"
+      ? [
+          { key: "feed", label: "Feed", icon: "🍽️" },
+          { key: "orders", label: "My Orders", icon: "📦" },
+        ]
+      : [
+          { key: "kitchen", label: "Kitchen", icon: "🍳" },
+          { key: "orders", label: "Orders", icon: "📦" },
+        ];
+  const activeTab = role === "consumer" ? consumerTab : cookTab;
+  const setTab = (k: string) =>
+    role === "consumer" ? setConsumerTab(k as "feed" | "orders") : setCookTab(k as "kitchen" | "orders");
+
   return (
     <>
       <AppHeader
         title={`Namaste${me.name ? `, ${me.name.split(" ")[0]}` : ""} 👋`}
         subtitle={role === "cook" ? "You're in cook mode" : "You're in consumer mode"}
       />
-      <div className="card">
+      <div className="card with-tabs">
         <div className="segmented" role="tablist" aria-label="Switch mode">
           <button
             className={role === "consumer" ? "seg active" : "seg"}
@@ -48,8 +64,26 @@ export default function Home({ me, onMe }: { me: Me; onMe: (me: Me) => void }) {
           </button>
         </div>
 
-        {role === "consumer" ? <FeedPanel /> : <CookPanel me={me} onMe={onMe} />}
+        {role === "consumer" ? (
+          <FeedPanel view={consumerTab} />
+        ) : (
+          <CookPanel me={me} onMe={onMe} view={cookTab} />
+        )}
       </div>
+
+      {/* Bottom section navigation */}
+      <nav className="bottom-nav">
+        {tabs.map((t) => (
+          <button
+            key={t.key}
+            className={activeTab === t.key ? "nav-item active" : "nav-item"}
+            onClick={() => setTab(t.key)}
+          >
+            <span className="nav-icon">{t.icon}</span>
+            <span className="nav-label">{t.label}</span>
+          </button>
+        ))}
+      </nav>
     </>
   );
 }
