@@ -40,6 +40,7 @@ export default function CookPanel() {
     if (!title.trim()) return setError("What are you cooking?");
     if (!Number.isFinite(p) || p < 0) return setError("Enter a price per serving (₹).");
     if (!Number.isFinite(s) || s < 1) return setError("How many servings can you make?");
+    if (!orderBy) return setError("Set an order-by time (the cutoff for orders).");
     setBusy(true);
     setError(null);
     try {
@@ -49,7 +50,7 @@ export default function CookPanel() {
         pricePerServing: p,
         maxServings: s,
         readyBy: null,
-        orderBy: orderBy ? new Date(orderBy).toISOString() : null,
+        orderBy: new Date(orderBy).toISOString(),
       });
       if (photo) {
         try {
@@ -136,7 +137,7 @@ export default function CookPanel() {
               <input inputMode="numeric" placeholder="10" value={servings} onChange={(e) => setServings(e.target.value)} />
             </div>
           </div>
-          <label>Order by (optional cutoff)</label>
+          <label>Order by (orders close at this time)</label>
           <input type="datetime-local" value={orderBy} onChange={(e) => setOrderBy(e.target.value)} />
           <label>Photo (optional)</label>
           <input
