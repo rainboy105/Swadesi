@@ -84,17 +84,24 @@ export default function CookPanel() {
     }
   };
 
-  const decide = async (o: Order, status: "accepted" | "rejected" | "completed") => {
+  const [codeInput, setCodeInput] = useState<Record<string, string>>({});
+  const [codeErr, setCodeErr] = useState<Record<string, string>>({});
+
+  const decide = async (o: Order, status: Order["status"], pickupCode?: string) => {
     try {
-      await api.setOrderStatus(o.id, status);
+      await api.setOrderStatus(o.id, status, pickupCode);
       await load();
-    } catch {
-      /* ignore */
+    } catch (e) {
+      if (status === "completed") {
+        setCodeErr({ ...codeErr, [o.id]: e instanceof Error ? e.message : "Wrong code" });
+      }
     }
   };
 
   const pending = orders.filter((o) => o.status === "requested");
-  const accepted = orders.filter((o) => o.status === "accepted");
+  const activeOrders = orders.filter(
+    (o) => o.status === "accepted" || o.status === "preparing" || o.status === "ready",
+  );
   const history = orders.filter((o) => o.status === "completed" || o.status === "rejected" || o.status === "cancelled");
   const histLabel: Record<string, string> = {
     completed: "🍴 Completed",
@@ -165,17 +172,44 @@ export default function CookPanel() {
         </div>
       )}
 
-      {/* Accepted orders in progress -> mark completed */}
-      {accepted.length > 0 && (
+      {/* Orders in progress: accepted -> preparing -> ready -> completed (with pickup code) */}
+      {activeOrders.length > 0 && (
         <div className="orders-block">
           <label>In progress</label>
-          {accepted.map((o) => (
-            <div className="listing" key={o.id}>
+          {activeOrders.map((o) => (
+            <div className="listing col" key={o.id}>
               <div className="listing-main">
                 <strong>{o.qty} × {o.listingTitle}</strong>
                 {o.consumerName && <span className="muted">for {o.consumerName}</span>}
+                <span className="meta">
+                  {o.status === "accepted" && "Accepted"}
+                  {o.status === "preparing" && "👨‍🍳 Preparing"}
+                  {o.status === "ready" && "🛍️ Ready for pickup"}
+                </span>
               </div>
-              <button className="small" onClick={() => decide(o, "completed")}>Mark done</button>
+              {o.status === "accepted" && (
+                <button className="small" onClick={() => decide(o, "preparing")}>Start preparing</button>
+              )}
+              {o.status === "preparing" && (
+                <button className="small" onClick={() => decide(o, "ready")}>Mark ready</button>
+              )}
+              {o.status === "ready" && (
+                <div className="pickup-confirm">
+                  <span className="muted">Ask for the pickup code:</span>
+                  <div className="order-row">
+                    <input
+                      inputMode="numeric"
+                      placeholder="4-digit code"
+                      value={codeInput[o.id] ?? ""}
+                      onChange={(e) => setCodeInput({ ...codeInput, [o.id]: e.target.value })}
+                    />
+                    <button className="small" onClick={() => decide(o, "completed", codeInput[o.id])}>
+                      Confirm pickup
+                    </button>
+                  </div>
+                  {codeErr[o.id] && <span className="error-inline">{codeErr[o.id]}</span>}
+                </div>
+              )}
             </div>
           ))}
         </div>

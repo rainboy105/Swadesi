@@ -538,6 +538,48 @@ button.small {
   border: 1px solid var(--line);
 }
 
+.listing.col {
+  flex-direction: column;
+  align-items: stretch;
+  gap: 10px;
+}
+
+.pickup-confirm {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.pickup-confirm input {
+  flex: 1;
+}
+
+.pickup-code {
+  margin-top: 6px;
+  background: var(--marigold-100);
+  color: var(--marigold-600);
+  border-radius: 12px;
+  padding: 10px 12px;
+  font-size: 0.95rem;
+}
+
+.pickup-code strong {
+  font-family: var(--font-display);
+  font-size: 1.3rem;
+  letter-spacing: 0.15em;
+  color: var(--ink-900);
+}
+
+.error-inline {
+  color: var(--danger);
+  font-size: 0.85rem;
+}
+
+.order-item {
+  display: flex;
+  flex-direction: column;
+}
+
 .orders-block.history .profile-row strong {
   color: var(--ink-600);
   font-weight: 500;

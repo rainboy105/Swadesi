@@ -39,9 +39,16 @@ public class OrderController {
 
     public record OrderResponse(String id, String listingId, String listingTitle, int qty,
                                 String status, String cookName, String consumerName,
-                                OffsetDateTime createdAt) {}
+                                String pickupCode, OffsetDateTime createdAt) {}
 
-    public record StatusRequest(String status) {}
+    public record StatusRequest(String status, String pickupCode) {}
+
+    // Allowed forward transitions in the order lifecycle.
+    private static final java.util.Map<String, java.util.Set<String>> NEXT = java.util.Map.of(
+            "requested", java.util.Set.of("accepted", "rejected"),
+            "accepted", java.util.Set.of("preparing"),
+            "preparing", java.util.Set.of("ready"),
+            "ready", java.util.Set.of("completed"));
 
     private final FoodOrderRepository orders;
     private final ListingRepository listings;
@@ -91,6 +98,7 @@ public class OrderController {
         o.setConsumerPhone(consumer.getPhone());
         o.setQty(req.qty());
         o.setStatus("requested");
+        o.setPickupCode(String.format("%04d", new java.security.SecureRandom().nextInt(10000)));
         o.setCreatedAt(now);
         o.setUpdatedAt(now);
         orders.save(o);
@@ -101,10 +109,10 @@ public class OrderController {
                         + (consumer.getName() != null ? " from " + consumer.getName() : "")
                         + ". Open the app to accept."));
 
-        return toResponse(o, l.getTitle(), l.getCookName());
+        return toResponse(o, l.getTitle(), l.getCookName(), true); // consumer sees their pickup code
     }
 
-    /** The consumer's own orders. */
+    /** The consumer's own orders (includes the pickup code to show the cook). */
     @GetMapping("/mine")
     public List<OrderResponse> mine(@AuthenticationPrincipal AuthenticatedUser auth) {
         List<FoodOrder> mine = orders.findByConsumerIdOrderByCreatedAtDesc(auth.id());
@@ -112,12 +120,12 @@ public class OrderController {
         List<OrderResponse> out = new ArrayList<>();
         for (FoodOrder o : mine) {
             Listing l = byId.get(o.getListingId());
-            out.add(toResponse(o, l == null ? "(dish)" : l.getTitle(), l == null ? null : l.getCookName()));
+            out.add(toResponse(o, l == null ? "(dish)" : l.getTitle(), l == null ? null : l.getCookName(), true));
         }
         return out;
     }
 
-    /** Orders placed on the cook's own listings. */
+    /** Orders placed on the cook's own listings (pickup code hidden — the consumer tells it). */
     @GetMapping("/received")
     public List<OrderResponse> received(@AuthenticationPrincipal AuthenticatedUser auth) {
         List<Listing> myListings = listings.findByCookIdOrderByCreatedAtDesc(auth.id());
@@ -127,12 +135,16 @@ public class OrderController {
         List<OrderResponse> out = new ArrayList<>();
         for (FoodOrder o : orders.findByListingIdInOrderByCreatedAtDesc(byId.keySet())) {
             Listing l = byId.get(o.getListingId());
-            out.add(toResponse(o, l == null ? "(dish)" : l.getTitle(), l == null ? null : l.getCookName()));
+            out.add(toResponse(o, l == null ? "(dish)" : l.getTitle(), l == null ? null : l.getCookName(), false));
         }
         return out;
     }
 
-    /** Cook accepts or rejects an order on their listing. Rejecting releases the servings. */
+    /**
+     * Cook moves an order forward: requested→accepted/rejected, accepted→preparing,
+     * preparing→ready, ready→completed. Completing requires the consumer's pickup code.
+     * Rejecting releases the servings.
+     */
     @PostMapping("/{id}/status")
     @Transactional
     public OrderResponse setStatus(@AuthenticationPrincipal AuthenticatedUser auth,
@@ -146,16 +158,17 @@ public class OrderController {
             throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Not your order to manage");
         }
         String s = req.status() == null ? "" : req.status().trim().toLowerCase();
-        if (!s.equals("accepted") && !s.equals("rejected") && !s.equals("completed")) {
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST,
-                    "status must be 'accepted', 'rejected' or 'completed'");
-        }
-        // Allowed transitions: requested -> accepted | rejected; accepted -> completed.
-        boolean ok = ((s.equals("accepted") || s.equals("rejected")) && "requested".equals(o.getStatus()))
-                || (s.equals("completed") && "accepted".equals(o.getStatus()));
-        if (!ok) {
+        java.util.Set<String> allowed = NEXT.getOrDefault(o.getStatus(), java.util.Set.of());
+        if (!allowed.contains(s)) {
             throw new ResponseStatusException(HttpStatus.CONFLICT,
                     "Can't move an order from " + o.getStatus() + " to " + s);
+        }
+        // Pickup must be confirmed with the consumer's code.
+        if (s.equals("completed")) {
+            String given = req.pickupCode() == null ? "" : req.pickupCode().trim();
+            if (o.getPickupCode() == null || !o.getPickupCode().equals(given)) {
+                throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Wrong pickup code");
+            }
         }
         o.setStatus(s);
         o.setUpdatedAt(now);
@@ -167,12 +180,15 @@ public class OrderController {
         // Notify the consumer.
         String msg = switch (s) {
             case "accepted" -> "Your Swaadeshi order (" + o.getQty() + " × " + l.getTitle() + ") was accepted! 🎉";
-            case "completed" -> "Your Swaadeshi order (" + o.getQty() + " × " + l.getTitle() + ") is complete. Enjoy your meal! 🍴";
+            case "preparing" -> l.getTitle() + " is being prepared. We'll tell you when it's ready.";
+            case "ready" -> "Your order is ready for pickup! 🛍️ Show the cook your pickup code: "
+                    + o.getPickupCode() + " (" + o.getQty() + " × " + l.getTitle() + ")";
+            case "completed" -> "Order picked up. Enjoy your meal! 🍴 (" + o.getQty() + " × " + l.getTitle() + ")";
             default -> "Sorry, your Swaadeshi order (" + o.getQty() + " × " + l.getTitle() + ") was declined.";
         };
         notify(o.getConsumerPhone(), msg);
 
-        return toResponse(o, l.getTitle(), l.getCookName());
+        return toResponse(o, l.getTitle(), l.getCookName(), false);
     }
 
     private Map<UUID, Listing> loadListings(List<FoodOrder> os) {
@@ -191,8 +207,9 @@ public class OrderController {
         }
     }
 
-    private static OrderResponse toResponse(FoodOrder o, String title, String cookName) {
+    private static OrderResponse toResponse(FoodOrder o, String title, String cookName, boolean includeCode) {
         return new OrderResponse(o.getId().toString(), o.getListingId().toString(), title,
-                o.getQty(), o.getStatus(), cookName, o.getConsumerName(), o.getCreatedAt());
+                o.getQty(), o.getStatus(), cookName, o.getConsumerName(),
+                includeCode ? o.getPickupCode() : null, o.getCreatedAt());
     }
 }

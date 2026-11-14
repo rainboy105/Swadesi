@@ -34,6 +34,10 @@ public class FoodOrder {
     @Column(name = "status", nullable = false)
     private String status = "requested";
 
+    /** The code the consumer shows the cook at pickup. */
+    @Column(name = "pickup_code")
+    private String pickupCode;
+
     @Column(name = "created_at", nullable = false, updatable = false)
     private OffsetDateTime createdAt;
 
@@ -54,6 +58,8 @@ public class FoodOrder {
     public void setQty(int qty) { this.qty = qty; }
     public String getStatus() { return status; }
     public void setStatus(String status) { this.status = status; }
+    public String getPickupCode() { return pickupCode; }
+    public void setPickupCode(String pickupCode) { this.pickupCode = pickupCode; }
     public OffsetDateTime getCreatedAt() { return createdAt; }
     public void setCreatedAt(OffsetDateTime createdAt) { this.createdAt = createdAt; }
     public OffsetDateTime getUpdatedAt() { return updatedAt; }

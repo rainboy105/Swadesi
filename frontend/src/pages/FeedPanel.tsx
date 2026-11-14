@@ -47,13 +47,16 @@ export default function FeedPanel() {
   const statusLabel: Record<OrderStatus, string> = {
     requested: "⏳ Waiting for cook",
     accepted: "✅ Accepted",
+    preparing: "👨‍🍳 Preparing",
+    ready: "🛍️ Ready for pickup",
     rejected: "❌ Declined",
     cancelled: "Cancelled",
     completed: "🍴 Completed",
   };
 
-  const active = orders.filter((o) => o.status === "requested" || o.status === "accepted");
-  const past = orders.filter((o) => o.status !== "requested" && o.status !== "accepted");
+  const activeStatuses: OrderStatus[] = ["requested", "accepted", "preparing", "ready"];
+  const active = orders.filter((o) => activeStatuses.includes(o.status));
+  const past = orders.filter((o) => !activeStatuses.includes(o.status));
 
   return (
     <div className="mode-panel">
@@ -110,9 +113,16 @@ export default function FeedPanel() {
         <div className="orders-block">
           <label>Your orders</label>
           {active.map((o) => (
-            <div className="profile-row" key={o.id}>
-              <span>{o.qty} × {o.listingTitle}{o.cookName ? ` · ${o.cookName}` : ""}</span>
-              <strong>{statusLabel[o.status]}</strong>
+            <div key={o.id} className="order-item">
+              <div className="profile-row">
+                <span>{o.qty} × {o.listingTitle}{o.cookName ? ` · ${o.cookName}` : ""}</span>
+                <strong>{statusLabel[o.status]}</strong>
+              </div>
+              {o.status === "ready" && o.pickupCode && (
+                <div className="pickup-code">
+                  Show this code to the cook: <strong>{o.pickupCode}</strong>
+                </div>
+              )}
             </div>
           ))}
         </div>

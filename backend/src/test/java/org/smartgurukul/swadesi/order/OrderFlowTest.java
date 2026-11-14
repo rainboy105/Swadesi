@@ -119,8 +119,25 @@ class OrderFlowTest {
 
         rest.exchange("/api/v1/orders/" + orderId + "/status", HttpMethod.POST,
                 new HttpEntity<>(Map.of("status", "accepted"), auth(cook)), Map.class);
+        rest.exchange("/api/v1/orders/" + orderId + "/status", HttpMethod.POST,
+                new HttpEntity<>(Map.of("status", "preparing"), auth(cook)), Map.class);
+        var ready = rest.exchange("/api/v1/orders/" + orderId + "/status", HttpMethod.POST,
+                new HttpEntity<>(Map.of("status", "ready"), auth(cook)), Map.class);
+        assertThat(ready.getBody().get("status")).isEqualTo("ready");
+
+        // Consumer sees the pickup code; cook does not.
+        var mine = rest.exchange("/api/v1/orders/mine", HttpMethod.GET, new HttpEntity<>(auth(buyer)), List.class);
+        String code = (String) ((Map) mine.getBody().get(0)).get("pickupCode");
+        assertThat(code).isNotNull();
+        var recv = rest.exchange("/api/v1/orders/received", HttpMethod.GET, new HttpEntity<>(auth(cook)), List.class);
+        assertThat(((Map) recv.getBody().get(0)).get("pickupCode")).isNull();
+
+        // Wrong code -> 400; correct code -> completed.
+        var wrong = rest.exchange("/api/v1/orders/" + orderId + "/status", HttpMethod.POST,
+                new HttpEntity<>(Map.of("status", "completed", "pickupCode", "0000"), auth(cook)), Map.class);
+        assertThat(wrong.getStatusCode().value()).isEqualTo(400);
         var done = rest.exchange("/api/v1/orders/" + orderId + "/status", HttpMethod.POST,
-                new HttpEntity<>(Map.of("status", "completed"), auth(cook)), Map.class);
+                new HttpEntity<>(Map.of("status", "completed", "pickupCode", code), auth(cook)), Map.class);
         assertThat(done.getBody().get("status")).isEqualTo("completed");
     }
 }
