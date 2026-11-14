@@ -38,7 +38,15 @@ export default function Settlements() {
 
   const upiLink = (s: Settlement) =>
     s.cookUpi
-      ? `upi://pay?pa=${encodeURIComponent(s.cookUpi)}&pn=${encodeURIComponent(s.cookName ?? "Cook")}&am=${(s.amountPaise / 100).toFixed(2)}&cu=INR`
+      ? "upi://pay?" +
+        new URLSearchParams({
+          pa: s.cookUpi,
+          pn: s.cookName ?? "Cook",
+          am: (s.amountPaise / 100).toFixed(2),
+          cu: "INR",
+          tn: `Swaadesi ${s.dish}`.slice(0, 50),
+          tr: "SWD" + s.orderId.replace(/-/g, "").slice(0, 20),
+        }).toString()
       : undefined;
 
   return (
