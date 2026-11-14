@@ -99,7 +99,7 @@ public class OtpService {
                     + ". It is valid for " + expiryMinutes + " minutes. Never share it with anyone.");
         } catch (Exception e) {
             log.error("otp request: delivery failed to {} ({})",
-                    WhatsAppSender.mask(phone), WhatsAppSender.failureReason(e));
+                    WhatsAppSender.mask(phone), WhatsAppSender.failureReason(e), e);
             throw new ResponseStatusException(BAD_GATEWAY, "Could not send the code right now. Please try again");
         }
     }
