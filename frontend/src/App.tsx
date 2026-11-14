@@ -75,7 +75,7 @@ export default function App() {
         <Route path="/" element={<div className="shell"><Home me={me!} onMe={setMe} /></div>} />
         <Route
           path="/profile"
-          element={<div className="shell"><Profile me={me!} onLogout={logout} /></div>}
+          element={<div className="shell"><Profile me={me!} onMe={setMe} onLogout={logout} /></div>}
         />
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
