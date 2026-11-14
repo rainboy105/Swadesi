@@ -1,9 +1,9 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { api, setToken, type Me } from "../lib/api";
+import { api, setToken, type Me, type Role } from "../lib/api";
 import AppHeader from "../components/AppHeader";
 
-/** The /profile page: view details, edit name/address/location, and log out. */
+/** The /profile page: view details, edit name/address/location, switch mode, and log out. */
 export default function Profile({ me, onMe, onLogout }: {
   me: Me;
   onMe: (me: Me) => void;
@@ -11,6 +11,19 @@ export default function Profile({ me, onMe, onLogout }: {
 }) {
   const navigate = useNavigate();
   const [editing, setEditing] = useState(false);
+  const [switching, setSwitching] = useState(false);
+
+  const switchMode = async (next: Role) => {
+    if (next === me.activeRole || switching) return;
+    setSwitching(true);
+    try {
+      onMe(await api.setRole(next));
+    } catch {
+      /* ignore */
+    } finally {
+      setSwitching(false);
+    }
+  };
   const [name, setName] = useState(me.name ?? "");
   const [address, setAddress] = useState(me.addressText ?? "");
   const [coords, setCoords] = useState<{ lat: number; lng: number }>({
@@ -104,11 +117,27 @@ export default function Profile({ me, onMe, onLogout }: {
                 <span>Address</span>
                 <strong>{me.addressText || "—"}</strong>
               </div>
-              <div className="profile-row">
-                <span>Current mode</span>
-                <strong>{me.activeRole === "cook" ? "🍳 Cook" : "🍽️ Consumer"}</strong>
-              </div>
             </div>
+
+            {/* Buy / Sell mode is chosen here, not on the home screen. */}
+            <label>I want to</label>
+            <div className="segmented" role="tablist" aria-label="Switch mode">
+              <button
+                className={me.activeRole === "consumer" ? "seg active" : "seg"}
+                disabled={switching}
+                onClick={() => switchMode("consumer")}
+              >
+                🍽️ Order food
+              </button>
+              <button
+                className={me.activeRole === "cook" ? "seg active" : "seg"}
+                disabled={switching}
+                onClick={() => switchMode("cook")}
+              >
+                🍳 Cook &amp; sell
+              </button>
+            </div>
+
             {me.admin && (
               <button className="secondary" onClick={() => navigate("/admin/settlements")}>
                 💸 Cook settlements

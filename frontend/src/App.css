@@ -710,6 +710,61 @@ button.small {
   flex-direction: column;
 }
 
+/* Rich order cards (My Orders) */
+.order-cards {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.order-card {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  background: var(--sunk);
+  border-radius: 18px;
+  padding: 14px 16px;
+}
+
+.order-card-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.order-card-head strong {
+  font-family: var(--font-display);
+  font-size: 1.05rem;
+  color: var(--ink-900);
+}
+
+.status-pill {
+  flex-shrink: 0;
+  font-size: 0.8rem;
+  font-weight: 600;
+  padding: 4px 10px;
+  border-radius: 999px;
+  background: var(--violet-100);
+  color: var(--violet-700);
+}
+
+.status-pill.s-ready { background: var(--marigold-100); color: var(--marigold-600); }
+
+.order-card-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 14px;
+  color: var(--ink-600);
+  font-size: 0.88rem;
+}
+
+.map-caption {
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: var(--ink-600);
+}
+
 .pickup-map {
   margin-top: 10px;
   border-radius: 16px;

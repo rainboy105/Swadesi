@@ -131,13 +131,18 @@ export default function FeedPanel({ view }: { view: "feed" | "orders" }) {
         ) : (
           <>
             {active.length > 0 && (
-              <div className="orders-block">
+              <div className="order-cards">
                 <label>Active</label>
                 {active.map((o) => (
-                  <div key={o.id} className="order-item">
-                    <div className="profile-row">
-                      <span>{o.qty} × {o.listingTitle}{o.cookName ? ` · ${o.cookName}` : ""}</span>
-                      <strong>{statusLabel[o.status]}</strong>
+                  <div key={o.id} className="order-card">
+                    <div className="order-card-head">
+                      <strong>{o.listingTitle}</strong>
+                      <span className={`status-pill s-${o.status}`}>{statusLabel[o.status]}</span>
+                    </div>
+                    <div className="order-card-meta">
+                      <span>Qty: {o.qty}</span>
+                      {o.cookName && <span>Cook: {o.cookName}</span>}
+                      <span>Ordered {new Date(o.createdAt).toLocaleString([], { day: "numeric", month: "short", hour: "numeric", minute: "2-digit" })}</span>
                     </div>
                     {o.status === "ready" && o.pickupCode && (
                       <div className="pickup-code">
@@ -146,7 +151,10 @@ export default function FeedPanel({ view }: { view: "feed" | "orders" }) {
                     )}
                     {(o.status === "accepted" || o.status === "preparing" || o.status === "ready") &&
                       o.cookLat != null && o.cookLng != null && (
-                        <PickupMap cookLat={o.cookLat} cookLng={o.cookLng} title={o.listingTitle} />
+                        <>
+                          <span className="map-caption">📍 Pickup location — {o.listingTitle}</span>
+                          <PickupMap cookLat={o.cookLat} cookLng={o.cookLng} title={o.listingTitle} />
+                        </>
                       )}
                   </div>
                 ))}

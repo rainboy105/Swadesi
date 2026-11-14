@@ -1,30 +1,17 @@
 import { useState } from "react";
-import { api, type Me, type Role } from "../lib/api";
+import { type Me } from "../lib/api";
 import AppHeader from "../components/AppHeader";
 import CookPanel from "./CookPanel";
 import FeedPanel from "./FeedPanel";
 
 /**
- * Home. Every account can be both a cook and a consumer; the segmented toggle switches the
- * active mode. Each mode has its own bottom-tab sections. Profile lives at /profile.
+ * Home. The active mode (buy = consumer, sell = cook) is chosen in the profile, not here.
+ * Each mode shows its own bottom-tab sections.
  */
 export default function Home({ me, onMe }: { me: Me; onMe: (me: Me) => void }) {
-  const [switching, setSwitching] = useState(false);
   const [consumerTab, setConsumerTab] = useState<"feed" | "orders">("feed");
   const [cookTab, setCookTab] = useState<"kitchen" | "orders">("kitchen");
   const role = me.activeRole;
-
-  const switchTo = async (next: Role) => {
-    if (next === role || switching) return;
-    setSwitching(true);
-    try {
-      onMe(await api.setRole(next));
-    } catch {
-      /* keep current role on failure */
-    } finally {
-      setSwitching(false);
-    }
-  };
 
   const tabs =
     role === "consumer"
@@ -44,26 +31,9 @@ export default function Home({ me, onMe }: { me: Me; onMe: (me: Me) => void }) {
     <>
       <AppHeader
         title={`Namaste${me.name ? `, ${me.name.split(" ")[0]}` : ""} 👋`}
-        subtitle={role === "cook" ? "You're in cook mode" : "You're in consumer mode"}
+        subtitle={role === "cook" ? "Selling — your kitchen" : "Ordering food near you"}
       />
       <div className="card with-tabs">
-        <div className="segmented" role="tablist" aria-label="Switch mode">
-          <button
-            className={role === "consumer" ? "seg active" : "seg"}
-            disabled={switching}
-            onClick={() => switchTo("consumer")}
-          >
-            🍽️ Order food
-          </button>
-          <button
-            className={role === "cook" ? "seg active" : "seg"}
-            disabled={switching}
-            onClick={() => switchTo("cook")}
-          >
-            🍳 Cook & sell
-          </button>
-        </div>
-
         {role === "consumer" ? (
           <FeedPanel view={consumerTab} />
         ) : (
