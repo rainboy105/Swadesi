@@ -26,9 +26,51 @@ export default function CookPanel() {
   };
   const toLocalInput = (iso: string | null) => (iso ? fmtLocal(new Date(iso)) : "");
   // Earliest selectable time = 5 minutes from now (no past cutoffs).
-  const minDateTime = () => fmtLocal(new Date(Date.now() + 5 * 60 * 1000));
-  // Sensible default when opening a fresh listing: 3 hours from now.
-  const defaultOrderBy = () => fmtLocal(new Date(Date.now() + 3 * 60 * 60 * 1000));
+  // Default when opening a fresh listing: ~3 hours from now, rounded up to the next 30 min.
+  const defaultOrderBy = () => {
+    const d = new Date(Date.now() + 3 * 60 * 60 * 1000);
+    d.setMinutes(d.getMinutes() > 30 ? 60 : 30, 0, 0);
+    return fmtLocal(d);
+  };
+
+  // --- Day + Time dropdowns (replace the native datetime picker) ---
+  const dateKey = (d: Date) => fmtLocal(d).split("T")[0];
+  const dayPart = (local: string) => (local ? local.split("T")[0] : "");
+  const timePart = (local: string) => (local ? local.split("T")[1] : "");
+
+  // Next 14 days as options.
+  const dayOptions = Array.from({ length: 14 }, (_, i) => {
+    const d = new Date();
+    d.setDate(d.getDate() + i);
+    const label = i === 0 ? "Today" : i === 1 ? "Tomorrow"
+      : d.toLocaleDateString([], { weekday: "short", day: "numeric", month: "short" });
+    return { value: dateKey(d), label };
+  });
+
+  // 30-min time slots for a given day; past slots hidden when the day is today.
+  const timeOptions = (day: string) => {
+    const now = new Date();
+    const isToday = day === dateKey(now);
+    const out: { value: string; label: string }[] = [];
+    for (let h = 0; h < 24; h++) {
+      for (const m of [0, 30]) {
+        if (isToday && (h < now.getHours() || (h === now.getHours() && m <= now.getMinutes()))) continue;
+        const hh = String(h).padStart(2, "0");
+        const mm = String(m).padStart(2, "0");
+        const label = new Date(2000, 0, 1, h, m).toLocaleTimeString([], { hour: "numeric", minute: "2-digit" });
+        out.push({ value: `${hh}:${mm}`, label });
+      }
+    }
+    return out;
+  };
+
+  const setDay = (day: string) => {
+    const opts = timeOptions(day);
+    const t = timePart(orderBy);
+    const stillValid = opts.some((o) => o.value === t);
+    setOrderBy(`${day}T${stillValid ? t : opts[0]?.value ?? "12:00"}`);
+  };
+  const setTime = (t: string) => setOrderBy(`${dayPart(orderBy) || dateKey(new Date())}T${t}`);
 
   const prettyWhen = (local: string) => {
     if (!local) return "";
@@ -185,13 +227,19 @@ export default function CookPanel() {
               <input inputMode="numeric" placeholder="10" value={servings} onChange={(e) => setServings(e.target.value)} />
             </div>
           </div>
-          <label>Order by <span className="req">*</span> <span style={{fontWeight:400}}>(orders close at this time)</span></label>
-          <input
-            type="datetime-local"
-            value={orderBy}
-            min={minDateTime()}
-            onChange={(e) => setOrderBy(e.target.value)}
-          />
+          <label>Order by <span className="req">*</span> <span style={{ fontWeight: 400 }}>(orders close at this time)</span></label>
+          <div className="dt-row">
+            <select value={dayPart(orderBy)} onChange={(e) => setDay(e.target.value)}>
+              {dayOptions.map((o) => (
+                <option key={o.value} value={o.value}>{o.label}</option>
+              ))}
+            </select>
+            <select value={timePart(orderBy)} onChange={(e) => setTime(e.target.value)}>
+              {timeOptions(dayPart(orderBy) || dayOptions[0].value).map((o) => (
+                <option key={o.value} value={o.value}>{o.label}</option>
+              ))}
+            </select>
+          </div>
           {orderBy && <span className="when-note">⏰ Orders close {prettyWhen(orderBy)}</span>}
           <label>Photo {editingId ? "(replace, optional)" : "(optional)"}</label>
           <input

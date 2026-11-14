@@ -345,6 +345,17 @@ button.link:hover:not(:disabled) {
   font-weight: 600;
 }
 
+.dt-row {
+  display: flex;
+  gap: 10px;
+}
+
+.dt-row select {
+  flex: 1;
+  min-width: 0;
+  cursor: pointer;
+}
+
 .hint {
   margin: 0;
   font-size: 0.95rem;
