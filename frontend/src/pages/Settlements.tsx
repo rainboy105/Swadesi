@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
+import QRCode from "qrcode";
 import { api, type Settlement } from "../lib/api";
 import AppHeader from "../components/AppHeader";
 
@@ -10,6 +11,18 @@ export default function Settlements() {
   const [total, setTotal] = useState(0);
   const [loading, setLoading] = useState(true);
   const [copied, setCopied] = useState<string | null>(null);
+  const [qr, setQr] = useState<Record<string, string>>({});
+
+  const showQr = async (s: Settlement) => {
+    const url = payUrl(s, "upi://pay");
+    if (!url) return;
+    try {
+      const dataUrl = await QRCode.toDataURL(url, { width: 220, margin: 1 });
+      setQr((m) => ({ ...m, [s.orderId]: dataUrl }));
+    } catch {
+      /* ignore */
+    }
+  };
 
   const load = async () => {
     setLoading(true);
@@ -95,7 +108,14 @@ export default function Settlements() {
                   <div className="pay-apps">
                     <a className="pay-app gpay" href={payUrl(s, "tez://upi/pay")}>GPay</a>
                     <a className="pay-app phonepe" href={payUrl(s, "phonepe://pay")}>PhonePe</a>
-                    <a className="pay-app upi" href={payUrl(s, "upi://pay")}>Other UPI</a>
+                    <button className="pay-app upi" onClick={() => showQr(s)}>Show QR</button>
+                  </div>
+                )}
+                {qr[s.orderId] && (
+                  <div className="qr-box">
+                    <img src={qr[s.orderId]} alt="UPI QR" />
+                    <span className="muted">Scan with any UPI app (another phone), or in your
+                      UPI app use "Pay via QR → upload from gallery".</span>
                   </div>
                 )}
                 <div className="order-row">
