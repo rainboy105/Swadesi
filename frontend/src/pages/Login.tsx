@@ -48,11 +48,18 @@ export default function Login({ onLoggedIn }: { onLoggedIn: (login: LoginRespons
   };
 
   return (
-    <div className="card">
-      <h1>Swadesi</h1>
-      <p className="tagline">Home-cooked food from your own neighbourhood.</p>
-
-      {step === "phone" && (
+    <>
+      <div className="hero">
+        <div className="logo-box">🍲 Swadesi</div>
+        <h2>{step === "phone" ? "Sign in" : "Enter your code"}</h2>
+        <p>
+          {step === "phone"
+            ? "Home-cooked food from your own neighbourhood"
+            : "Check WhatsApp for your login code"}
+        </p>
+      </div>
+      <div className="card">
+        {step === "phone" && (
         <>
           <label htmlFor="phone">WhatsApp number</label>
           <input
@@ -71,7 +78,7 @@ export default function Login({ onLoggedIn }: { onLoggedIn: (login: LoginRespons
         </>
       )}
 
-      {step === "code" && (
+        {step === "code" && (
         <>
           <p className="hint">
             We sent a code on WhatsApp to <strong>{phone}</strong>.{" "}
@@ -107,7 +114,8 @@ export default function Login({ onLoggedIn }: { onLoggedIn: (login: LoginRespons
         </>
       )}
 
-      {error && <p className="error">{error}</p>}
-    </div>
+        {error && <p className="error">{error}</p>}
+      </div>
+    </>
   );
 }

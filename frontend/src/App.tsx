@@ -60,16 +60,24 @@ export default function App() {
       )}
 
       {screen === "home" && (
-        <div className="card">
-          <h1>Namaste{me?.name ? `, ${me.name.split(" ")[0]}` : ""} 👋</h1>
-          <p className="tagline">{me?.addressText}</p>
-          <p className="hint">
-            Food listings near you are coming next — this is the end of the login flow for now.
-          </p>
-          <button className="link" onClick={logout}>
-            Log out
-          </button>
-        </div>
+        <>
+          <div className="hero">
+            <div className="logo-box">🍲 Swadesi</div>
+            <h2>Namaste{me?.name ? `, ${me.name.split(" ")[0]}` : ""} 👋</h2>
+            <p>{me?.addressText}</p>
+          </div>
+          <div className="card">
+            <span className="tile marigold">🥘</span>
+            <h1>Food near you</h1>
+            <p className="hint">
+              Listings from home cooks in your neighbourhood are coming next — this is the end
+              of the login flow for now.
+            </p>
+            <button className="link" onClick={logout}>
+              Log out
+            </button>
+          </div>
+        </>
       )}
     </div>
   );

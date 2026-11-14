@@ -50,11 +50,14 @@ export default function Onboarding({ onDone }: { onDone: (me: Me) => void }) {
   };
 
   return (
-    <div className="card">
-      <h1>Almost there</h1>
-      <p className="tagline">
-        Swadesi shows food cooked near you, so we need to know where you are.
-      </p>
+    <>
+      <div className="hero">
+        <div className="logo-box">🍲 Swadesi</div>
+        <h2>Almost there</h2>
+        <p>Tell us who you are and where you live</p>
+      </div>
+      <div className="card">
+      <span className="chip">📍 Food near you, within walking distance</span>
 
       <label htmlFor="name">Your name</label>
       <input
@@ -82,6 +85,7 @@ export default function Onboarding({ onDone }: { onDone: (me: Me) => void }) {
       </button>
 
       {error && <p className="error">{error}</p>}
-    </div>
+      </div>
+    </>
   );
 }
