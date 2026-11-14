@@ -35,9 +35,16 @@ public class WhatsAppSender {
             @Value("${app.whatsapp.gateway-token:}") String token,
             @Value("${app.whatsapp.sender-session-name:Swadesi}") String sessionName) {
         this.sessionName = sessionName;
+        // "Connection: close" disables keep-alive pooling: the Node gateway closes idle
+        // connections aggressively, so a pooled one is often already dead on reuse
+        // ("failed to respond"). A fresh connection per call is plenty for OTP volume.
         this.client = (baseUrl == null || baseUrl.isBlank())
                 ? null
-                : RestClient.builder().baseUrl(baseUrl).defaultHeader("X-API-Key", token).build();
+                : RestClient.builder()
+                        .baseUrl(baseUrl)
+                        .defaultHeader("X-API-Key", token)
+                        .defaultHeader("Connection", "close")
+                        .build();
     }
 
     public boolean isLive() {
