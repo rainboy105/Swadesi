@@ -40,6 +40,10 @@ public class Listing {
     @Column(name = "ready_by")
     private OffsetDateTime readyBy;
 
+    /** Orders are accepted only until this time (null = no cutoff). */
+    @Column(name = "order_by")
+    private OffsetDateTime orderBy;
+
     @Column(name = "status", nullable = false)
     private String status = "open";
 
@@ -77,6 +81,8 @@ public class Listing {
     public void setServingsClaimed(int servingsClaimed) { this.servingsClaimed = servingsClaimed; }
     public OffsetDateTime getReadyBy() { return readyBy; }
     public void setReadyBy(OffsetDateTime readyBy) { this.readyBy = readyBy; }
+    public OffsetDateTime getOrderBy() { return orderBy; }
+    public void setOrderBy(OffsetDateTime orderBy) { this.orderBy = orderBy; }
     public String getStatus() { return status; }
     public void setStatus(String status) { this.status = status; }
     public double getLat() { return lat; }

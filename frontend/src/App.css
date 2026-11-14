@@ -46,11 +46,28 @@
   box-sizing: border-box;
 }
 
+html,
 body {
   margin: 0;
+  max-width: 100%;
+  overflow-x: hidden; /* never scroll sideways on a phone */
   background: var(--page);
   color: var(--ink-900);
   font-family: var(--font-body);
+}
+
+/* Long words / addresses must wrap, not widen the layout. */
+.listing-main,
+.profile-row,
+.hero {
+  min-width: 0;
+}
+
+strong,
+.meta,
+.muted,
+.dist {
+  overflow-wrap: anywhere;
 }
 
 .shell {
@@ -444,6 +461,69 @@ button.small {
   font-size: 0.9rem;
   border-radius: 999px;
   flex-shrink: 0;
+}
+
+/* Order quantity stepper + place button (consumer feed) */
+.order-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-top: 8px;
+}
+
+.stepper {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  background: var(--card);
+  border-radius: 999px;
+  padding: 2px;
+}
+
+.stepper button {
+  width: 32px;
+  height: 32px;
+  padding: 0;
+  border-radius: 50%;
+  background: var(--violet-100);
+  color: var(--violet-700);
+  font-size: 1.1rem;
+  box-shadow: none;
+}
+
+.stepper span {
+  min-width: 26px;
+  text-align: center;
+  font-weight: 600;
+}
+
+.order-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  flex-shrink: 0;
+}
+
+.orders-block {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  background: var(--sunk);
+  border-radius: 18px;
+  padding: 14px 16px;
+}
+
+/* Keep the card comfortably inside small screens. */
+@media (max-width: 480px) {
+  .shell {
+    padding: 12px 10px;
+  }
+  .hero {
+    padding: 28px 20px 16px;
+  }
+  .card {
+    padding: 8px 18px 24px;
+  }
 }
 
 /* Profile block */

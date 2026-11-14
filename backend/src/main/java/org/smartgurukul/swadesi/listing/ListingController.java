@@ -33,16 +33,18 @@ public class ListingController {
             @Size(max = 500) String description,
             @Min(0) @Max(100000) int pricePerServing,
             @Min(1) @Max(500) int maxServings,
-            OffsetDateTime readyBy) {}
+            OffsetDateTime readyBy,
+            OffsetDateTime orderBy) {}
 
     /** A listing as its own cook sees it. */
     public record ListingResponse(String id, String title, String description, int pricePerServing,
                                   int maxServings, int remaining, OffsetDateTime readyBy,
-                                  String status, OffsetDateTime createdAt) {}
+                                  OffsetDateTime orderBy, String status, OffsetDateTime createdAt) {}
 
     /** A listing in the consumer's vicinity feed, with cook name and distance. */
     public record FeedItem(String id, String title, String description, int pricePerServing,
-                           int remaining, OffsetDateTime readyBy, String cookName, int distanceMeters) {}
+                           int remaining, OffsetDateTime readyBy, OffsetDateTime orderBy,
+                           String cookName, int distanceMeters) {}
 
     private final ListingRepository listings;
     private final UserRepository users;
@@ -76,6 +78,7 @@ public class ListingController {
         l.setMaxServings(req.maxServings());
         l.setServingsClaimed(0);
         l.setReadyBy(req.readyBy());
+        l.setOrderBy(req.orderBy());
         l.setStatus("open");
         l.setLat(cook.getLat());
         l.setLng(cook.getLng());
@@ -127,12 +130,12 @@ public class ListingController {
         double lngDelta = radiusMeters / (111_320.0 * Math.cos(Math.toRadians(lat)));
 
         List<FeedItem> out = new ArrayList<>();
-        for (Listing l : listings.findOpenInBox(me.getId(),
+        for (Listing l : listings.findOpenInBox(me.getId(), OffsetDateTime.now(),
                 lat - latDelta, lat + latDelta, lng - lngDelta, lng + lngDelta)) {
             double d = haversineMeters(lat, lng, l.getLat(), l.getLng());
             if (d <= radiusMeters) {
                 out.add(new FeedItem(l.getId().toString(), l.getTitle(), l.getDescription(),
-                        l.getPricePerServing(), l.remaining(), l.getReadyBy(),
+                        l.getPricePerServing(), l.remaining(), l.getReadyBy(), l.getOrderBy(),
                         l.getCookName(), (int) Math.round(d)));
             }
         }
@@ -143,7 +146,7 @@ public class ListingController {
     private static ListingResponse toResponse(Listing l) {
         return new ListingResponse(l.getId().toString(), l.getTitle(), l.getDescription(),
                 l.getPricePerServing(), l.getMaxServings(), l.remaining(), l.getReadyBy(),
-                l.getStatus(), l.getCreatedAt());
+                l.getOrderBy(), l.getStatus(), l.getCreatedAt());
     }
 
     private static double haversineMeters(double lat1, double lon1, double lat2, double lon2) {

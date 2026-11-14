@@ -98,6 +98,7 @@ export const api = {
     pricePerServing: number;
     maxServings: number;
     readyBy?: string | null;
+    orderBy?: string | null;
   }) => call<Listing>("/api/v1/listings", { method: "POST", body: JSON.stringify(body) }),
   myListings: () => call<Listing[]>("/api/v1/listings/mine"),
   setListingStatus: (id: string, status: "open" | "closed") =>
@@ -106,7 +107,31 @@ export const api = {
       body: JSON.stringify({ status }),
     }),
   nearbyListings: () => call<FeedItem[]>("/api/v1/listings/nearby"),
+
+  placeOrder: (listingId: string, qty: number) =>
+    call<Order>("/api/v1/orders", {
+      method: "POST",
+      body: JSON.stringify({ listingId, qty }),
+    }),
+  myOrders: () => call<Order[]>("/api/v1/orders/mine"),
+  receivedOrders: () => call<Order[]>("/api/v1/orders/received"),
+  setOrderStatus: (id: string, status: "accepted" | "rejected") =>
+    call<Order>(`/api/v1/orders/${id}/status`, {
+      method: "POST",
+      body: JSON.stringify({ status }),
+    }),
 };
+
+export interface Order {
+  id: string;
+  listingId: string;
+  listingTitle: string;
+  qty: number;
+  status: "requested" | "accepted" | "rejected" | "cancelled";
+  cookName: string | null;
+  consumerName: string | null;
+  createdAt: string;
+}
 
 export interface Listing {
   id: string;
@@ -116,6 +141,7 @@ export interface Listing {
   maxServings: number;
   remaining: number;
   readyBy: string | null;
+  orderBy: string | null;
   status: "open" | "closed";
   createdAt: string;
 }
@@ -127,6 +153,7 @@ export interface FeedItem {
   pricePerServing: number;
   remaining: number;
   readyBy: string | null;
+  orderBy: string | null;
   cookName: string | null;
   distanceMeters: number;
 }

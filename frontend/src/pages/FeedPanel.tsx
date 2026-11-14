@@ -1,15 +1,21 @@
 import { useEffect, useState } from "react";
-import { api, type FeedItem } from "../lib/api";
+import { api, type FeedItem, type Order } from "../lib/api";
 
-/** Consumer mode: the vicinity feed of open dishes within walking distance. */
+/** Consumer mode: vicinity feed of open dishes, order with a quantity, and your orders. */
 export default function FeedPanel() {
   const [items, setItems] = useState<FeedItem[]>([]);
+  const [orders, setOrders] = useState<Order[]>([]);
   const [loading, setLoading] = useState(true);
+  const [qty, setQty] = useState<Record<string, number>>({});
+  const [placing, setPlacing] = useState<string | null>(null);
+  const [error, setError] = useState<string | null>(null);
 
   const load = async () => {
     setLoading(true);
     try {
-      setItems(await api.nearbyListings());
+      const [feed, mine] = await Promise.all([api.nearbyListings(), api.myOrders()]);
+      setItems(feed);
+      setOrders(mine);
     } catch {
       /* ignore */
     } finally {
@@ -21,14 +27,39 @@ export default function FeedPanel() {
   }, []);
 
   const distance = (m: number) => (m < 1000 ? `${m} m away` : `${(m / 1000).toFixed(1)} km away`);
+  const timeOf = (iso: string | null) =>
+    iso ? new Date(iso).toLocaleTimeString([], { hour: "numeric", minute: "2-digit" }) : null;
+
+  const order = async (it: FeedItem) => {
+    const n = qty[it.id] ?? 1;
+    setPlacing(it.id);
+    setError(null);
+    try {
+      await api.placeOrder(it.id, n);
+      await load();
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "Could not place the order.");
+    } finally {
+      setPlacing(null);
+    }
+  };
+
+  const statusLabel: Record<Order["status"], string> = {
+    requested: "⏳ Waiting for cook",
+    accepted: "✅ Accepted",
+    rejected: "❌ Declined",
+    cancelled: "Cancelled",
+  };
 
   return (
     <div className="mode-panel">
       <div className="panel-head">
         <span className="tile">🍽️</span>
         <h1>Food near you</h1>
-        <button className="link refresh" onClick={load}>↻</button>
+        <button className="link refresh" onClick={load} aria-label="Refresh">↻</button>
       </div>
+
+      {error && <p className="error">{error}</p>}
 
       {loading ? (
         <p className="hint">Looking for dishes nearby…</p>
@@ -36,17 +67,45 @@ export default function FeedPanel() {
         <p className="hint">No dishes nearby right now. Check back around meal times!</p>
       ) : (
         <div className="list">
-          {items.map((it) => (
-            <div className="listing" key={it.id}>
-              <div className="listing-main">
-                <strong>{it.title}</strong>
-                {it.description && <span className="muted">{it.description}</span>}
-                <span className="meta">
-                  {it.cookName ? `${it.cookName} · ` : ""}₹{it.pricePerServing}/serving · {it.remaining} left
-                </span>
-                <span className="dist">📍 {distance(it.distanceMeters)}</span>
+          {items.map((it) => {
+            const n = qty[it.id] ?? 1;
+            const cutoff = timeOf(it.orderBy);
+            return (
+              <div className="listing" key={it.id}>
+                <div className="listing-main">
+                  <strong>{it.title}</strong>
+                  {it.description && <span className="muted">{it.description}</span>}
+                  <span className="meta">
+                    {it.cookName ? `${it.cookName} · ` : ""}₹{it.pricePerServing}/serving · {it.remaining} left
+                  </span>
+                  <span className="dist">
+                    📍 {distance(it.distanceMeters)}
+                    {cutoff ? ` · order by ${cutoff}` : ""}
+                  </span>
+                  <div className="order-row">
+                    <div className="stepper">
+                      <button onClick={() => setQty({ ...qty, [it.id]: Math.max(1, n - 1) })}>−</button>
+                      <span>{n}</span>
+                      <button onClick={() => setQty({ ...qty, [it.id]: Math.min(it.remaining, n + 1) })}>+</button>
+                    </div>
+                    <button className="small" disabled={placing === it.id} onClick={() => order(it)}>
+                      {placing === it.id ? "…" : "Order"}
+                    </button>
+                  </div>
+                </div>
               </div>
-              <button className="small" disabled title="Ordering coming next">Order</button>
+            );
+          })}
+        </div>
+      )}
+
+      {orders.length > 0 && (
+        <div className="orders-block">
+          <label>Your orders</label>
+          {orders.map((o) => (
+            <div className="profile-row" key={o.id}>
+              <span>{o.qty} × {o.listingTitle}{o.cookName ? ` · ${o.cookName}` : ""}</span>
+              <strong>{statusLabel[o.status]}</strong>
             </div>
           ))}
         </div>
