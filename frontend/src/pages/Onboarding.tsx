@@ -4,13 +4,16 @@ import { api, type Me } from "../lib/api";
 /**
  * First-login details: name + the location used for all vicinity searches
  * (for a cook it is the kitchen; for a consumer, home).
+ *
+ * Address is two lines: line 1 (flat/building) typed by the user, line 2 (area,
+ * city, state, pincode) auto-filled from GPS but editable.
  */
 export default function Onboarding({ onDone }: { onDone: (me: Me) => void }) {
   const [name, setName] = useState("");
-  const [address, setAddress] = useState("");
+  const [flat, setFlat] = useState(""); // line 1 — flat, building, society
+  const [area, setArea] = useState(""); // line 2 — area, city, state, pincode
   const [coords, setCoords] = useState<{ lat: number; lng: number } | null>(null);
   const [locating, setLocating] = useState(false);
-  const [addressEdited, setAddressEdited] = useState(false);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -36,11 +39,8 @@ export default function Onboarding({ onDone }: { onDone: (me: Me) => void }) {
         const lat = pos.coords.latitude;
         const lng = pos.coords.longitude;
         setCoords({ lat, lng });
-        // Auto-fill the address unless the user has already typed their own.
-        if (!addressEdited) {
-          const resolved = await reverseGeocode(lat, lng);
-          if (resolved && !addressEdited) setAddress(resolved);
-        }
+        const resolved = await reverseGeocode(lat, lng);
+        if (resolved) setArea(resolved); // fill line 2
         setLocating(false);
       },
       () => {
@@ -53,12 +53,14 @@ export default function Onboarding({ onDone }: { onDone: (me: Me) => void }) {
 
   const save = async () => {
     if (!name.trim()) return setError("Please tell us your name.");
-    if (!address.trim()) return setError("Please enter your address (flat, building, society).");
+    if (!flat.trim()) return setError("Please enter your flat / building / society.");
+    if (!area.trim()) return setError("Please add your area — tap “Use my location” or type it.");
     if (!coords) return setError('Please tap "Use my location" — we need it to show food near you.');
     setBusy(true);
     setError(null);
     try {
-      const me = await api.onboard(name.trim(), address.trim(), coords.lat, coords.lng);
+      const addressText = `${flat.trim()}, ${area.trim()}`;
+      const me = await api.onboard(name.trim(), addressText, coords.lat, coords.lng);
       onDone(me);
     } catch (e) {
       setError(e instanceof Error ? e.message : "Could not save. Please try again.");
@@ -75,41 +77,46 @@ export default function Onboarding({ onDone }: { onDone: (me: Me) => void }) {
         <p>Tell us who you are and where you live</p>
       </div>
       <div className="card">
-      <span className="chip">📍 Food near you, within walking distance</span>
+        <span className="chip">📍 Food near you, within walking distance</span>
 
-      <label htmlFor="name">Your name</label>
-      <input
-        id="name"
-        placeholder="e.g. Asha Sharma"
-        value={name}
-        autoFocus
-        onChange={(e) => setName(e.target.value)}
-      />
+        <label htmlFor="name">Your name</label>
+        <input
+          id="name"
+          placeholder="e.g. Asha Sharma"
+          value={name}
+          autoFocus
+          onChange={(e) => setName(e.target.value)}
+        />
 
-      <label htmlFor="address">Address (flat, building, society)</label>
-      <input
-        id="address"
-        placeholder="A-402, Green Meadows, Baner"
-        value={address}
-        onChange={(e) => {
-          setAddress(e.target.value);
-          setAddressEdited(true);
-        }}
-      />
+        <label htmlFor="flat">Flat / building / society</label>
+        <input
+          id="flat"
+          placeholder="e.g. A-402, Green Meadows"
+          value={flat}
+          onChange={(e) => setFlat(e.target.value)}
+        />
 
-      <button className="secondary" disabled={locating} onClick={useMyLocation}>
-        {locating
-          ? "Locating…"
-          : coords
-            ? "✓ Location captured — tap to refresh"
-            : "📍 Use my location & fill address"}
-      </button>
+        <label htmlFor="area">Area, city, state, pincode</label>
+        <input
+          id="area"
+          placeholder="Filled from your location"
+          value={area}
+          onChange={(e) => setArea(e.target.value)}
+        />
 
-      <button disabled={busy} onClick={save}>
-        {busy ? "Saving…" : "Finish"}
-      </button>
+        <button className="secondary" disabled={locating} onClick={useMyLocation}>
+          {locating
+            ? "Locating…"
+            : coords
+              ? "✓ Location captured — tap to refresh"
+              : "📍 Use my location & fill area"}
+        </button>
 
-      {error && <p className="error">{error}</p>}
+        <button disabled={busy} onClick={save}>
+          {busy ? "Saving…" : "Finish"}
+        </button>
+
+        {error && <p className="error">{error}</p>}
       </div>
     </>
   );
