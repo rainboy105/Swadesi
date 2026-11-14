@@ -29,7 +29,9 @@ done
 REMOTE=$(cat <<EOF
 #!/bin/bash
 set -euo pipefail
-install -d -m 750 /etc/swadesi /opt/swadesi
+# /opt/swadesi must stay world-readable: root writes the JAR, the service user reads it.
+install -d -m 755 /opt/swadesi
+install -d -m 750 /etc/swadesi
 ENV_FILE=/etc/swadesi/backend.env
 touch "\$ENV_FILE"; chmod 640 "\$ENV_FILE"
 while IFS= read -r line; do
