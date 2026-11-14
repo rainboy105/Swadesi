@@ -76,6 +76,9 @@ export default function FeedPanel() {
             const cutoff = timeOf(it.orderBy);
             return (
               <div className="listing" key={it.id}>
+                {it.hasPhoto && (
+                  <img className="listing-thumb" src={api.listingPhotoUrl(it.id)} alt={it.title} />
+                )}
                 <div className="listing-main">
                   <strong>{it.title}</strong>
                   {it.description && <span className="muted">{it.description}</span>}

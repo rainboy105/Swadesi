@@ -1,5 +1,6 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { api, type Listing, type Order } from "../lib/api";
+import { downscaleToJpeg } from "../lib/image";
 
 /** Cook mode: create a dish (with serving cap + order cutoff), manage listings, handle orders. */
 export default function CookPanel() {
@@ -12,8 +13,11 @@ export default function CookPanel() {
   const [price, setPrice] = useState("");
   const [servings, setServings] = useState("");
   const [orderBy, setOrderBy] = useState("");
+  const [photo, setPhoto] = useState<File | null>(null);
+  const [photoPreview, setPhotoPreview] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const fileRef = useRef<HTMLInputElement>(null);
 
   const load = async () => {
     try {
@@ -39,7 +43,7 @@ export default function CookPanel() {
     setBusy(true);
     setError(null);
     try {
-      await api.createListing({
+      const created = await api.createListing({
         title: title.trim(),
         description: description.trim(),
         pricePerServing: p,
@@ -47,7 +51,16 @@ export default function CookPanel() {
         readyBy: null,
         orderBy: orderBy ? new Date(orderBy).toISOString() : null,
       });
+      if (photo) {
+        try {
+          const blob = await downscaleToJpeg(photo);
+          await api.uploadListingPhoto(created.id, blob);
+        } catch {
+          /* listing is created even if the photo fails */
+        }
+      }
       setTitle(""); setDescription(""); setPrice(""); setServings(""); setOrderBy("");
+      setPhoto(null); setPhotoPreview(null);
       setShowForm(false);
       await load();
     } catch (e) {
@@ -55,6 +68,11 @@ export default function CookPanel() {
     } finally {
       setBusy(false);
     }
+  };
+
+  const pickPhoto = (f: File | null) => {
+    setPhoto(f);
+    setPhotoPreview(f ? URL.createObjectURL(f) : null);
   };
 
   const toggle = async (l: Listing) => {
@@ -113,6 +131,14 @@ export default function CookPanel() {
           </div>
           <label>Order by (optional cutoff)</label>
           <input type="datetime-local" value={orderBy} onChange={(e) => setOrderBy(e.target.value)} />
+          <label>Photo (optional)</label>
+          <input
+            ref={fileRef}
+            type="file"
+            accept="image/*"
+            onChange={(e) => pickPhoto(e.target.files?.[0] ?? null)}
+          />
+          {photoPreview && <img className="photo-preview" src={photoPreview} alt="Dish preview" />}
           <button disabled={busy} onClick={create}>{busy ? "Posting…" : "Post listing"}</button>
           <button className="link" onClick={() => { setShowForm(false); setError(null); }}>Cancel</button>
         </div>
@@ -179,6 +205,9 @@ export default function CookPanel() {
             const cutoff = timeOf(l.orderBy);
             return (
               <div className={`listing ${l.status === "closed" ? "dim" : ""}`} key={l.id}>
+                {l.hasPhoto && (
+                  <img className="listing-thumb" src={api.listingPhotoUrl(l.id)} alt={l.title} />
+                )}
                 <div className="listing-main">
                   <strong>{l.title}</strong>
                   {l.description && <span className="muted">{l.description}</span>}

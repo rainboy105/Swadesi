@@ -107,6 +107,21 @@ export const api = {
       body: JSON.stringify({ status }),
     }),
   nearbyListings: () => call<FeedItem[]>("/api/v1/listings/nearby"),
+  uploadListingPhoto: async (id: string, file: Blob) => {
+    const form = new FormData();
+    form.append("file", file, "dish.jpg");
+    const headers: Record<string, string> = {};
+    const token = getToken();
+    if (token) headers["Authorization"] = `Bearer ${token}`;
+    const resp = await fetch(`${BASE}/api/v1/listings/${id}/photo`, {
+      method: "POST",
+      headers,
+      body: form,
+    });
+    if (!resp.ok) throw new ApiError(resp.status, "Could not upload the photo");
+    return (await resp.json()) as Listing;
+  },
+  listingPhotoUrl: (id: string) => `${BASE}/api/public/listings/${id}/photo`,
 
   placeOrder: (listingId: string, qty: number) =>
     call<Order>("/api/v1/orders", {
@@ -145,6 +160,7 @@ export interface Listing {
   readyBy: string | null;
   orderBy: string | null;
   status: "open" | "closed";
+  hasPhoto: boolean;
   createdAt: string;
 }
 
@@ -158,6 +174,7 @@ export interface FeedItem {
   orderBy: string | null;
   cookName: string | null;
   distanceMeters: number;
+  hasPhoto: boolean;
 }
 
 /** India-first phone normalization for display; the server does the authoritative one. */

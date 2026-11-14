@@ -425,6 +425,26 @@ button.link:hover:not(:disabled) {
   opacity: 0.55;
 }
 
+.listing {
+  align-items: flex-start;
+}
+
+.listing-thumb {
+  width: 64px;
+  height: 64px;
+  border-radius: 14px;
+  object-fit: cover;
+  flex-shrink: 0;
+  background: var(--card);
+}
+
+.photo-preview {
+  width: 100%;
+  max-height: 180px;
+  object-fit: cover;
+  border-radius: 14px;
+}
+
 .listing-main {
   flex: 1;
   display: flex;

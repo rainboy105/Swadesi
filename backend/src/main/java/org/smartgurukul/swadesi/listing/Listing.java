@@ -47,6 +47,9 @@ public class Listing {
     @Column(name = "status", nullable = false)
     private String status = "open";
 
+    @Column(name = "has_photo", nullable = false)
+    private boolean hasPhoto = false;
+
     @Column(name = "lat", nullable = false)
     private double lat;
 
@@ -85,6 +88,8 @@ public class Listing {
     public void setOrderBy(OffsetDateTime orderBy) { this.orderBy = orderBy; }
     public String getStatus() { return status; }
     public void setStatus(String status) { this.status = status; }
+    public boolean isHasPhoto() { return hasPhoto; }
+    public void setHasPhoto(boolean hasPhoto) { this.hasPhoto = hasPhoto; }
     public double getLat() { return lat; }
     public void setLat(double lat) { this.lat = lat; }
     public double getLng() { return lng; }

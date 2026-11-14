@@ -10,6 +10,7 @@ import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
 import java.util.UUID;
+import java.io.IOException;
 import org.smartgurukul.swadesi.security.AuthenticatedUser;
 import org.smartgurukul.swadesi.user.User;
 import org.smartgurukul.swadesi.user.UserRepository;
@@ -21,7 +22,9 @@ import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.multipart.MultipartFile;
 import org.springframework.web.server.ResponseStatusException;
 
 @RestController
@@ -39,22 +42,58 @@ public class ListingController {
     /** A listing as its own cook sees it. */
     public record ListingResponse(String id, String title, String description, int pricePerServing,
                                   int maxServings, int remaining, OffsetDateTime readyBy,
-                                  OffsetDateTime orderBy, String status, OffsetDateTime createdAt) {}
+                                  OffsetDateTime orderBy, String status, boolean hasPhoto,
+                                  OffsetDateTime createdAt) {}
 
     /** A listing in the consumer's vicinity feed, with cook name and distance. */
     public record FeedItem(String id, String title, String description, int pricePerServing,
                            int remaining, OffsetDateTime readyBy, OffsetDateTime orderBy,
-                           String cookName, int distanceMeters) {}
+                           String cookName, int distanceMeters, boolean hasPhoto) {}
 
     private final ListingRepository listings;
+    private final ListingPhotoRepository photos;
     private final UserRepository users;
     private final double radiusMeters;
 
-    public ListingController(ListingRepository listings, UserRepository users,
+    public ListingController(ListingRepository listings, ListingPhotoRepository photos,
+                             UserRepository users,
                              @Value("${swadesi.vicinity.radius-meters:500}") double radiusMeters) {
         this.listings = listings;
+        this.photos = photos;
         this.users = users;
         this.radiusMeters = radiusMeters;
+    }
+
+    /** Cook uploads (or replaces) the dish photo. Stored as bytes; served publicly. */
+    @PostMapping("/{id}/photo")
+    public ListingResponse uploadPhoto(@AuthenticationPrincipal AuthenticatedUser auth,
+                                       @PathVariable UUID id,
+                                       @RequestParam("file") MultipartFile file) {
+        Listing l = listings.findById(id)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Listing not found"));
+        if (!l.getCookId().equals(auth.id())) {
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Not your listing");
+        }
+        String ct = file.getContentType();
+        if (ct == null || !ct.startsWith("image/")) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Please upload an image");
+        }
+        if (file.getSize() > 5_000_000) {
+            throw new ResponseStatusException(HttpStatus.PAYLOAD_TOO_LARGE, "Image too large (max 5 MB)");
+        }
+        try {
+            ListingPhoto p = photos.findById(id).orElseGet(ListingPhoto::new);
+            p.setListingId(id);
+            p.setData(file.getBytes());
+            p.setContentType(ct);
+            p.setCreatedAt(OffsetDateTime.now());
+            photos.save(p);
+        } catch (IOException e) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Could not read the image");
+        }
+        l.setHasPhoto(true);
+        l.setUpdatedAt(OffsetDateTime.now());
+        return toResponse(listings.save(l));
     }
 
     /** Cook creates a listing. Its location is snapshotted from the cook's profile. */
@@ -136,7 +175,7 @@ public class ListingController {
             if (d <= radiusMeters) {
                 out.add(new FeedItem(l.getId().toString(), l.getTitle(), l.getDescription(),
                         l.getPricePerServing(), l.remaining(), l.getReadyBy(), l.getOrderBy(),
-                        l.getCookName(), (int) Math.round(d)));
+                        l.getCookName(), (int) Math.round(d), l.isHasPhoto()));
             }
         }
         out.sort(Comparator.comparingInt(FeedItem::distanceMeters));
@@ -146,7 +185,7 @@ public class ListingController {
     private static ListingResponse toResponse(Listing l) {
         return new ListingResponse(l.getId().toString(), l.getTitle(), l.getDescription(),
                 l.getPricePerServing(), l.getMaxServings(), l.remaining(), l.getReadyBy(),
-                l.getOrderBy(), l.getStatus(), l.getCreatedAt());
+                l.getOrderBy(), l.getStatus(), l.isHasPhoto(), l.getCreatedAt());
     }
 
     private static double haversineMeters(double lat1, double lon1, double lat2, double lon2) {
