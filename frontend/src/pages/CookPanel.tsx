@@ -118,7 +118,8 @@ export default function CookPanel({ me, onMe, view }: {
     setError(null);
   };
 
-  const load = async () => {
+  const fetchData = async (silent = false) => {
+    if (!silent) setLoading(true);
     try {
       const [mine, recv] = await Promise.all([api.myListings(), api.receivedOrders()]);
       setListings(mine);
@@ -126,11 +127,27 @@ export default function CookPanel({ me, onMe, view }: {
     } catch {
       /* ignore */
     } finally {
-      setLoading(false);
+      if (!silent) setLoading(false);
     }
   };
+  const load = () => fetchData(false);
+
+  // Initial load + silent auto-refresh (poll while visible, and on tab focus).
   useEffect(() => {
-    load();
+    fetchData(false);
+    const id = setInterval(() => {
+      if (document.visibilityState === "visible") fetchData(true);
+    }, 12000);
+    const onVisible = () => {
+      if (document.visibilityState === "visible") fetchData(true);
+    };
+    document.addEventListener("visibilitychange", onVisible);
+    window.addEventListener("focus", onVisible);
+    return () => {
+      clearInterval(id);
+      document.removeEventListener("visibilitychange", onVisible);
+      window.removeEventListener("focus", onVisible);
+    };
   }, []);
 
   const submit = async () => {

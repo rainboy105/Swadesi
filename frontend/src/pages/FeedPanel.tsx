@@ -12,8 +12,8 @@ export default function FeedPanel({ view }: { view: "feed" | "orders" }) {
   const [error, setError] = useState<string | null>(null);
   const [selectedId, setSelectedId] = useState<string | null>(null);
 
-  const load = async () => {
-    setLoading(true);
+  const fetchData = async (silent = false) => {
+    if (!silent) setLoading(true);
     try {
       const [feed, mine] = await Promise.all([api.nearbyListings(), api.myOrders()]);
       setItems(feed);
@@ -21,11 +21,27 @@ export default function FeedPanel({ view }: { view: "feed" | "orders" }) {
     } catch {
       /* ignore */
     } finally {
-      setLoading(false);
+      if (!silent) setLoading(false);
     }
   };
+  const load = () => fetchData(false);
+
+  // Initial load + silent auto-refresh (poll while visible, and on tab focus).
   useEffect(() => {
-    load();
+    fetchData(false);
+    const id = setInterval(() => {
+      if (document.visibilityState === "visible") fetchData(true);
+    }, 12000);
+    const onVisible = () => {
+      if (document.visibilityState === "visible") fetchData(true);
+    };
+    document.addEventListener("visibilitychange", onVisible);
+    window.addEventListener("focus", onVisible);
+    return () => {
+      clearInterval(id);
+      document.removeEventListener("visibilitychange", onVisible);
+      window.removeEventListener("focus", onVisible);
+    };
   }, []);
 
   const distance = (m: number) => (m < 1000 ? `${m} m away` : `${(m / 1000).toFixed(1)} km away`);
