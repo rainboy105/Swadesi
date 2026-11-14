@@ -179,6 +179,10 @@ public class OrderController {
         FoodOrder o = orders.findById(id).orElse(null);
         if (o == null || !o.getConsumerId().equals(auth.id())) return;
         if (!"pending_payment".equals(o.getStatus())) return;
+        // Don't cancel if the payment actually went through (UPI timeout can look like a dismiss).
+        Listing l = listings.findById(o.getListingId()).orElse(null);
+        reconcileIfPaid(o, l);
+        if ("requested".equals(o.getStatus())) return; // it was paid after all
         o.setStatus("cancelled");
         o.setUpdatedAt(OffsetDateTime.now());
         orders.save(o);
@@ -194,15 +198,38 @@ public class OrderController {
 
     /** The consumer's own orders (includes the pickup code to show the cook). */
     @GetMapping("/mine")
+    @Transactional
     public List<OrderResponse> mine(@AuthenticationPrincipal AuthenticatedUser auth) {
         List<FoodOrder> mine = orders.findByConsumerIdOrderByCreatedAtDesc(auth.id());
         Map<UUID, Listing> byId = loadListings(mine);
         List<OrderResponse> out = new ArrayList<>();
         for (FoodOrder o : mine) {
             Listing l = byId.get(o.getListingId());
+            reconcileIfPaid(o, l); // flip to paid if Razorpay captured but the browser never confirmed
             out.add(toResponse(o, l, true));
         }
         return out;
+    }
+
+    /**
+     * If a pending order's Razorpay payment is actually captured, mark it paid and notify the
+     * cook. Covers UPI timeouts / closed tabs where checkout showed "failed" but money went through.
+     */
+    private void reconcileIfPaid(FoodOrder o, Listing l) {
+        if (!"pending_payment".equals(o.getStatus()) || o.getRazorpayOrderId() == null) return;
+        String paymentId = razorpay.capturedPaymentId(o.getRazorpayOrderId());
+        if (paymentId == null) return;
+        o.setRazorpayPaymentId(paymentId);
+        o.setPaid(true);
+        o.setStatus("requested");
+        o.setUpdatedAt(OffsetDateTime.now());
+        orders.save(o);
+        if (l != null) {
+            users.findById(l.getCookId()).ifPresent(cook -> notify(cook.getPhone(),
+                    "New Swaadesi order: " + o.getQty() + " × " + l.getTitle()
+                            + (o.getConsumerName() != null ? " from " + o.getConsumerName() : "")
+                            + ". Open the app to accept."));
+        }
     }
 
     /** Orders placed on the cook's own listings (pickup code hidden — the consumer tells it). */

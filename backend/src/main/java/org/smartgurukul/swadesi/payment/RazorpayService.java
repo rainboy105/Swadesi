@@ -86,6 +86,29 @@ public class RazorpayService {
                 (signature == null ? "" : signature).getBytes(StandardCharsets.UTF_8));
     }
 
+    /**
+     * Returns the id of a captured payment for this Razorpay order, or null if none is captured
+     * yet. Used to reconcile orders when the browser never confirmed (UPI timeout, closed tab).
+     */
+    public String capturedPaymentId(String razorpayOrderId) {
+        if (client == null || razorpayOrderId == null || razorpayOrderId.isBlank()) return null;
+        try {
+            JsonNode resp = client.get()
+                    .uri("/orders/{id}/payments", razorpayOrderId)
+                    .retrieve()
+                    .body(JsonNode.class);
+            if (resp == null) return null;
+            for (JsonNode p : resp.path("items")) {
+                if ("captured".equals(p.path("status").asText())) {
+                    return p.path("id").asText(null);
+                }
+            }
+        } catch (Exception e) {
+            log.warn("razorpay reconcile lookup failed for {}: {}", razorpayOrderId, e.getMessage());
+        }
+        return null;
+    }
+
     /** Refund a captured payment (full amount). Best-effort. */
     public void refund(String razorpayPaymentId, int amountPaise) {
         if (client == null) return;
