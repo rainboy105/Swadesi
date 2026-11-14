@@ -76,6 +76,16 @@ export default function FeedPanel() {
             await load();
           },
         },
+        // Show UPI first; the rest of the methods appear below it.
+        config: {
+          display: {
+            blocks: {
+              upi: { name: "Pay by UPI", instruments: [{ method: "upi" }] },
+            },
+            sequence: ["block.upi"],
+            preferences: { show_default_blocks: true },
+          },
+        },
         theme: { color: "#7c3aed" },
       });
       rzp.open();
