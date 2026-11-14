@@ -10,6 +10,7 @@ export default function FeedPanel({ view }: { view: "feed" | "orders" }) {
   const [qty, setQty] = useState<Record<string, number>>({});
   const [placing, setPlacing] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [selectedId, setSelectedId] = useState<string | null>(null);
 
   const load = async () => {
     setLoading(true);
@@ -116,6 +117,59 @@ export default function FeedPanel({ view }: { view: "feed" | "orders" }) {
 
   // ---- Orders view ----
   if (view === "orders") {
+    const selected = orders.find((o) => o.id === selectedId) ?? null;
+    const when = (iso: string) =>
+      new Date(iso).toLocaleString([], { day: "numeric", month: "short", hour: "numeric", minute: "2-digit" });
+
+    // Detail view for a tapped order.
+    if (selected) {
+      const o = selected;
+      const showMap =
+        (o.status === "accepted" || o.status === "preparing" || o.status === "ready") &&
+        o.cookLat != null && o.cookLng != null;
+      return (
+        <div className="mode-panel">
+          <div className="panel-head">
+            <button className="icon-btn small-icon" aria-label="Back" onClick={() => setSelectedId(null)}>
+              <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor"
+                   strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M15 18l-6-6 6-6" /></svg>
+            </button>
+            <h1>Order details</h1>
+          </div>
+
+          <div className="order-card">
+            <div className="order-card-head">
+              <strong>{o.listingTitle}</strong>
+              <span className={`status-pill s-${o.status}`}>{statusLabel[o.status]}</span>
+            </div>
+            <div className="detail-rows">
+              <div className="profile-row"><span>Quantity</span><strong>{o.qty}</strong></div>
+              {o.cookName && <div className="profile-row"><span>Cook</span><strong>{o.cookName}</strong></div>}
+              <div className="profile-row"><span>Ordered</span><strong>{when(o.createdAt)}</strong></div>
+            </div>
+            {o.status === "ready" && o.pickupCode && (
+              <div className="pickup-code">Show this code to the cook: <strong>{o.pickupCode}</strong></div>
+            )}
+            {showMap && (
+              <>
+                <span className="map-caption">📍 Pickup location</span>
+                <PickupMap cookLat={o.cookLat!} cookLng={o.cookLng!} title={o.listingTitle} />
+              </>
+            )}
+            {!showMap && (
+              <p className="hint">
+                {o.status === "requested" ? "Waiting for the cook to accept. The pickup map appears once accepted."
+                  : o.status === "completed" ? "Order picked up. Enjoy your meal! 🍴"
+                  : o.status === "rejected" ? "This order was declined; any payment is refunded."
+                  : ""}
+              </p>
+            )}
+          </div>
+        </div>
+      );
+    }
+
+    // List view: active (highlighted) at top, then past.
     return (
       <div className="mode-panel">
         <div className="panel-head">
@@ -131,43 +185,32 @@ export default function FeedPanel({ view }: { view: "feed" | "orders" }) {
         ) : (
           <>
             {active.length > 0 && (
-              <div className="order-cards">
+              <div className="order-list">
                 <label>Active</label>
                 {active.map((o) => (
-                  <div key={o.id} className="order-card">
-                    <div className="order-card-head">
-                      <strong>{o.listingTitle}</strong>
-                      <span className={`status-pill s-${o.status}`}>{statusLabel[o.status]}</span>
+                  <button key={o.id} className="order-row-btn active" onClick={() => setSelectedId(o.id)}>
+                    <div className="orb-main">
+                      <strong>{o.qty} × {o.listingTitle}</strong>
+                      <span className="muted">{o.cookName ?? ""} · {when(o.createdAt)}</span>
                     </div>
-                    <div className="order-card-meta">
-                      <span>Qty: {o.qty}</span>
-                      {o.cookName && <span>Cook: {o.cookName}</span>}
-                      <span>Ordered {new Date(o.createdAt).toLocaleString([], { day: "numeric", month: "short", hour: "numeric", minute: "2-digit" })}</span>
-                    </div>
-                    {o.status === "ready" && o.pickupCode && (
-                      <div className="pickup-code">
-                        Show this code to the cook: <strong>{o.pickupCode}</strong>
-                      </div>
-                    )}
-                    {(o.status === "accepted" || o.status === "preparing" || o.status === "ready") &&
-                      o.cookLat != null && o.cookLng != null && (
-                        <>
-                          <span className="map-caption">📍 Pickup location — {o.listingTitle}</span>
-                          <PickupMap cookLat={o.cookLat} cookLng={o.cookLng} title={o.listingTitle} />
-                        </>
-                      )}
-                  </div>
+                    <span className={`status-pill s-${o.status}`}>{statusLabel[o.status]}</span>
+                    <span className="chev">›</span>
+                  </button>
                 ))}
               </div>
             )}
             {past.length > 0 && (
-              <div className="orders-block history">
+              <div className="order-list">
                 <label>Past orders</label>
                 {past.map((o) => (
-                  <div className="profile-row" key={o.id}>
-                    <span>{o.qty} × {o.listingTitle}{o.cookName ? ` · ${o.cookName}` : ""}</span>
-                    <strong>{statusLabel[o.status]}</strong>
-                  </div>
+                  <button key={o.id} className="order-row-btn" onClick={() => setSelectedId(o.id)}>
+                    <div className="orb-main">
+                      <strong>{o.qty} × {o.listingTitle}</strong>
+                      <span className="muted">{o.cookName ?? ""} · {when(o.createdAt)}</span>
+                    </div>
+                    <span className="status-pill ghost">{statusLabel[o.status]}</span>
+                    <span className="chev">›</span>
+                  </button>
                 ))}
               </div>
             )}
