@@ -36,18 +36,20 @@ export default function Settlements() {
     }
   };
 
-  const upiLink = (s: Settlement) =>
-    s.cookUpi
-      ? "upi://pay?" +
-        new URLSearchParams({
-          pa: s.cookUpi,
-          pn: s.cookName ?? "Cook",
-          am: (s.amountPaise / 100).toFixed(2),
-          cu: "INR",
-          tn: `Swaadesi ${s.dish}`.slice(0, 50),
-          tr: "SWD" + s.orderId.replace(/-/g, "").slice(0, 20),
-        }).toString()
-      : undefined;
+  // Build a UPI pay URL for a given app scheme. Paytm restricts browser-launched upi:// intents
+  // (the "₹2,000 / scan QR" nag), so we offer GPay (tez://) and PhonePe (phonepe://) which don't.
+  const payUrl = (s: Settlement, scheme: string) => {
+    if (!s.cookUpi) return undefined;
+    const q = new URLSearchParams({
+      pa: s.cookUpi,
+      pn: s.cookName ?? "Cook",
+      am: (s.amountPaise / 100).toFixed(2),
+      cu: "INR",
+      tn: `Swaadesi ${s.dish}`.slice(0, 50),
+      tr: "SWD" + s.orderId.replace(/-/g, "").slice(0, 20),
+    }).toString();
+    return `${scheme}?${q}`;
+  };
 
   return (
     <>
@@ -89,11 +91,15 @@ export default function Settlements() {
                     <span className="meta">UPI: — not set by cook —</span>
                   )}
                 </div>
+                {s.cookUpi && (
+                  <div className="pay-apps">
+                    <a className="pay-app gpay" href={payUrl(s, "tez://upi/pay")}>GPay</a>
+                    <a className="pay-app phonepe" href={payUrl(s, "phonepe://pay")}>PhonePe</a>
+                    <a className="pay-app upi" href={payUrl(s, "upi://pay")}>Other UPI</a>
+                  </div>
+                )}
                 <div className="order-row">
-                  {upiLink(s) && (
-                    <a className="map-dir" href={upiLink(s)}>Pay via UPI</a>
-                  )}
-                  <button className="secondary small" onClick={() => markPaid(s.orderId)}>
+                  <button className="small" onClick={() => markPaid(s.orderId)}>
                     Mark paid
                   </button>
                 </div>

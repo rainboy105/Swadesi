@@ -738,6 +738,30 @@ button.small {
   margin-top: 2px;
 }
 
+.pay-apps {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  margin-top: 8px;
+}
+
+.pay-app {
+  flex: 1;
+  min-width: 90px;
+  text-align: center;
+  padding: 10px 12px;
+  border-radius: 999px;
+  font-family: var(--font-display);
+  font-weight: 600;
+  font-size: 0.9rem;
+  text-decoration: none;
+  color: #fff;
+}
+
+.pay-app.gpay { background: #1a73e8; }
+.pay-app.phonepe { background: #5f259f; }
+.pay-app.upi { background: var(--ink-600); }
+
 .form-title {
   font-family: var(--font-display);
   font-size: 1.1rem;
