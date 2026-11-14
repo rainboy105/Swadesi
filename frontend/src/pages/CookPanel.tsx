@@ -20,16 +20,31 @@ export default function CookPanel() {
   const [error, setError] = useState<string | null>(null);
   const fileRef = useRef<HTMLInputElement>(null);
 
-  const toLocalInput = (iso: string | null) => {
-    if (!iso) return "";
-    const d = new Date(iso);
+  const fmtLocal = (d: Date) => {
     const p = (n: number) => String(n).padStart(2, "0");
     return `${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())}T${p(d.getHours())}:${p(d.getMinutes())}`;
+  };
+  const toLocalInput = (iso: string | null) => (iso ? fmtLocal(new Date(iso)) : "");
+  // Earliest selectable time = 5 minutes from now (no past cutoffs).
+  const minDateTime = () => fmtLocal(new Date(Date.now() + 5 * 60 * 1000));
+  // Sensible default when opening a fresh listing: 3 hours from now.
+  const defaultOrderBy = () => fmtLocal(new Date(Date.now() + 3 * 60 * 60 * 1000));
+
+  const prettyWhen = (local: string) => {
+    if (!local) return "";
+    const d = new Date(local);
+    return d.toLocaleString([], { weekday: "short", day: "numeric", month: "short", hour: "numeric", minute: "2-digit" });
   };
 
   const resetForm = () => {
     setTitle(""); setDescription(""); setPrice(""); setServings(""); setOrderBy("");
     setPhoto(null); setPhotoPreview(null); setEditingId(null); setError(null);
+  };
+
+  const openCreate = () => {
+    resetForm();
+    setOrderBy(defaultOrderBy());
+    setShowForm(true);
   };
 
   const startEdit = (l: Listing) => {
@@ -66,6 +81,7 @@ export default function CookPanel() {
     if (!Number.isFinite(p) || p < 0) return setError("Enter a price per serving (₹).");
     if (!Number.isFinite(s) || s < 1) return setError("How many servings can you make?");
     if (!orderBy) return setError("Set an order-by time (the cutoff for orders).");
+    if (new Date(orderBy).getTime() <= Date.now()) return setError("Order-by time must be in the future.");
     setBusy(true);
     setError(null);
     const body = {
@@ -150,7 +166,7 @@ export default function CookPanel() {
         <h1>Your kitchen</h1>
       </div>
 
-      {!showForm && <button onClick={() => { resetForm(); setShowForm(true); }}>+ List a dish</button>}
+      {!showForm && <button onClick={openCreate}>+ List a dish</button>}
 
       {showForm && (
         <div className="form-block">
@@ -170,7 +186,13 @@ export default function CookPanel() {
             </div>
           </div>
           <label>Order by <span className="req">*</span> <span style={{fontWeight:400}}>(orders close at this time)</span></label>
-          <input type="datetime-local" value={orderBy} onChange={(e) => setOrderBy(e.target.value)} />
+          <input
+            type="datetime-local"
+            value={orderBy}
+            min={minDateTime()}
+            onChange={(e) => setOrderBy(e.target.value)}
+          />
+          {orderBy && <span className="when-note">⏰ Orders close {prettyWhen(orderBy)}</span>}
           <label>Photo {editingId ? "(replace, optional)" : "(optional)"}</label>
           <input
             ref={fileRef}

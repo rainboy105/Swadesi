@@ -337,6 +337,12 @@ button.link:hover:not(:disabled) {
   margin-left: 2px;
 }
 
+.when-note {
+  color: var(--violet-700);
+  font-size: 0.9rem;
+  font-weight: 600;
+}
+
 .hint {
   margin: 0;
   font-size: 0.95rem;

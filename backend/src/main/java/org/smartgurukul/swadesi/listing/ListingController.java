@@ -107,6 +107,9 @@ public class ListingController {
                     "Set your location first (finish onboarding) before listing food.");
         }
         OffsetDateTime now = OffsetDateTime.now();
+        if (req.orderBy() != null && !req.orderBy().isAfter(now)) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Order-by time must be in the future.");
+        }
         Listing l = new Listing();
         l.setId(UUID.randomUUID());
         l.setCookId(cook.getId());
@@ -169,6 +172,9 @@ public class ListingController {
         if (req.maxServings() < l.getServingsClaimed()) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST,
                     "Servings can't be less than the " + l.getServingsClaimed() + " already ordered");
+        }
+        if (req.orderBy() != null && !req.orderBy().isAfter(OffsetDateTime.now())) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Order-by time must be in the future.");
         }
         l.setTitle(req.title().trim());
         l.setDescription(req.description() == null ? null : req.description().trim());
