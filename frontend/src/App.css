@@ -209,22 +209,29 @@ textarea {
   padding: 14px 16px;
   font-size: 1rem;
   font-family: var(--font-body);
-  border: 1.5px solid var(--line);
+  border: 1.5px solid #c9c0df;
   border-radius: 14px;
-  background: #ffffff;
+  background: #f6f3fc;
   color: var(--ink-900);
+  transition: border-color 0.12s ease, box-shadow 0.12s ease, background 0.12s ease;
 }
 
 input::placeholder {
   color: var(--ink-400);
 }
 
+input:hover,
+select:hover,
+textarea:hover {
+  border-color: var(--violet-400, #a78bfa);
+}
+
 input:focus,
 select:focus,
 textarea:focus {
   outline: none;
-  border-color: var(--violet-500);
-  box-shadow: 0 0 0 3px rgba(139, 92, 246, 0.15);
+  border-color: var(--violet-600);
+  box-shadow: 0 0 0 3px rgba(124, 58, 237, 0.18);
   background: #ffffff;
 }
 
