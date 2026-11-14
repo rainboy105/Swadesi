@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { api, type FeedItem, type Order, type OrderStatus } from "../lib/api";
+import PickupMap from "../components/PickupMap";
 
 /** Consumer mode: vicinity feed of open dishes, order with a quantity, and your orders. */
 export default function FeedPanel() {
@@ -124,6 +125,10 @@ export default function FeedPanel() {
                   Show this code to the cook: <strong>{o.pickupCode}</strong>
                 </div>
               )}
+              {(o.status === "accepted" || o.status === "preparing" || o.status === "ready") &&
+                o.cookLat != null && o.cookLng != null && (
+                  <PickupMap cookLat={o.cookLat} cookLng={o.cookLng} title={o.listingTitle} />
+                )}
             </div>
           ))}
         </div>

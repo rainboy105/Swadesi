@@ -166,6 +166,8 @@ export interface Order {
   cookName: string | null;
   consumerName: string | null;
   pickupCode: string | null;
+  cookLat: number | null;
+  cookLng: number | null;
   createdAt: string;
 }
 

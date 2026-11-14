@@ -39,7 +39,8 @@ public class OrderController {
 
     public record OrderResponse(String id, String listingId, String listingTitle, int qty,
                                 String status, String cookName, String consumerName,
-                                String pickupCode, OffsetDateTime createdAt) {}
+                                String pickupCode, Double cookLat, Double cookLng,
+                                OffsetDateTime createdAt) {}
 
     public record StatusRequest(String status, String pickupCode) {}
 
@@ -109,7 +110,7 @@ public class OrderController {
                         + (consumer.getName() != null ? " from " + consumer.getName() : "")
                         + ". Open the app to accept."));
 
-        return toResponse(o, l.getTitle(), l.getCookName(), true); // consumer sees their pickup code
+        return toResponse(o, l, true); // consumer sees their pickup code + location
     }
 
     /** The consumer's own orders (includes the pickup code to show the cook). */
@@ -120,7 +121,7 @@ public class OrderController {
         List<OrderResponse> out = new ArrayList<>();
         for (FoodOrder o : mine) {
             Listing l = byId.get(o.getListingId());
-            out.add(toResponse(o, l == null ? "(dish)" : l.getTitle(), l == null ? null : l.getCookName(), true));
+            out.add(toResponse(o, l, true));
         }
         return out;
     }
@@ -135,7 +136,7 @@ public class OrderController {
         List<OrderResponse> out = new ArrayList<>();
         for (FoodOrder o : orders.findByListingIdInOrderByCreatedAtDesc(byId.keySet())) {
             Listing l = byId.get(o.getListingId());
-            out.add(toResponse(o, l == null ? "(dish)" : l.getTitle(), l == null ? null : l.getCookName(), false));
+            out.add(toResponse(o, l, false));
         }
         return out;
     }
@@ -188,7 +189,7 @@ public class OrderController {
         };
         notify(o.getConsumerPhone(), msg);
 
-        return toResponse(o, l.getTitle(), l.getCookName(), false);
+        return toResponse(o, l, false);
     }
 
     private Map<UUID, Listing> loadListings(List<FoodOrder> os) {
@@ -207,11 +208,19 @@ public class OrderController {
         }
     }
 
-    private static OrderResponse toResponse(FoodOrder o, String title, String cookName, boolean includeCode) {
+    private static OrderResponse toResponse(FoodOrder o, Listing l, boolean includeCode) {
+        String title = l == null ? "(dish)" : l.getTitle();
+        String cookName = l == null ? null : l.getCookName();
+        String st = o.getStatus();
         // The pickup code is revealed to the consumer only once the order is ready (or picked up).
-        boolean reveal = includeCode && ("ready".equals(o.getStatus()) || "completed".equals(o.getStatus()));
+        boolean revealCode = includeCode && ("ready".equals(st) || "completed".equals(st));
+        // The cook's pickup location is shown to the consumer once the order is accepted.
+        boolean revealLoc = includeCode && l != null
+                && ("accepted".equals(st) || "preparing".equals(st) || "ready".equals(st) || "completed".equals(st));
         return new OrderResponse(o.getId().toString(), o.getListingId().toString(), title,
-                o.getQty(), o.getStatus(), cookName, o.getConsumerName(),
-                reveal ? o.getPickupCode() : null, o.getCreatedAt());
+                o.getQty(), st, cookName, o.getConsumerName(),
+                revealCode ? o.getPickupCode() : null,
+                revealLoc ? l.getLat() : null, revealLoc ? l.getLng() : null,
+                o.getCreatedAt());
     }
 }

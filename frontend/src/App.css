@@ -654,6 +654,49 @@ button.small {
   flex-direction: column;
 }
 
+.pickup-map {
+  margin-top: 10px;
+  border-radius: 16px;
+  overflow: hidden;
+  border: 1.5px solid var(--line);
+}
+
+.map-canvas {
+  width: 100%;
+  height: 200px;
+}
+
+.map-canvas .leaflet-container {
+  height: 100%;
+  width: 100%;
+}
+
+.map-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 10px 14px;
+  background: var(--sunk);
+}
+
+.map-dist {
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: var(--ink-900);
+}
+
+.map-dir {
+  background: var(--violet-600);
+  color: #fff;
+  font-family: var(--font-display);
+  font-weight: 600;
+  font-size: 0.9rem;
+  padding: 8px 14px;
+  border-radius: 999px;
+  text-decoration: none;
+}
+
 .profile-head {
   display: flex;
   align-items: center;
