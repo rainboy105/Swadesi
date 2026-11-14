@@ -50,7 +50,7 @@ export default function Login({ onLoggedIn }: { onLoggedIn: (login: LoginRespons
   return (
     <>
       <div className="hero">
-        <div className="logo-box">🍲 Swadesi</div>
+        <div className="logo-box">🍲 Swaadeshi</div>
         <h2>{step === "phone" ? "Sign in" : "Enter your code"}</h2>
         <p>
           {step === "phone"

@@ -62,7 +62,7 @@ export default function App() {
       {screen === "home" && (
         <>
           <div className="hero">
-            <div className="logo-box">🍲 Swadesi</div>
+            <div className="logo-box">🍲 Swaadeshi</div>
             <h2>Namaste{me?.name ? `, ${me.name.split(" ")[0]}` : ""} 👋</h2>
             <p>{me?.addressText}</p>
           </div>
