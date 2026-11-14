@@ -61,6 +61,10 @@ jobs:
           SPRING_DATASOURCE_PASSWORD: ${{ secrets.SPRING_DATASOURCE_PASSWORD }}
           APP_JWT_SECRET: ${{ secrets.APP_JWT_SECRET }}
           CORS_ALLOWED_ORIGINS: ${{ secrets.CORS_ALLOWED_ORIGINS }}
+          # Self-hosted WhatsApp gateway on the same box. Blank keeps the value on the box.
+          WHATSAPP_GATEWAY_URL: ${{ secrets.WHATSAPP_GATEWAY_URL }}
+          WHATSAPP_GATEWAY_TOKEN: ${{ secrets.WHATSAPP_GATEWAY_TOKEN }}
+          WHATSAPP_SENDER_SESSION_NAME: ${{ secrets.WHATSAPP_SENDER_SESSION_NAME }}
         run: bash deploy/aws/send-ssm-deploy.sh
 
       - name: Smoke test (public health)
