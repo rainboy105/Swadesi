@@ -36,6 +36,7 @@ export default function FeedPanel() {
     setError(null);
     try {
       await api.placeOrder(it.id, n);
+      setQty((q) => ({ ...q, [it.id]: 1 })); // reset count back to 1
       await load();
     } catch (e) {
       setError(e instanceof Error ? e.message : "Could not place the order.");
@@ -94,11 +95,11 @@ export default function FeedPanel() {
                   </span>
                   <div className="order-row">
                     <div className="stepper">
-                      <button onClick={() => setQty({ ...qty, [it.id]: Math.max(1, n - 1) })}>−</button>
+                      <button disabled={n <= 1} onClick={() => setQty({ ...qty, [it.id]: Math.max(1, n - 1) })}>−</button>
                       <span>{n}</span>
-                      <button onClick={() => setQty({ ...qty, [it.id]: Math.min(it.remaining, n + 1) })}>+</button>
+                      <button disabled={n >= it.remaining} onClick={() => setQty({ ...qty, [it.id]: Math.min(it.remaining, n + 1) })}>+</button>
                     </div>
-                    <button className="small" disabled={placing === it.id} onClick={() => order(it)}>
+                    <button className="small" disabled={placing === it.id || it.remaining < 1} onClick={() => order(it)}>
                       {placing === it.id ? "…" : "Order"}
                     </button>
                   </div>

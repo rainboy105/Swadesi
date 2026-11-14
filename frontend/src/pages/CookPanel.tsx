@@ -15,9 +15,34 @@ export default function CookPanel() {
   const [orderBy, setOrderBy] = useState("");
   const [photo, setPhoto] = useState<File | null>(null);
   const [photoPreview, setPhotoPreview] = useState<string | null>(null);
+  const [editingId, setEditingId] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const fileRef = useRef<HTMLInputElement>(null);
+
+  const toLocalInput = (iso: string | null) => {
+    if (!iso) return "";
+    const d = new Date(iso);
+    const p = (n: number) => String(n).padStart(2, "0");
+    return `${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())}T${p(d.getHours())}:${p(d.getMinutes())}`;
+  };
+
+  const resetForm = () => {
+    setTitle(""); setDescription(""); setPrice(""); setServings(""); setOrderBy("");
+    setPhoto(null); setPhotoPreview(null); setEditingId(null); setError(null);
+  };
+
+  const startEdit = (l: Listing) => {
+    setEditingId(l.id);
+    setTitle(l.title);
+    setDescription(l.description ?? "");
+    setPrice(String(l.pricePerServing));
+    setServings(String(l.maxServings));
+    setOrderBy(toLocalInput(l.orderBy));
+    setPhoto(null); setPhotoPreview(null);
+    setShowForm(true);
+    setError(null);
+  };
 
   const load = async () => {
     try {
@@ -34,7 +59,7 @@ export default function CookPanel() {
     load();
   }, []);
 
-  const create = async () => {
+  const submit = async () => {
     const p = parseInt(price, 10);
     const s = parseInt(servings, 10);
     if (!title.trim()) return setError("What are you cooking?");
@@ -43,29 +68,35 @@ export default function CookPanel() {
     if (!orderBy) return setError("Set an order-by time (the cutoff for orders).");
     setBusy(true);
     setError(null);
+    const body = {
+      title: title.trim(),
+      description: description.trim(),
+      pricePerServing: p,
+      maxServings: s,
+      readyBy: null,
+      orderBy: new Date(orderBy).toISOString(),
+    };
     try {
-      const created = await api.createListing({
-        title: title.trim(),
-        description: description.trim(),
-        pricePerServing: p,
-        maxServings: s,
-        readyBy: null,
-        orderBy: new Date(orderBy).toISOString(),
-      });
-      if (photo) {
-        try {
-          const blob = await downscaleToJpeg(photo);
-          await api.uploadListingPhoto(created.id, blob);
-        } catch {
-          /* listing is created even if the photo fails */
+      if (editingId) {
+        await api.updateListing(editingId, body);
+        if (photo) {
+          try {
+            await api.uploadListingPhoto(editingId, await downscaleToJpeg(photo));
+          } catch { /* keep listing even if photo fails */ }
+        }
+      } else {
+        const created = await api.createListing(body);
+        if (photo) {
+          try {
+            await api.uploadListingPhoto(created.id, await downscaleToJpeg(photo));
+          } catch { /* keep listing even if photo fails */ }
         }
       }
-      setTitle(""); setDescription(""); setPrice(""); setServings(""); setOrderBy("");
-      setPhoto(null); setPhotoPreview(null);
+      resetForm();
       setShowForm(false);
       await load();
     } catch (e) {
-      setError(e instanceof Error ? e.message : "Could not post. Try again.");
+      setError(e instanceof Error ? e.message : "Could not save. Try again.");
     } finally {
       setBusy(false);
     }
@@ -119,10 +150,11 @@ export default function CookPanel() {
         <h1>Your kitchen</h1>
       </div>
 
-      {!showForm && <button onClick={() => setShowForm(true)}>+ List a dish</button>}
+      {!showForm && <button onClick={() => { resetForm(); setShowForm(true); }}>+ List a dish</button>}
 
       {showForm && (
         <div className="form-block">
+          {editingId && <strong className="form-title">Edit dish</strong>}
           <label>Dish</label>
           <input placeholder="e.g. Veg Thali" value={title} onChange={(e) => setTitle(e.target.value)} autoFocus />
           <label>Description (optional)</label>
@@ -139,7 +171,7 @@ export default function CookPanel() {
           </div>
           <label>Order by (orders close at this time)</label>
           <input type="datetime-local" value={orderBy} onChange={(e) => setOrderBy(e.target.value)} />
-          <label>Photo (optional)</label>
+          <label>Photo {editingId ? "(replace, optional)" : "(optional)"}</label>
           <input
             ref={fileRef}
             type="file"
@@ -147,8 +179,10 @@ export default function CookPanel() {
             onChange={(e) => pickPhoto(e.target.files?.[0] ?? null)}
           />
           {photoPreview && <img className="photo-preview" src={photoPreview} alt="Dish preview" />}
-          <button disabled={busy} onClick={create}>{busy ? "Posting…" : "Post listing"}</button>
-          <button className="link" onClick={() => { setShowForm(false); setError(null); }}>Cancel</button>
+          <button disabled={busy} onClick={submit}>
+            {busy ? "Saving…" : editingId ? "Save changes" : "Post listing"}
+          </button>
+          <button className="link" onClick={() => { resetForm(); setShowForm(false); }}>Cancel</button>
         </div>
       )}
 
@@ -239,7 +273,7 @@ export default function CookPanel() {
           {listings.map((l) => {
             const cutoff = timeOf(l.orderBy);
             return (
-              <div className={`listing ${l.status === "closed" ? "dim" : ""}`} key={l.id}>
+              <div className={`listing ${l.status === "closed" || l.expired ? "dim" : ""}`} key={l.id}>
                 {l.hasPhoto && (
                   <img className="listing-thumb" src={api.listingPhotoUrl(l.id)} alt={l.title} />
                 )}
@@ -249,12 +283,22 @@ export default function CookPanel() {
                   <span className="meta">
                     ₹{l.pricePerServing}/serving · {l.remaining}/{l.maxServings} left
                     {cutoff ? ` · order by ${cutoff}` : ""}
-                    {l.status === "closed" ? " · closed" : ""}
+                    {l.expired ? " · order time passed" : l.status === "closed" ? " · closed" : ""}
                   </span>
                 </div>
-                <button className="secondary small" onClick={() => toggle(l)}>
-                  {l.status === "open" ? "Close" : "Reopen"}
-                </button>
+                <div className="order-actions">
+                  <button className="icon-btn small-icon" aria-label="Edit dish" onClick={() => startEdit(l)}>
+                    <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor"
+                         strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                      <path d="M12 20h9" /><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4Z" />
+                    </svg>
+                  </button>
+                  {!l.expired && (
+                    <button className="secondary small" onClick={() => toggle(l)}>
+                      {l.status === "open" ? "Close" : "Reopen"}
+                    </button>
+                  )}
+                </div>
               </div>
             );
           })}

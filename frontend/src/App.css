@@ -630,6 +630,17 @@ button.small {
   justify-content: space-between;
 }
 
+.form-title {
+  font-family: var(--font-display);
+  font-size: 1.1rem;
+  color: var(--ink-900);
+}
+
+.icon-btn.small-icon {
+  width: 38px;
+  height: 38px;
+}
+
 .orders-block.history .profile-row strong {
   color: var(--ink-600);
   font-weight: 500;

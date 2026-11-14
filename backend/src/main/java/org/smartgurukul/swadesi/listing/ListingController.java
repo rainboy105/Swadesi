@@ -39,11 +39,11 @@ public class ListingController {
             OffsetDateTime readyBy,
             OffsetDateTime orderBy) {}
 
-    /** A listing as its own cook sees it. */
+    /** A listing as its own cook sees it. {@code expired} = past its order cutoff. */
     public record ListingResponse(String id, String title, String description, int pricePerServing,
                                   int maxServings, int remaining, OffsetDateTime readyBy,
                                   OffsetDateTime orderBy, String status, boolean hasPhoto,
-                                  OffsetDateTime createdAt) {}
+                                  boolean expired, OffsetDateTime createdAt) {}
 
     /** A listing in the consumer's vicinity feed, with cook name and distance. */
     public record FeedItem(String id, String title, String description, int pricePerServing,
@@ -133,7 +133,7 @@ public class ListingController {
                 .map(ListingController::toResponse).toList();
     }
 
-    /** Close (or reopen) one of the cook's own listings. */
+    /** Close (or reopen) one of the cook's own listings. A listing past its cutoff can't reopen. */
     @PostMapping("/{id}/status")
     public ListingResponse setStatus(@AuthenticationPrincipal AuthenticatedUser auth,
                                      @PathVariable UUID id,
@@ -147,12 +147,44 @@ public class ListingController {
         if (!s.equals("open") && !s.equals("closed")) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "status must be 'open' or 'closed'");
         }
+        if (s.equals("open") && isExpired(l)) {
+            throw new ResponseStatusException(HttpStatus.CONFLICT,
+                    "The order time has passed — this dish can't be reopened. Create a new listing.");
+        }
         l.setStatus(s);
         l.setUpdatedAt(OffsetDateTime.now());
         return toResponse(listings.save(l));
     }
 
+    /** Edit one of the cook's own listings. Max servings can't drop below what's already claimed. */
+    @org.springframework.web.bind.annotation.PutMapping("/{id}")
+    public ListingResponse update(@AuthenticationPrincipal AuthenticatedUser auth,
+                                  @PathVariable UUID id,
+                                  @Valid @RequestBody CreateRequest req) {
+        Listing l = listings.findById(id)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Listing not found"));
+        if (!l.getCookId().equals(auth.id())) {
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Not your listing");
+        }
+        if (req.maxServings() < l.getServingsClaimed()) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST,
+                    "Servings can't be less than the " + l.getServingsClaimed() + " already ordered");
+        }
+        l.setTitle(req.title().trim());
+        l.setDescription(req.description() == null ? null : req.description().trim());
+        l.setPricePerServing(req.pricePerServing());
+        l.setMaxServings(req.maxServings());
+        l.setReadyBy(req.readyBy());
+        l.setOrderBy(req.orderBy());
+        l.setUpdatedAt(OffsetDateTime.now());
+        return toResponse(listings.save(l));
+    }
+
     public record StatusRequest(String status) {}
+
+    private static boolean isExpired(Listing l) {
+        return l.getOrderBy() != null && !l.getOrderBy().isAfter(OffsetDateTime.now());
+    }
 
     /** The vicinity feed: open listings within the radius of the viewer's location. */
     @GetMapping("/nearby")
@@ -185,7 +217,7 @@ public class ListingController {
     private static ListingResponse toResponse(Listing l) {
         return new ListingResponse(l.getId().toString(), l.getTitle(), l.getDescription(),
                 l.getPricePerServing(), l.getMaxServings(), l.remaining(), l.getReadyBy(),
-                l.getOrderBy(), l.getStatus(), l.isHasPhoto(), l.getCreatedAt());
+                l.getOrderBy(), l.getStatus(), l.isHasPhoto(), isExpired(l), l.getCreatedAt());
     }
 
     private static double haversineMeters(double lat1, double lon1, double lat2, double lon2) {

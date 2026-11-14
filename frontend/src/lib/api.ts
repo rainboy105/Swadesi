@@ -100,6 +100,17 @@ export const api = {
     readyBy?: string | null;
     orderBy?: string | null;
   }) => call<Listing>("/api/v1/listings", { method: "POST", body: JSON.stringify(body) }),
+  updateListing: (
+    id: string,
+    body: {
+      title: string;
+      description: string;
+      pricePerServing: number;
+      maxServings: number;
+      readyBy?: string | null;
+      orderBy?: string | null;
+    },
+  ) => call<Listing>(`/api/v1/listings/${id}`, { method: "PUT", body: JSON.stringify(body) }),
   myListings: () => call<Listing[]>("/api/v1/listings/mine"),
   setListingStatus: (id: string, status: "open" | "closed") =>
     call<Listing>(`/api/v1/listings/${id}/status`, {
@@ -169,6 +180,7 @@ export interface Listing {
   orderBy: string | null;
   status: "open" | "closed";
   hasPhoto: boolean;
+  expired: boolean;
   createdAt: string;
 }
 
