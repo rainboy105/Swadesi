@@ -725,6 +725,19 @@ button.small {
   padding: 10px 14px;
 }
 
+.copy-upi {
+  width: auto;
+  align-self: flex-start;
+  background: var(--violet-100);
+  color: var(--violet-700);
+  font-size: 0.82rem;
+  font-weight: 600;
+  padding: 5px 10px;
+  border-radius: 8px;
+  box-shadow: none;
+  margin-top: 2px;
+}
+
 .form-title {
   font-family: var(--font-display);
   font-size: 1.1rem;
