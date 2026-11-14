@@ -135,10 +135,23 @@ export const api = {
   listingPhotoUrl: (id: string) => `${BASE}/api/public/listings/${id}/photo`,
 
   placeOrder: (listingId: string, qty: number) =>
-    call<Order>("/api/v1/orders", {
+    call<PlaceResponse>("/api/v1/orders", {
       method: "POST",
       body: JSON.stringify({ listingId, qty }),
     }),
+  verifyPayment: (
+    orderId: string,
+    p: { razorpayOrderId: string; razorpayPaymentId: string; razorpaySignature: string },
+  ) =>
+    call<Order>(`/api/v1/orders/${orderId}/verify-payment`, {
+      method: "POST",
+      body: JSON.stringify(p),
+    }),
+  cancelUnpaidOrder: (orderId: string) =>
+    fetch(`${BASE}/api/v1/orders/${orderId}/cancel-unpaid`, {
+      method: "POST",
+      headers: getToken() ? { Authorization: `Bearer ${getToken()}` } : {},
+    }).catch(() => undefined),
   myOrders: () => call<Order[]>("/api/v1/orders/mine"),
   receivedOrders: () => call<Order[]>("/api/v1/orders/received"),
   setOrderStatus: (id: string, status: OrderStatus, pickupCode?: string) =>
@@ -149,6 +162,7 @@ export const api = {
 };
 
 export type OrderStatus =
+  | "pending_payment"
   | "requested"
   | "accepted"
   | "preparing"
@@ -156,6 +170,16 @@ export type OrderStatus =
   | "completed"
   | "rejected"
   | "cancelled";
+
+export interface PlaceResponse {
+  order: Order;
+  paymentRequired: boolean;
+  razorpayOrderId: string | null;
+  razorpayKeyId: string | null;
+  amountPaise: number | null;
+  currency: string | null;
+  dish: string | null;
+}
 
 export interface Order {
   id: string;

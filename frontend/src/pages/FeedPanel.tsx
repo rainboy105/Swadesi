@@ -36,9 +36,49 @@ export default function FeedPanel() {
     setPlacing(it.id);
     setError(null);
     try {
-      await api.placeOrder(it.id, n);
-      setQty((q) => ({ ...q, [it.id]: 1 })); // reset count back to 1
-      await load();
+      const res = await api.placeOrder(it.id, n);
+      if (!res.paymentRequired) {
+        setQty((q) => ({ ...q, [it.id]: 1 }));
+        await load();
+        return;
+      }
+      // Payment required: open Razorpay checkout.
+      const Razorpay = (window as unknown as { Razorpay?: new (o: unknown) => { open: () => void } }).Razorpay;
+      if (!Razorpay) {
+        setError("Payment couldn't load. Please retry.");
+        await api.cancelUnpaidOrder(res.order.id);
+        return;
+      }
+      const rzp = new Razorpay({
+        key: res.razorpayKeyId,
+        order_id: res.razorpayOrderId,
+        amount: res.amountPaise,
+        currency: res.currency ?? "INR",
+        name: "Swaadesi",
+        description: `${n} × ${res.dish ?? it.title}`,
+        handler: async (r: { razorpay_order_id: string; razorpay_payment_id: string; razorpay_signature: string }) => {
+          try {
+            await api.verifyPayment(res.order.id, {
+              razorpayOrderId: r.razorpay_order_id,
+              razorpayPaymentId: r.razorpay_payment_id,
+              razorpaySignature: r.razorpay_signature,
+            });
+            setQty((q) => ({ ...q, [it.id]: 1 }));
+          } catch {
+            setError("Payment taken but verification failed — contact support.");
+          } finally {
+            await load();
+          }
+        },
+        modal: {
+          ondismiss: async () => {
+            await api.cancelUnpaidOrder(res.order.id);
+            await load();
+          },
+        },
+        theme: { color: "#7c3aed" },
+      });
+      rzp.open();
     } catch (e) {
       setError(e instanceof Error ? e.message : "Could not place the order.");
     } finally {
@@ -47,6 +87,7 @@ export default function FeedPanel() {
   };
 
   const statusLabel: Record<OrderStatus, string> = {
+    pending_payment: "💳 Awaiting payment",
     requested: "⏳ Waiting for cook",
     accepted: "✅ Accepted",
     preparing: "👨‍🍳 Preparing",
@@ -58,7 +99,10 @@ export default function FeedPanel() {
 
   const activeStatuses: OrderStatus[] = ["requested", "accepted", "preparing", "ready"];
   const active = orders.filter((o) => activeStatuses.includes(o.status));
-  const past = orders.filter((o) => !activeStatuses.includes(o.status));
+  // Hide transient unpaid orders; everything else resolved goes to history.
+  const past = orders.filter(
+    (o) => !activeStatuses.includes(o.status) && o.status !== "pending_payment",
+  );
 
   return (
     <div className="mode-panel">

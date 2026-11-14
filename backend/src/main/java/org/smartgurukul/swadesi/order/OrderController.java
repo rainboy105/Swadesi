@@ -51,23 +51,36 @@ public class OrderController {
             "preparing", java.util.Set.of("ready"),
             "ready", java.util.Set.of("completed"));
 
+    public record PlaceResponse(OrderResponse order, boolean paymentRequired,
+                                String razorpayOrderId, String razorpayKeyId,
+                                Integer amountPaise, String currency, String dish) {}
+
+    public record VerifyRequest(String razorpayOrderId, String razorpayPaymentId, String razorpaySignature) {}
+
     private final FoodOrderRepository orders;
     private final ListingRepository listings;
     private final UserRepository users;
     private final WhatsAppSender whatsApp;
+    private final org.smartgurukul.swadesi.payment.RazorpayService razorpay;
 
     public OrderController(FoodOrderRepository orders, ListingRepository listings,
-                           UserRepository users, WhatsAppSender whatsApp) {
+                           UserRepository users, WhatsAppSender whatsApp,
+                           org.smartgurukul.swadesi.payment.RazorpayService razorpay) {
         this.orders = orders;
         this.listings = listings;
         this.users = users;
         this.whatsApp = whatsApp;
+        this.razorpay = razorpay;
     }
 
-    /** Consumer places an order. Claims servings atomically (oversell- and cutoff-safe). */
+    /**
+     * Consumer places an order. Claims servings atomically (oversell- and cutoff-safe). When
+     * Razorpay is configured, the order starts 'pending_payment' and the cook is notified only
+     * after payment is verified; otherwise it goes straight to 'requested'.
+     */
     @PostMapping
     @Transactional
-    public OrderResponse place(@AuthenticationPrincipal AuthenticatedUser auth,
+    public PlaceResponse place(@AuthenticationPrincipal AuthenticatedUser auth,
                                @Valid @RequestBody PlaceRequest req) {
         OffsetDateTime now = OffsetDateTime.now();
         Listing l = listings.findById(req.listingId())
@@ -91,6 +104,9 @@ public class OrderController {
 
         User consumer = users.findById(auth.id())
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Unknown user"));
+        boolean pay = razorpay.isConfigured();
+        int amountPaise = l.getPricePerServing() * req.qty() * 100;
+
         FoodOrder o = new FoodOrder();
         o.setId(UUID.randomUUID());
         o.setListingId(l.getId());
@@ -98,19 +114,82 @@ public class OrderController {
         o.setConsumerName(consumer.getName());
         o.setConsumerPhone(consumer.getPhone());
         o.setQty(req.qty());
-        o.setStatus("requested");
+        o.setStatus(pay ? "pending_payment" : "requested");
         o.setPickupCode(String.format("%04d", new java.security.SecureRandom().nextInt(10000)));
+        o.setAmountPaise(amountPaise);
         o.setCreatedAt(now);
         o.setUpdatedAt(now);
+
+        if (pay) {
+            try {
+                o.setRazorpayOrderId(razorpay.createOrder(amountPaise, "order_" + o.getId()));
+            } catch (Exception e) {
+                listings.release(l.getId(), req.qty(), now); // release the hold if payment setup fails
+                throw new ResponseStatusException(HttpStatus.BAD_GATEWAY, "Couldn't start payment. Please try again.");
+            }
+            orders.save(o);
+            return new PlaceResponse(toResponse(o, l, true), true, o.getRazorpayOrderId(),
+                    razorpay.keyId(), amountPaise, "INR", l.getTitle());
+        }
+
+        orders.save(o);
+        notifyCookNewOrder(l, consumer, req.qty());
+        return new PlaceResponse(toResponse(o, l, true), false, null, null, null, null, null);
+    }
+
+    /** Verify the Razorpay payment, mark the order paid, and release it to the cook. */
+    @PostMapping("/{id}/verify-payment")
+    @Transactional
+    public OrderResponse verifyPayment(@AuthenticationPrincipal AuthenticatedUser auth,
+                                       @PathVariable UUID id, @RequestBody VerifyRequest req) {
+        FoodOrder o = orders.findById(id)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Order not found"));
+        if (!o.getConsumerId().equals(auth.id())) {
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Not your order");
+        }
+        if (!"pending_payment".equals(o.getStatus())) {
+            // Idempotent: already verified.
+            Listing l0 = listings.findById(o.getListingId()).orElse(null);
+            return toResponse(o, l0, true);
+        }
+        if (!razorpay.verifySignature(req.razorpayOrderId(), req.razorpayPaymentId(), req.razorpaySignature())
+                || !req.razorpayOrderId().equals(o.getRazorpayOrderId())) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Payment could not be verified");
+        }
+        o.setRazorpayPaymentId(req.razorpayPaymentId());
+        o.setPaid(true);
+        o.setStatus("requested");
+        o.setUpdatedAt(OffsetDateTime.now());
         orders.save(o);
 
-        // Notify the cook (never fails the order).
+        Listing l = listings.findById(o.getListingId()).orElse(null);
+        if (l != null) {
+            users.findById(l.getCookId()).ifPresent(cook -> notify(cook.getPhone(),
+                    "New Swaadesi order: " + o.getQty() + " × " + l.getTitle()
+                            + (o.getConsumerName() != null ? " from " + o.getConsumerName() : "")
+                            + ". Open the app to accept."));
+        }
+        return toResponse(o, l, true);
+    }
+
+    /** Consumer abandoned checkout: release the held servings. */
+    @PostMapping("/{id}/cancel-unpaid")
+    @Transactional
+    public void cancelUnpaid(@AuthenticationPrincipal AuthenticatedUser auth, @PathVariable UUID id) {
+        FoodOrder o = orders.findById(id).orElse(null);
+        if (o == null || !o.getConsumerId().equals(auth.id())) return;
+        if (!"pending_payment".equals(o.getStatus())) return;
+        o.setStatus("cancelled");
+        o.setUpdatedAt(OffsetDateTime.now());
+        orders.save(o);
+        listings.release(o.getListingId(), o.getQty(), OffsetDateTime.now());
+    }
+
+    private void notifyCookNewOrder(Listing l, User consumer, int qty) {
         users.findById(l.getCookId()).ifPresent(cook -> notify(cook.getPhone(),
-                "New Swaadesi order: " + req.qty() + " × " + l.getTitle()
+                "New Swaadesi order: " + qty + " × " + l.getTitle()
                         + (consumer.getName() != null ? " from " + consumer.getName() : "")
                         + ". Open the app to accept."));
-
-        return toResponse(o, l, true); // consumer sees their pickup code + location
     }
 
     /** The consumer's own orders (includes the pickup code to show the cook). */
@@ -135,6 +214,7 @@ public class OrderController {
         for (Listing l : myListings) byId.put(l.getId(), l);
         List<OrderResponse> out = new ArrayList<>();
         for (FoodOrder o : orders.findByListingIdInOrderByCreatedAtDesc(byId.keySet())) {
+            if ("pending_payment".equals(o.getStatus())) continue; // unpaid: hidden from the cook
             Listing l = byId.get(o.getListingId());
             out.add(toResponse(o, l, false));
         }
@@ -177,15 +257,21 @@ public class OrderController {
 
         if (s.equals("rejected")) {
             listings.release(l.getId(), o.getQty(), now); // give the servings back
+            // Prepaid order declined -> auto-refund.
+            if (o.isPaid() && o.getRazorpayPaymentId() != null && o.getAmountPaise() != null) {
+                razorpay.refund(o.getRazorpayPaymentId(), o.getAmountPaise());
+            }
         }
         // Notify the consumer.
+        boolean refunded = s.equals("rejected") && o.isPaid();
         String msg = switch (s) {
             case "accepted" -> "Your Swaadesi order (" + o.getQty() + " × " + l.getTitle() + ") was accepted! 🎉";
             case "preparing" -> l.getTitle() + " is being prepared. We'll tell you when it's ready.";
             case "ready" -> "Your order is ready for pickup! 🛍️ Show the cook your pickup code: "
                     + o.getPickupCode() + " (" + o.getQty() + " × " + l.getTitle() + ")";
             case "completed" -> "Order picked up. Enjoy your meal! 🍴 (" + o.getQty() + " × " + l.getTitle() + ")";
-            default -> "Sorry, your Swaadesi order (" + o.getQty() + " × " + l.getTitle() + ") was declined.";
+            default -> "Sorry, your Swaadesi order (" + o.getQty() + " × " + l.getTitle() + ") was declined."
+                    + (refunded ? " Your payment has been refunded." : "");
         };
         notify(o.getConsumerPhone(), msg);
 

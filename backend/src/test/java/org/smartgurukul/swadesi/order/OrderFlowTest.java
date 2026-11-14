@@ -67,7 +67,9 @@ class OrderFlowTest {
         var o1 = rest.exchange("/api/v1/orders", HttpMethod.POST,
                 new HttpEntity<>(Map.of("listingId", listingId, "qty", 2), auth(buyer)), Map.class);
         assertThat(o1.getStatusCode().is2xxSuccessful()).isTrue();
-        assertThat(o1.getBody().get("status")).isEqualTo("requested");
+        // place() returns a PlaceResponse; with Razorpay off the order is 'requested'.
+        assertThat(((Map) o1.getBody().get("order")).get("status")).isEqualTo("requested");
+        assertThat(o1.getBody().get("paymentRequired")).isEqualTo(false);
 
         var feed = rest.exchange("/api/v1/listings/nearby", HttpMethod.GET, new HttpEntity<>(auth(buyer)), List.class);
         assertThat((int) ((Map) feed.getBody().get(0)).get("remaining")).isEqualTo(1);
