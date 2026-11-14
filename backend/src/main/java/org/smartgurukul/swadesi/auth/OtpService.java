@@ -8,6 +8,7 @@ import static org.springframework.http.HttpStatus.UNAUTHORIZED;
 import java.security.SecureRandom;
 import java.time.OffsetDateTime;
 import java.util.Optional;
+import java.util.Set;
 import java.util.UUID;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -47,6 +48,8 @@ public class OtpService {
     private final long cooldownSeconds;
     private final int maxPerHour;
     private final int maxFailedAttempts;
+    private final Set<String> testPhones;
+    private final String testCode;
 
     public OtpService(OtpCodeRepository codes,
                       UserRepository users,
@@ -57,7 +60,9 @@ public class OtpService {
                       @Value("${app.otp.expiry-minutes:5}") long expiryMinutes,
                       @Value("${app.otp.request-cooldown-seconds:30}") long cooldownSeconds,
                       @Value("${app.otp.max-requests-per-hour:5}") int maxPerHour,
-                      @Value("${app.otp.max-failed-attempts:5}") int maxFailedAttempts) {
+                      @Value("${app.otp.max-failed-attempts:5}") int maxFailedAttempts,
+                      @Value("${app.otp.test-phones:}") String testPhonesCsv,
+                      @Value("${app.otp.test-code:}") String testCode) {
         this.codes = codes;
         this.users = users;
         this.passwordEncoder = passwordEncoder;
@@ -68,12 +73,29 @@ public class OtpService {
         this.cooldownSeconds = cooldownSeconds;
         this.maxPerHour = maxPerHour;
         this.maxFailedAttempts = maxFailedAttempts;
+        // Test accounts (dummy cook/consumer for QA): these phones skip WhatsApp and log in with
+        // a fixed code. Fails closed — off unless both are set and the code is >= 6 chars.
+        Set<String> parsed = new java.util.HashSet<>();
+        if (testPhonesCsv != null) {
+            for (String p : testPhonesCsv.split(",")) {
+                String n = PhoneNormalizer.normalize(p.trim());
+                if (n != null) parsed.add(n);
+            }
+        }
+        boolean on = !parsed.isEmpty() && testCode != null && testCode.trim().length() >= 6;
+        this.testPhones = on ? parsed : Set.of();
+        this.testCode = on ? testCode.trim() : null;
+    }
+
+    private boolean isTestPhone(String normalizedPhone) {
+        return testPhones.contains(normalizedPhone);
     }
 
     /** Generate, store (hashed) and send a code. Rate-limited per phone. */
     @Transactional
     public void requestCode(String rawPhone) {
         String phone = normalizeOr400(rawPhone);
+        if (isTestPhone(phone)) return; // fixed code, nothing to send or store
         OffsetDateTime now = OffsetDateTime.now();
 
         codes.findFirstByPhoneOrderByCreatedAtDesc(phone).ifPresent(last -> {
@@ -114,6 +136,19 @@ public class OtpService {
         String phone = normalizeOr400(rawPhone);
         String code = rawCode == null ? "" : rawCode.trim();
         OffsetDateTime now = OffsetDateTime.now();
+
+        // Test accounts: constant-time compare against the fixed code, no stored OTP row.
+        if (isTestPhone(phone)) {
+            if (!java.security.MessageDigest.isEqual(
+                    code.getBytes(java.nio.charset.StandardCharsets.UTF_8),
+                    testCode.getBytes(java.nio.charset.StandardCharsets.UTF_8))) {
+                throw new ResponseStatusException(UNAUTHORIZED, "This code is wrong or has expired");
+            }
+            Optional<User> ex = users.findByPhone(phone);
+            User u = ex.orElseGet(() -> createUser(phone, now));
+            return new OtpLoginResponse(jwt.issueToken(u.getId(), u.isAdmin()),
+                    u.getId().toString(), u.getName(), u.isOnboarded(), ex.isEmpty());
+        }
 
         OtpCode row = codes
                 .findFirstByPhoneAndConsumedAtIsNullAndExpiresAtAfterOrderByCreatedAtDesc(phone, now)

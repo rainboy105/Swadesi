@@ -1,47 +1,44 @@
-/* Swadesi UI — Smart Gurukul's playful-box design language (brand tokens v1.0):
-   violet gradient hero, paper background, chunky rounded cards, pastel tiles,
-   pill buttons, marigold accents. Poppins for display, Mukta for body. */
+/* Swaadeshi UI — Smart Gurukul's latest "playful box" look:
+   pale lavender page, a white rounded card with soft lavender + cream blobs,
+   dark ink headings, muted-violet pill buttons. Poppins display, Mukta body. */
 
 :root {
-  --violet-50: #f5f0ff;
   --violet-100: #ede4fe;
+  --violet-200: #d9c8fb;
+  --violet-500: #8b5cf6;
   --violet-600: #7c3aed;
   --violet-700: #6d28d9;
-  --violet-900: #3b1782;
-  --grad-start: #7c3aed;
-  --grad-end: #b429c8;
   --marigold-100: #fff1d0;
-  --marigold-500: #f5a70a;
-  --marigold-700: #a86a00;
+  --marigold-300: #ffe4a3;
+  --marigold-600: #c98a12;
   --ink-900: #1e1633;
   --ink-600: #564e6b;
   --ink-400: #8c85a0;
-  --paper: #faf8fd;
-  --surface: #ffffff;
-  --sunk: #f1ecfa;
+  --page: #e9e3f7;      /* pale lavender behind the card */
+  --card: #ffffff;      /* the white playful box */
+  --sunk: #f3eefc;      /* input fill */
   --line: #e6e1ef;
   --success: #1e9e5a;
   --danger: #d6453d;
-  --radius-card: 20px;
+  --radius-card: 28px;
   --radius-button: 999px;
   --font-display: "Poppins", "Mukta", system-ui, sans-serif;
   --font-body: "Mukta", "Poppins", system-ui, sans-serif;
-  --shadow-card: 0 8px 24px rgba(59, 23, 130, 0.08);
+  --shadow-card: 0 18px 50px rgba(59, 23, 130, 0.14);
 }
 
 @media (prefers-color-scheme: dark) {
   :root:not([data-theme="light"]) {
-    --paper: #14101f;
-    --surface: #1c1729;
-    --sunk: #241e34;
-    --ink-900: #ede9f5;
+    --page: #16111f;
+    --card: #221b30;
+    --sunk: #2c2440;
+    --ink-900: #f1ecf9;
     --ink-600: #c3bcd4;
     --ink-400: #968fa8;
-    --line: #322a45;
-    --violet-50: #241e34;
+    --line: #342a47;
     --violet-100: #2c1f4f;
     --marigold-100: #3a2b0c;
-    --shadow-card: 0 8px 24px rgba(0, 0, 0, 0.35);
+    --shadow-card: 0 18px 50px rgba(0, 0, 0, 0.45);
   }
 }
 
@@ -51,7 +48,7 @@
 
 body {
   margin: 0;
-  background: var(--paper);
+  background: var(--page);
   color: var(--ink-900);
   font-family: var(--font-body);
 }
@@ -61,64 +58,97 @@ body {
   display: flex;
   flex-direction: column;
   align-items: center;
+  justify-content: center;
+  padding: 24px 16px;
 }
 
-/* Violet gradient hero with the playful rounded bottom, like the app header. */
-.hero {
+/* The playful box: one white rounded card holding hero + content, with blobs. */
+.hero,
+.card {
   width: 100%;
-  background: linear-gradient(135deg, var(--grad-start), var(--grad-end));
-  border-radius: 0 0 28px 28px;
-  padding: 40px 16px 48px;
-  text-align: center;
-  color: #fff;
+  max-width: 440px;
+  background: var(--card);
 }
 
-.hero .logo-box {
-  display: inline-block;
-  background: #fff;
-  color: var(--violet-700);
+.hero {
+  position: relative;
+  overflow: hidden;
+  border-radius: var(--radius-card) var(--radius-card) 0 0;
+  padding: 40px 28px 20px;
+  text-align: center;
+}
+
+/* soft lavender blob, top-right */
+.hero::before {
+  content: "";
+  position: absolute;
+  top: -70px;
+  right: -50px;
+  width: 200px;
+  height: 200px;
+  border-radius: 50%;
+  background: var(--violet-100);
+}
+
+/* soft cream blob, bottom-left */
+.hero::after {
+  content: "";
+  position: absolute;
+  bottom: -60px;
+  left: -60px;
+  width: 170px;
+  height: 170px;
+  border-radius: 50%;
+  background: var(--marigold-100);
+}
+
+.hero > * {
+  position: relative;
+  z-index: 1;
+}
+
+.logo-box {
   font-family: var(--font-display);
   font-weight: 700;
-  font-size: 1.7rem;
-  padding: 12px 28px;
-  border-radius: 18px;
-  box-shadow: 0 6px 18px rgba(0, 0, 0, 0.15);
+  font-size: 1.9rem;
+  color: var(--violet-600);
+  letter-spacing: -0.01em;
 }
 
 .hero h2 {
   font-family: var(--font-display);
-  font-weight: 600;
-  font-size: 1.35rem;
-  margin: 20px 0 6px;
+  font-weight: 700;
+  font-size: 1.6rem;
+  color: var(--ink-900);
+  margin: 18px 0 4px;
 }
 
 .hero p {
   margin: 0;
-  opacity: 0.9;
+  color: var(--ink-600);
 }
 
-/* The playful box: big rounded card floating over the paper. */
+/* content box: continues the white card below the hero */
 .card {
-  width: calc(100% - 32px);
-  max-width: 440px;
-  background: var(--surface);
-  border-radius: var(--radius-card);
+  border-radius: 0 0 var(--radius-card) var(--radius-card);
   box-shadow: var(--shadow-card);
-  padding: 24px 20px;
+  padding: 8px 28px 32px;
   display: flex;
   flex-direction: column;
-  gap: 14px;
-  margin: -24px 16px 24px; /* overlaps the hero, like the app's sheets */
+  gap: 12px;
 }
 
+/* a standalone card (no hero above) keeps rounded top + its own shadow */
 .card.plain {
-  margin-top: 24px;
+  border-radius: var(--radius-card);
+  padding-top: 32px;
 }
 
 h1 {
   font-family: var(--font-display);
   font-weight: 700;
-  font-size: 1.45rem;
+  font-size: 1.4rem;
+  color: var(--ink-900);
   margin: 0;
 }
 
@@ -129,31 +159,36 @@ h1 {
 
 label {
   font-family: var(--font-display);
-  font-size: 0.78rem;
+  font-size: 0.74rem;
   font-weight: 600;
-  letter-spacing: 0.06em;
+  letter-spacing: 0.07em;
   text-transform: uppercase;
   color: var(--ink-400);
+  margin-top: 4px;
 }
 
 input {
-  padding: 14px 16px;
+  padding: 15px 16px;
   font-size: 1.05rem;
   font-family: var(--font-body);
   border: 2px solid transparent;
-  border-radius: 14px;
+  border-radius: 16px;
   background: var(--sunk);
   color: var(--ink-900);
 }
 
+input::placeholder {
+  color: var(--ink-400);
+}
+
 input:focus {
   outline: none;
-  border-color: var(--violet-600);
-  background: var(--surface);
+  border-color: var(--violet-500);
+  background: var(--card);
 }
 
 button {
-  padding: 14px 18px;
+  padding: 15px 18px;
   font-size: 1.05rem;
   font-family: var(--font-display);
   font-weight: 600;
@@ -162,7 +197,8 @@ button {
   background: var(--violet-600);
   color: #fff;
   cursor: pointer;
-  transition: transform 0.06s ease, background 0.15s ease;
+  transition: transform 0.06s ease, background 0.15s ease, box-shadow 0.15s ease;
+  box-shadow: 0 8px 18px rgba(124, 58, 237, 0.28);
 }
 
 button:hover:not(:disabled) {
@@ -176,22 +212,25 @@ button:active:not(:disabled) {
 button:disabled {
   opacity: 0.55;
   cursor: default;
+  box-shadow: none;
 }
 
 button.secondary {
   background: var(--violet-100);
   color: var(--violet-700);
+  box-shadow: none;
 }
 
 button.secondary:hover:not(:disabled) {
-  background: var(--violet-50);
+  background: var(--violet-200);
 }
 
 button.link {
   background: none;
   color: var(--ink-600);
-  font-weight: 500;
-  text-decoration: underline;
+  font-weight: 600;
+  text-decoration: none;
+  box-shadow: none;
   padding: 6px;
 }
 
@@ -200,15 +239,14 @@ button.link:hover:not(:disabled) {
   color: var(--violet-600);
 }
 
-/* Marigold chip, like the bilingual chips on SG posts. */
 .chip {
   align-self: flex-start;
   background: var(--marigold-100);
-  color: var(--marigold-700);
+  color: var(--marigold-600);
   font-family: var(--font-display);
   font-weight: 600;
   font-size: 0.85rem;
-  padding: 6px 14px;
+  padding: 7px 14px;
   border-radius: 999px;
 }
 
@@ -228,11 +266,10 @@ button.link:hover:not(:disabled) {
   color: var(--danger);
   font-size: 0.95rem;
   background: color-mix(in srgb, var(--danger) 10%, transparent);
-  border-radius: 12px;
-  padding: 10px 14px;
+  border-radius: 14px;
+  padding: 11px 14px;
 }
 
-/* Pastel icon tile, like the Game Hub cards. */
 .tile {
   display: inline-flex;
   align-items: center;
