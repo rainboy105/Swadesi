@@ -1,72 +1,86 @@
 import { useEffect, useState } from "react";
+import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import Login from "./pages/Login";
 import Onboarding from "./pages/Onboarding";
 import Home from "./pages/Home";
+import Profile from "./pages/Profile";
 import { api, getToken, setToken, type Me } from "./lib/api";
 import "./App.css";
 
-type Screen = "loading" | "login" | "onboarding" | "home";
+type Phase = "loading" | "login" | "onboarding" | "ready";
 
 export default function App() {
-  const [screen, setScreen] = useState<Screen>("loading");
+  const [phase, setPhase] = useState<Phase>("loading");
   const [me, setMe] = useState<Me | null>(null);
 
   useEffect(() => {
     if (!getToken()) {
-      setScreen("login");
+      setPhase("login");
       return;
     }
     api
       .me()
       .then((m) => {
         setMe(m);
-        setScreen(m.onboarded ? "home" : "onboarding");
+        setPhase(m.onboarded ? "ready" : "onboarding");
       })
       .catch(() => {
         setToken(null);
-        setScreen("login");
+        setPhase("login");
       });
   }, []);
 
   const logout = () => {
     setToken(null);
     setMe(null);
-    setScreen("login");
+    setPhase("login");
   };
 
-  if (screen === "loading") return <div className="shell" />;
-
-  return (
-    <div className="shell">
-      {screen === "login" && (
+  let content;
+  if (phase === "loading") {
+    content = <div className="shell" />;
+  } else if (phase === "login") {
+    content = (
+      <div className="shell">
         <Login
           onLoggedIn={async (login) => {
             if (login.onboarded) {
               try {
                 setMe(await api.me());
-                setScreen("home");
+                setPhase("ready");
               } catch {
-                setScreen("login");
+                setPhase("login");
               }
             } else {
-              setScreen("onboarding");
+              setPhase("onboarding");
             }
           }}
         />
-      )}
-
-      {screen === "onboarding" && (
+      </div>
+    );
+  } else if (phase === "onboarding") {
+    content = (
+      <div className="shell">
         <Onboarding
           onDone={(m) => {
             setMe(m);
-            setScreen("home");
+            setPhase("ready");
           }}
         />
-      )}
+      </div>
+    );
+  } else {
+    content = (
+      <Routes>
+        <Route path="/" element={<div className="shell"><Home me={me!} onMe={setMe} /></div>} />
+        <Route
+          path="/profile"
+          element={<div className="shell"><Profile me={me!} onLogout={logout} /></div>}
+        />
+        <Route path="*" element={<Navigate to="/" replace />} />
+      </Routes>
+    );
+  }
 
-      {screen === "home" && me && (
-        <Home me={me} onMe={setMe} onLogout={logout} />
-      )}
-    </div>
-  );
+  return <BrowserRouter>{content}</BrowserRouter>;
 }

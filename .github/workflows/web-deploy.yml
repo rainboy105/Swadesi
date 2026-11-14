@@ -39,6 +39,9 @@ jobs:
       - name: Post-process dist for GitHub Pages
         run: |
           touch dist/.nojekyll
+          # SPA deep-link fallback: unknown paths (e.g. /profile) serve index.html so
+          # React Router can handle them on a hard refresh.
+          cp dist/index.html dist/404.html
           # Custom domain: set the WEB_DOMAIN repo variable once the DNS CNAME exists.
           if [ -n "${{ vars.WEB_DOMAIN }}" ]; then echo "${{ vars.WEB_DOMAIN }}" > dist/CNAME; fi
       - uses: actions/configure-pages@v5

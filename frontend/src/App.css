@@ -107,6 +107,37 @@ body {
   z-index: 1;
 }
 
+.hero-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.icon-btn {
+  width: 42px;
+  height: 42px;
+  padding: 0;
+  border-radius: 50%;
+  background: var(--sunk);
+  color: var(--ink-900);
+  font-size: 1.15rem;
+  box-shadow: none;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.icon-btn:hover:not(:disabled) {
+  background: var(--violet-100);
+}
+
+.icon-spacer {
+  width: 42px;
+  height: 42px;
+  flex-shrink: 0;
+}
+
 .logo-box {
   font-family: var(--font-display);
   font-weight: 700;

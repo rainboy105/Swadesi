@@ -1,17 +1,14 @@
 import { useState } from "react";
-import { api, setToken, type Me, type Role } from "../lib/api";
+import { api, type Me, type Role } from "../lib/api";
+import AppHeader from "../components/AppHeader";
 import CookPanel from "./CookPanel";
 import FeedPanel from "./FeedPanel";
 
 /**
- * Home + profile. Every account can be both a cook and a consumer; the segmented
- * toggle switches the active mode (persisted), which decides what the app shows.
+ * Home. Every account can be both a cook and a consumer; the segmented toggle switches the
+ * active mode (persisted). Profile lives on its own /profile page (top-right icon).
  */
-export default function Home({ me, onMe, onLogout }: {
-  me: Me;
-  onMe: (me: Me) => void;
-  onLogout: () => void;
-}) {
+export default function Home({ me, onMe }: { me: Me; onMe: (me: Me) => void }) {
   const [switching, setSwitching] = useState(false);
   const role = me.activeRole;
 
@@ -19,8 +16,7 @@ export default function Home({ me, onMe, onLogout }: {
     if (next === role || switching) return;
     setSwitching(true);
     try {
-      const updated = await api.setRole(next);
-      onMe(updated);
+      onMe(await api.setRole(next));
     } catch {
       /* keep current role on failure */
     } finally {
@@ -28,21 +24,13 @@ export default function Home({ me, onMe, onLogout }: {
     }
   };
 
-  const logout = () => {
-    setToken(null);
-    onLogout();
-  };
-
   return (
     <>
-      <div className="hero">
-        <div className="logo-box">🍲 Swaadeshi</div>
-        <h2>Namaste{me.name ? `, ${me.name.split(" ")[0]}` : ""} 👋</h2>
-        <p>{role === "cook" ? "You're in cook mode" : "You're in consumer mode"}</p>
-      </div>
-
+      <AppHeader
+        title={`Namaste${me.name ? `, ${me.name.split(" ")[0]}` : ""} 👋`}
+        subtitle={role === "cook" ? "You're in cook mode" : "You're in consumer mode"}
+      />
       <div className="card">
-        {/* Mode switch */}
         <div className="segmented" role="tablist" aria-label="Switch mode">
           <button
             className={role === "consumer" ? "seg active" : "seg"}
@@ -60,29 +48,7 @@ export default function Home({ me, onMe, onLogout }: {
           </button>
         </div>
 
-        {/* Mode-specific content */}
         {role === "consumer" ? <FeedPanel /> : <CookPanel />}
-
-        {/* Profile */}
-        <div className="profile">
-          <label>Profile</label>
-          <div className="profile-row">
-            <span>Name</span>
-            <strong>{me.name || "—"}</strong>
-          </div>
-          <div className="profile-row">
-            <span>Phone</span>
-            <strong>{me.phone}</strong>
-          </div>
-          <div className="profile-row">
-            <span>Address</span>
-            <strong>{me.addressText || "—"}</strong>
-          </div>
-        </div>
-
-        <button className="link" onClick={logout}>
-          Log out
-        </button>
       </div>
     </>
   );
