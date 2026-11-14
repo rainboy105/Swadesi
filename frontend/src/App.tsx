@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import Login from "./pages/Login";
 import Onboarding from "./pages/Onboarding";
+import Home from "./pages/Home";
 import { api, getToken, setToken, type Me } from "./lib/api";
 import "./App.css";
 
@@ -39,10 +40,14 @@ export default function App() {
     <div className="shell">
       {screen === "login" && (
         <Login
-          onLoggedIn={(login) => {
+          onLoggedIn={async (login) => {
             if (login.onboarded) {
-              api.me().then(setMe).catch(() => undefined);
-              setScreen("home");
+              try {
+                setMe(await api.me());
+                setScreen("home");
+              } catch {
+                setScreen("login");
+              }
             } else {
               setScreen("onboarding");
             }
@@ -59,25 +64,8 @@ export default function App() {
         />
       )}
 
-      {screen === "home" && (
-        <>
-          <div className="hero">
-            <div className="logo-box">🍲 Swaadeshi</div>
-            <h2>Namaste{me?.name ? `, ${me.name.split(" ")[0]}` : ""} 👋</h2>
-            <p>{me?.addressText}</p>
-          </div>
-          <div className="card">
-            <span className="tile marigold">🥘</span>
-            <h1>Food near you</h1>
-            <p className="hint">
-              Listings from home cooks in your neighbourhood are coming next — this is the end
-              of the login flow for now.
-            </p>
-            <button className="link" onClick={logout}>
-              Log out
-            </button>
-          </div>
-        </>
+      {screen === "home" && me && (
+        <Home me={me} onMe={setMe} onLogout={logout} />
       )}
     </div>
   );

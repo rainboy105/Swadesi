@@ -35,6 +35,10 @@ public class User {
     @Column(name = "onboarded", nullable = false)
     private boolean onboarded = false;
 
+    /** Which side of the app the user is currently viewing: "cook" or "consumer". */
+    @Column(name = "active_role", nullable = false)
+    private String activeRole = "consumer";
+
     @Column(name = "admin", nullable = false)
     private boolean admin = false;
 
@@ -58,6 +62,8 @@ public class User {
     public void setLng(Double lng) { this.lng = lng; }
     public boolean isOnboarded() { return onboarded; }
     public void setOnboarded(boolean onboarded) { this.onboarded = onboarded; }
+    public String getActiveRole() { return activeRole; }
+    public void setActiveRole(String activeRole) { this.activeRole = activeRole; }
     public boolean isAdmin() { return admin; }
     public void setAdmin(boolean admin) { this.admin = admin; }
     public OffsetDateTime getCreatedAt() { return createdAt; }

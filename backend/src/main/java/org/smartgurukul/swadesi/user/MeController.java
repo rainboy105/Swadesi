@@ -23,13 +23,15 @@ import org.springframework.web.server.ResponseStatusException;
 public class MeController {
 
     public record MeResponse(String id, String phone, String name, String addressText,
-                             Double lat, Double lng, boolean onboarded) {}
+                             Double lat, Double lng, boolean onboarded, String activeRole) {}
 
     public record OnboardingRequest(
             @NotBlank @Size(max = 80) String name,
             @NotBlank @Size(max = 300) String addressText,
             @NotNull @Min(-90) @Max(90) Double lat,
             @NotNull @Min(-180) @Max(180) Double lng) {}
+
+    public record RoleRequest(@NotBlank String role) {}
 
     private final UserRepository users;
 
@@ -59,8 +61,23 @@ public class MeController {
         return toResponse(users.save(u));
     }
 
+    /** Switch the mode the user is acting in: "cook" or "consumer". */
+    @PostMapping("/role")
+    public MeResponse setRole(@AuthenticationPrincipal AuthenticatedUser auth,
+                              @Valid @RequestBody RoleRequest req) {
+        String role = req.role() == null ? "" : req.role().trim().toLowerCase();
+        if (!role.equals("cook") && !role.equals("consumer")) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Role must be 'cook' or 'consumer'");
+        }
+        User u = users.findById(auth.id())
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Unknown user"));
+        u.setActiveRole(role);
+        u.setUpdatedAt(OffsetDateTime.now());
+        return toResponse(users.save(u));
+    }
+
     private static MeResponse toResponse(User u) {
         return new MeResponse(u.getId().toString(), u.getPhone(), u.getName(),
-                u.getAddressText(), u.getLat(), u.getLng(), u.isOnboarded());
+                u.getAddressText(), u.getLat(), u.getLng(), u.isOnboarded(), u.getActiveRole());
     }
 }

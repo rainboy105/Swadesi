@@ -57,6 +57,8 @@ export interface LoginResponse {
   newUser: boolean;
 }
 
+export type Role = "cook" | "consumer";
+
 export interface Me {
   id: string;
   phone: string;
@@ -65,6 +67,7 @@ export interface Me {
   lat: number | null;
   lng: number | null;
   onboarded: boolean;
+  activeRole: Role;
 }
 
 export const api = {
@@ -86,6 +89,8 @@ export const api = {
     }),
   reverseGeocode: (lat: number, lng: number) =>
     call<{ address: string }>(`/api/public/reverse-geocode?lat=${lat}&lng=${lng}`),
+  setRole: (role: Role) =>
+    call<Me>("/api/v1/me/role", { method: "POST", body: JSON.stringify({ role }) }),
 };
 
 /** India-first phone normalization for display; the server does the authoritative one. */

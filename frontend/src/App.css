@@ -284,3 +284,68 @@ button.link:hover:not(:disabled) {
 .tile.marigold {
   background: var(--marigold-100);
 }
+
+/* Segmented mode switch (Order food / Cook & sell) */
+.segmented {
+  display: flex;
+  gap: 6px;
+  background: var(--sunk);
+  padding: 6px;
+  border-radius: 16px;
+}
+
+.segmented .seg {
+  flex: 1;
+  background: transparent;
+  color: var(--ink-600);
+  box-shadow: none;
+  border-radius: 12px;
+  padding: 11px 10px;
+  font-size: 0.98rem;
+}
+
+.segmented .seg:hover:not(:disabled) {
+  background: transparent;
+  color: var(--ink-900);
+}
+
+.segmented .seg.active {
+  background: var(--card);
+  color: var(--violet-700);
+  box-shadow: 0 3px 10px rgba(59, 23, 130, 0.12);
+}
+
+.mode-panel {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 18px 2px 4px;
+}
+
+/* Profile block */
+.profile {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  border-top: 1px solid var(--line);
+  padding-top: 16px;
+  margin-top: 4px;
+}
+
+.profile-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 12px;
+  font-size: 0.95rem;
+}
+
+.profile-row span {
+  color: var(--ink-400);
+}
+
+.profile-row strong {
+  color: var(--ink-900);
+  text-align: right;
+  font-weight: 600;
+}
