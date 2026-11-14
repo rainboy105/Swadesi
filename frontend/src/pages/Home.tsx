@@ -1,5 +1,7 @@
 import { useState } from "react";
 import { api, setToken, type Me, type Role } from "../lib/api";
+import CookPanel from "./CookPanel";
+import FeedPanel from "./FeedPanel";
 
 /**
  * Home + profile. Every account can be both a cook and a consumer; the segmented
@@ -58,24 +60,8 @@ export default function Home({ me, onMe, onLogout }: {
           </button>
         </div>
 
-        {/* Mode-specific placeholder (real feed/listings come next) */}
-        {role === "consumer" ? (
-          <div className="mode-panel">
-            <span className="tile">🍽️</span>
-            <h1>Food near you</h1>
-            <p className="hint">
-              Dishes from home cooks within walking distance will show up here.
-            </p>
-          </div>
-        ) : (
-          <div className="mode-panel">
-            <span className="tile marigold">🍳</span>
-            <h1>Your kitchen</h1>
-            <p className="hint">
-              List what you're cooking today and how many servings you can offer.
-            </p>
-          </div>
-        )}
+        {/* Mode-specific content */}
+        {role === "consumer" ? <FeedPanel /> : <CookPanel />}
 
         {/* Profile */}
         <div className="profile">

@@ -91,7 +91,45 @@ export const api = {
     call<{ address: string }>(`/api/public/reverse-geocode?lat=${lat}&lng=${lng}`),
   setRole: (role: Role) =>
     call<Me>("/api/v1/me/role", { method: "POST", body: JSON.stringify({ role }) }),
+
+  createListing: (body: {
+    title: string;
+    description: string;
+    pricePerServing: number;
+    maxServings: number;
+    readyBy?: string | null;
+  }) => call<Listing>("/api/v1/listings", { method: "POST", body: JSON.stringify(body) }),
+  myListings: () => call<Listing[]>("/api/v1/listings/mine"),
+  setListingStatus: (id: string, status: "open" | "closed") =>
+    call<Listing>(`/api/v1/listings/${id}/status`, {
+      method: "POST",
+      body: JSON.stringify({ status }),
+    }),
+  nearbyListings: () => call<FeedItem[]>("/api/v1/listings/nearby"),
 };
+
+export interface Listing {
+  id: string;
+  title: string;
+  description: string | null;
+  pricePerServing: number;
+  maxServings: number;
+  remaining: number;
+  readyBy: string | null;
+  status: "open" | "closed";
+  createdAt: string;
+}
+
+export interface FeedItem {
+  id: string;
+  title: string;
+  description: string | null;
+  pricePerServing: number;
+  remaining: number;
+  readyBy: string | null;
+  cookName: string | null;
+  distanceMeters: number;
+}
 
 /** India-first phone normalization for display; the server does the authoritative one. */
 export function normalizePhone(raw: string): string | null {

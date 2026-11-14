@@ -318,8 +318,101 @@ button.link:hover:not(:disabled) {
 .mode-panel {
   display: flex;
   flex-direction: column;
+  gap: 12px;
+  padding: 16px 0 4px;
+}
+
+.panel-head {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.panel-head h1 {
+  flex: 1;
+}
+
+.refresh {
+  font-size: 1.3rem;
+  padding: 2px 8px;
+}
+
+.form-block {
+  display: flex;
+  flex-direction: column;
   gap: 8px;
-  padding: 18px 2px 4px;
+  background: var(--sunk);
+  border-radius: 18px;
+  padding: 16px;
+}
+
+.row2 {
+  display: flex;
+  gap: 10px;
+}
+
+.row2 > div {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.listing {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  background: var(--sunk);
+  border-radius: 16px;
+  padding: 14px 16px;
+}
+
+.listing.dim {
+  opacity: 0.55;
+}
+
+.listing-main {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  min-width: 0;
+}
+
+.listing-main strong {
+  font-family: var(--font-display);
+  font-size: 1.05rem;
+  color: var(--ink-900);
+}
+
+.listing-main .muted {
+  color: var(--ink-600);
+  font-size: 0.9rem;
+}
+
+.listing-main .meta {
+  color: var(--ink-400);
+  font-size: 0.85rem;
+  margin-top: 2px;
+}
+
+.listing-main .dist {
+  color: var(--violet-700);
+  font-size: 0.85rem;
+  font-weight: 600;
+}
+
+button.small {
+  padding: 9px 16px;
+  font-size: 0.9rem;
+  border-radius: 999px;
+  flex-shrink: 0;
 }
 
 /* Profile block */
