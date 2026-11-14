@@ -50,6 +50,12 @@ public class FoodOrder {
     @Column(name = "paid", nullable = false)
     private boolean paid = false;
 
+    @Column(name = "cook_paid_out", nullable = false)
+    private boolean cookPaidOut = false;
+
+    @Column(name = "cook_paid_out_at")
+    private OffsetDateTime cookPaidOutAt;
+
     @Column(name = "created_at", nullable = false, updatable = false)
     private OffsetDateTime createdAt;
 
@@ -80,6 +86,10 @@ public class FoodOrder {
     public void setAmountPaise(Integer v) { this.amountPaise = v; }
     public boolean isPaid() { return paid; }
     public void setPaid(boolean paid) { this.paid = paid; }
+    public boolean isCookPaidOut() { return cookPaidOut; }
+    public void setCookPaidOut(boolean v) { this.cookPaidOut = v; }
+    public OffsetDateTime getCookPaidOutAt() { return cookPaidOutAt; }
+    public void setCookPaidOutAt(OffsetDateTime v) { this.cookPaidOutAt = v; }
     public OffsetDateTime getCreatedAt() { return createdAt; }
     public void setCreatedAt(OffsetDateTime createdAt) { this.createdAt = createdAt; }
     public OffsetDateTime getUpdatedAt() { return updatedAt; }

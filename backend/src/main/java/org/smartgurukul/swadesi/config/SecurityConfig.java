@@ -33,6 +33,7 @@ public class SecurityConfig {
                 // "/error": Boot re-dispatches exceptions there; without it every 4xx becomes a 403.
                 .requestMatchers("/actuator/health/**", "/actuator/info", "/api/public/**",
                                  "/api/v1/auth/**", "/error").permitAll()
+                .requestMatchers("/api/v1/admin/**").hasRole("ADMIN")
                 .anyRequest().authenticated())
             .addFilterBefore(jwtFilter, UsernamePasswordAuthenticationFilter.class);
         return http.build();

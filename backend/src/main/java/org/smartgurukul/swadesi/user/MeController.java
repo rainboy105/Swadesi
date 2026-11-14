@@ -24,7 +24,7 @@ public class MeController {
 
     public record MeResponse(String id, String phone, String name, String addressText,
                              Double lat, Double lng, boolean onboarded, String activeRole,
-                             String upiId) {}
+                             String upiId, boolean admin) {}
 
     public record OnboardingRequest(
             @NotBlank @Size(max = 80) String name,
@@ -99,6 +99,6 @@ public class MeController {
     private static MeResponse toResponse(User u) {
         return new MeResponse(u.getId().toString(), u.getPhone(), u.getName(),
                 u.getAddressText(), u.getLat(), u.getLng(), u.isOnboarded(), u.getActiveRole(),
-                u.getUpiId());
+                u.getUpiId(), u.isAdmin());
     }
 }

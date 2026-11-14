@@ -109,6 +109,11 @@ export default function Profile({ me, onMe, onLogout }: {
                 <strong>{me.activeRole === "cook" ? "🍳 Cook" : "🍽️ Consumer"}</strong>
               </div>
             </div>
+            {me.admin && (
+              <button className="secondary" onClick={() => navigate("/admin/settlements")}>
+                💸 Cook settlements
+              </button>
+            )}
             <button className="link" onClick={() => navigate("/")}>Back to home</button>
             <button className="link" onClick={logout}>Log out</button>
           </>

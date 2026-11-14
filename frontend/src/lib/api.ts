@@ -69,6 +69,17 @@ export interface Me {
   onboarded: boolean;
   activeRole: Role;
   upiId: string | null;
+  admin: boolean;
+}
+
+export interface Settlement {
+  orderId: string;
+  dish: string;
+  qty: number;
+  cookName: string | null;
+  cookUpi: string | null;
+  amountPaise: number;
+  completedAt: string;
 }
 
 export const api = {
@@ -94,6 +105,15 @@ export const api = {
     call<Me>("/api/v1/me/role", { method: "POST", body: JSON.stringify({ role }) }),
   setPayout: (upiId: string) =>
     call<Me>("/api/v1/me/payout", { method: "POST", body: JSON.stringify({ upiId }) }),
+  settlements: () =>
+    call<{ pending: Settlement[]; totalOwedPaise: number }>("/api/v1/admin/settlements"),
+  markPaidOut: (orderId: string) =>
+    fetch(`${BASE}/api/v1/admin/settlements/${orderId}/mark-paid-out`, {
+      method: "POST",
+      headers: getToken() ? { Authorization: `Bearer ${getToken()}` } : {},
+    }).then((r) => {
+      if (!r.ok) throw new ApiError(r.status, "Could not mark paid");
+    }),
 
   createListing: (body: {
     title: string;

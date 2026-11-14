@@ -13,4 +13,8 @@ public interface FoodOrderRepository extends JpaRepository<FoodOrder, UUID> {
     List<FoodOrder> findByListingIdInOrderByCreatedAtDesc(Collection<UUID> listingIds);
 
     Optional<FoodOrder> findByRazorpayOrderId(String razorpayOrderId);
+
+    /** Completed, paid orders not yet settled to the cook (money owed out). */
+    List<FoodOrder> findByStatusAndPaidAndCookPaidOutOrderByUpdatedAtDesc(
+            String status, boolean paid, boolean cookPaidOut);
 }

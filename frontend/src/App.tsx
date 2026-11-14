@@ -4,6 +4,7 @@ import Login from "./pages/Login";
 import Onboarding from "./pages/Onboarding";
 import Home from "./pages/Home";
 import Profile from "./pages/Profile";
+import Settlements from "./pages/Settlements";
 import { api, getToken, setToken, type Me } from "./lib/api";
 import "./App.css";
 
@@ -76,6 +77,16 @@ export default function App() {
         <Route
           path="/profile"
           element={<div className="shell"><Profile me={me!} onMe={setMe} onLogout={logout} /></div>}
+        />
+        <Route
+          path="/admin/settlements"
+          element={
+            me!.admin ? (
+              <div className="shell"><Settlements /></div>
+            ) : (
+              <Navigate to="/" replace />
+            )
+          }
         />
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
