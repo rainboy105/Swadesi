@@ -1,0 +1,12 @@
+[
+  {
+    "relation": ["delegate_permission/common.handle_all_urls"],
+    "target": {
+      "namespace": "android_app",
+      "package_name": "org.smartgurukul.swadesi",
+      "sha256_cert_fingerprints": [
+        "17:2D:51:E2:0C:D0:24:AA:5B:CB:B3:76:3A:CF:17:FA:57:22:5E:E9:61:4C:B7:5E:B3:C4:D0:EE:D4:6C:D3:8C"
+      ]
+    }
+  }
+]
