@@ -71,6 +71,7 @@ jobs:
           # Razorpay (payments). Blank keeps the value on the box.
           RAZORPAY_KEY_ID: ${{ secrets.RAZORPAY_KEY_ID }}
           RAZORPAY_KEY_SECRET: ${{ secrets.RAZORPAY_KEY_SECRET }}
+          RAZORPAY_WEBHOOK_SECRET: ${{ secrets.RAZORPAY_WEBHOOK_SECRET }}
         run: bash deploy/aws/send-ssm-deploy.sh
 
       - name: Smoke test (public health)

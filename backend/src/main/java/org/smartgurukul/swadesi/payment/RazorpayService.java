@@ -24,13 +24,16 @@ public class RazorpayService {
 
     private final String keyId;
     private final String keySecret;
+    private final String webhookSecret;
     private final RestClient client;
 
     public RazorpayService(
             @Value("${app.razorpay.key-id:}") String keyId,
-            @Value("${app.razorpay.key-secret:}") String keySecret) {
+            @Value("${app.razorpay.key-secret:}") String keySecret,
+            @Value("${app.razorpay.webhook-secret:}") String webhookSecret) {
         this.keyId = keyId;
         this.keySecret = keySecret;
+        this.webhookSecret = webhookSecret;
         this.client = (keyId == null || keyId.isBlank() || keySecret == null || keySecret.isBlank())
                 ? null
                 : RestClient.builder()
@@ -41,6 +44,19 @@ public class RazorpayService {
 
     public boolean isConfigured() {
         return client != null;
+    }
+
+    public boolean isWebhookConfigured() {
+        return webhookSecret != null && !webhookSecret.isBlank();
+    }
+
+    /** Verify a webhook delivery: X-Razorpay-Signature = HMAC_SHA256(rawBody, webhookSecret). */
+    public boolean verifyWebhook(String rawBody, String signature) {
+        if (!isWebhookConfigured()) return false;
+        String expected = hmacSha256(rawBody, webhookSecret);
+        return expected != null && java.security.MessageDigest.isEqual(
+                expected.getBytes(StandardCharsets.UTF_8),
+                (signature == null ? "" : signature).getBytes(StandardCharsets.UTF_8));
     }
 
     public String keyId() {
