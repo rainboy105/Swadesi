@@ -544,10 +544,15 @@ button.small {
   height: 32px;
   padding: 0;
   border-radius: 50%;
-  background: var(--violet-100);
-  color: var(--violet-700);
-  font-size: 1.1rem;
+  background: var(--violet-500);
+  color: #fff;
+  font-size: 1.2rem;
+  line-height: 1;
   box-shadow: none;
+}
+
+.stepper button:hover:not(:disabled) {
+  background: var(--violet-600);
 }
 
 .stepper span {
