@@ -68,6 +68,9 @@ jobs:
           # QA test accounts (dummy cook/consumer). Blank keeps the value on the box.
           OTP_TEST_PHONES: ${{ secrets.OTP_TEST_PHONES }}
           OTP_TEST_CODE: ${{ secrets.OTP_TEST_CODE }}
+          # Razorpay (payments). Blank keeps the value on the box.
+          RAZORPAY_KEY_ID: ${{ secrets.RAZORPAY_KEY_ID }}
+          RAZORPAY_KEY_SECRET: ${{ secrets.RAZORPAY_KEY_SECRET }}
         run: bash deploy/aws/send-ssm-deploy.sh
 
       - name: Smoke test (public health)
