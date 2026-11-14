@@ -3,6 +3,8 @@ package org.smartgurukul.swadesi.whatsapp;
 import com.fasterxml.jackson.databind.JsonNode;
 import java.util.Map;
 import java.util.UUID;
+import org.apache.hc.client5.http.impl.classic.HttpClients;
+import org.springframework.http.client.HttpComponentsClientHttpRequestFactory;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
@@ -35,15 +37,22 @@ public class WhatsAppSender {
             @Value("${app.whatsapp.gateway-token:}") String token,
             @Value("${app.whatsapp.sender-session-name:Swadesi}") String sessionName) {
         this.sessionName = sessionName;
-        // "Connection: close" disables keep-alive pooling: the Node gateway closes idle
-        // connections aggressively, so a pooled one is often already dead on reuse
-        // ("failed to respond"). A fresh connection per call is plenty for OTP volume.
+        // HttpClient5 5.4 adds "Upgrade: TLS/1.2" + "Connection: Upgrade" to plaintext
+        // requests by default. The gateway runs socket.io on the same port and its
+        // 'upgrade' handler destroys any non-WebSocket upgrade connection without
+        // responding -> NoHttpResponseException. Strip those headers after HC5 adds them.
         this.client = (baseUrl == null || baseUrl.isBlank())
                 ? null
                 : RestClient.builder()
                         .baseUrl(baseUrl)
                         .defaultHeader("X-API-Key", token)
-                        .defaultHeader("Connection", "close")
+                        .requestFactory(new HttpComponentsClientHttpRequestFactory(
+                                HttpClients.custom()
+                                        .addRequestInterceptorLast((request, entity, context) -> {
+                                            request.removeHeaders("Upgrade");
+                                            request.removeHeaders("Connection");
+                                        })
+                                        .build()))
                         .build();
     }
 
