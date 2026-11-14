@@ -84,6 +84,8 @@ export const api = {
       method: "POST",
       body: JSON.stringify({ name, addressText, lat, lng }),
     }),
+  reverseGeocode: (lat: number, lng: number) =>
+    call<{ address: string }>(`/api/public/reverse-geocode?lat=${lat}&lng=${lng}`),
 };
 
 /** India-first phone normalization for display; the server does the authoritative one. */

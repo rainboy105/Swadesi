@@ -14,21 +14,11 @@ export default function Onboarding({ onDone }: { onDone: (me: Me) => void }) {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  /** Turn lat/lng into a readable address via BigDataCloud's free keyless client API. */
+  /** Turn lat/lng into a readable address via our own backend (no blocker/CORS issues). */
   const reverseGeocode = async (lat: number, lng: number): Promise<string | null> => {
     try {
-      const res = await fetch(
-        `https://api.bigdatacloud.net/data/reverse-geocode-client?latitude=${lat}&longitude=${lng}&localityLanguage=en`,
-      );
-      if (!res.ok) return null;
-      const d = await res.json();
-      const parts = [
-        d.locality,
-        d.city && d.city !== d.locality ? d.city : null,
-        d.principalSubdivision,
-        d.postcode,
-      ].filter((p: string | null | undefined) => p && String(p).trim());
-      return parts.length ? Array.from(new Set(parts)).join(", ") : null;
+      const { address } = await api.reverseGeocode(lat, lng);
+      return address && address.trim() ? address : null;
     } catch {
       return null;
     }
