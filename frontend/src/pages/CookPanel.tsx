@@ -155,21 +155,21 @@ export default function CookPanel() {
       {showForm && (
         <div className="form-block">
           {editingId && <strong className="form-title">Edit dish</strong>}
-          <label>Dish</label>
+          <label>Dish <span className="req">*</span></label>
           <input placeholder="e.g. Veg Thali" value={title} onChange={(e) => setTitle(e.target.value)} autoFocus />
           <label>Description (optional)</label>
           <input placeholder="Dal, rice, 2 sabzi, roti" value={description} onChange={(e) => setDescription(e.target.value)} />
           <div className="row2">
             <div>
-              <label>Price / serving (₹)</label>
+              <label>Price / serving (₹) <span className="req">*</span></label>
               <input inputMode="numeric" placeholder="120" value={price} onChange={(e) => setPrice(e.target.value)} />
             </div>
             <div>
-              <label>Servings (cap)</label>
+              <label>Servings (cap) <span className="req">*</span></label>
               <input inputMode="numeric" placeholder="10" value={servings} onChange={(e) => setServings(e.target.value)} />
             </div>
           </div>
-          <label>Order by (orders close at this time)</label>
+          <label>Order by <span className="req">*</span> <span style={{fontWeight:400}}>(orders close at this time)</span></label>
           <input type="datetime-local" value={orderBy} onChange={(e) => setOrderBy(e.target.value)} />
           <label>Photo {editingId ? "(replace, optional)" : "(optional)"}</label>
           <input

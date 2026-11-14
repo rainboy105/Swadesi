@@ -25,21 +25,8 @@
   --font-display: "Poppins", "Mukta", system-ui, sans-serif;
   --font-body: "Mukta", "Poppins", system-ui, sans-serif;
   --shadow-card: 0 18px 50px rgba(59, 23, 130, 0.14);
-}
-
-@media (prefers-color-scheme: dark) {
-  :root:not([data-theme="light"]) {
-    --page: #16111f;
-    --card: #221b30;
-    --sunk: #2c2440;
-    --ink-900: #f1ecf9;
-    --ink-600: #c3bcd4;
-    --ink-400: #968fa8;
-    --line: #342a47;
-    --violet-100: #2c1f4f;
-    --marigold-100: #3a2b0c;
-    --shadow-card: 0 18px 50px rgba(0, 0, 0, 0.45);
-  }
+  /* Always light, even on devices set to dark mode — keeps native controls light too. */
+  color-scheme: light;
 }
 
 * {
@@ -222,9 +209,9 @@ textarea {
   padding: 14px 16px;
   font-size: 1rem;
   font-family: var(--font-body);
-  border: 2px solid transparent;
+  border: 1.5px solid var(--line);
   border-radius: 14px;
-  background: var(--sunk);
+  background: #ffffff;
   color: var(--ink-900);
 }
 
@@ -237,13 +224,14 @@ select:focus,
 textarea:focus {
   outline: none;
   border-color: var(--violet-500);
-  background: var(--card);
+  box-shadow: 0 0 0 3px rgba(139, 92, 246, 0.15);
+  background: #ffffff;
 }
 
-/* Native date/time controls: keep them inside the card and on-theme. */
+/* Native date/time controls: keep them inside the card and light. */
 input[type="datetime-local"] {
   min-width: 0;
-  color-scheme: light dark;
+  color-scheme: light;
 }
 
 /* File picker styled to match the rest. */
@@ -335,6 +323,11 @@ button.link:hover:not(:disabled) {
   font-size: 0.85rem;
   padding: 7px 14px;
   border-radius: 999px;
+}
+
+.req {
+  color: var(--danger);
+  margin-left: 2px;
 }
 
 .hint {

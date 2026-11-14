@@ -114,9 +114,9 @@ export default function Profile({ me, onMe, onLogout }: {
           </>
         ) : (
           <>
-            <label htmlFor="pname">Your name</label>
+            <label htmlFor="pname">Your name <span className="req">*</span></label>
             <input id="pname" value={name} onChange={(e) => setName(e.target.value)} />
-            <label htmlFor="paddr">Address</label>
+            <label htmlFor="paddr">Address <span className="req">*</span></label>
             <input id="paddr" value={address} onChange={(e) => setAddress(e.target.value)} />
             <button className="secondary" disabled={locating} onClick={useMyLocation}>
               {locating ? "Locating…" : "📍 Update location from GPS"}

@@ -79,7 +79,7 @@ export default function Onboarding({ onDone }: { onDone: (me: Me) => void }) {
       <div className="card">
         <span className="chip">📍 Food near you, within walking distance</span>
 
-        <label htmlFor="name">Your name</label>
+        <label htmlFor="name">Your name <span className="req">*</span></label>
         <input
           id="name"
           placeholder="e.g. Asha Sharma"
@@ -88,7 +88,7 @@ export default function Onboarding({ onDone }: { onDone: (me: Me) => void }) {
           onChange={(e) => setName(e.target.value)}
         />
 
-        <label htmlFor="flat">Flat / building / society</label>
+        <label htmlFor="flat">Flat / building / society <span className="req">*</span></label>
         <input
           id="flat"
           placeholder="e.g. A-402, Green Meadows"
@@ -96,7 +96,7 @@ export default function Onboarding({ onDone }: { onDone: (me: Me) => void }) {
           onChange={(e) => setFlat(e.target.value)}
         />
 
-        <label htmlFor="area">Area, city, state, pincode</label>
+        <label htmlFor="area">Area, city, state, pincode <span className="req">*</span></label>
         <input
           id="area"
           placeholder="Filled from your location"

@@ -61,7 +61,7 @@ export default function Login({ onLoggedIn }: { onLoggedIn: (login: LoginRespons
       <div className="card">
         {step === "phone" && (
         <>
-          <label htmlFor="phone">WhatsApp number</label>
+          <label htmlFor="phone">WhatsApp number <span className="req">*</span></label>
           <input
             id="phone"
             type="tel"
@@ -94,7 +94,7 @@ export default function Login({ onLoggedIn }: { onLoggedIn: (login: LoginRespons
               Change number
             </a>
           </p>
-          <label htmlFor="code">Code</label>
+          <label htmlFor="code">Code <span className="req">*</span></label>
           <input
             id="code"
             inputMode="numeric"
