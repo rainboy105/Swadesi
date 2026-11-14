@@ -208,8 +208,10 @@ public class OrderController {
     }
 
     private static OrderResponse toResponse(FoodOrder o, String title, String cookName, boolean includeCode) {
+        // The pickup code is revealed to the consumer only once the order is ready (or picked up).
+        boolean reveal = includeCode && ("ready".equals(o.getStatus()) || "completed".equals(o.getStatus()));
         return new OrderResponse(o.getId().toString(), o.getListingId().toString(), title,
                 o.getQty(), o.getStatus(), cookName, o.getConsumerName(),
-                includeCode ? o.getPickupCode() : null, o.getCreatedAt());
+                reveal ? o.getPickupCode() : null, o.getCreatedAt());
     }
 }

@@ -76,7 +76,18 @@ export default function Profile({ me, onMe, onLogout }: {
         onBack={() => navigate("/")}
       />
       <div className="card">
-        <span className="tile">🙂</span>
+        <div className="profile-head">
+          <span className="tile">🙂</span>
+          {!editing && (
+            <button className="icon-btn" aria-label="Edit profile" onClick={() => setEditing(true)}>
+              <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor"
+                   strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M12 20h9" />
+                <path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4Z" />
+              </svg>
+            </button>
+          )}
+        </div>
 
         {!editing ? (
           <>
@@ -98,7 +109,6 @@ export default function Profile({ me, onMe, onLogout }: {
                 <strong>{me.activeRole === "cook" ? "🍳 Cook" : "🍽️ Consumer"}</strong>
               </div>
             </div>
-            <button onClick={() => setEditing(true)}>Edit name & address</button>
             <button className="link" onClick={() => navigate("/")}>Back to home</button>
             <button className="link" onClick={logout}>Log out</button>
           </>

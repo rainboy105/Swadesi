@@ -579,6 +579,12 @@ button.small {
   flex-direction: column;
 }
 
+.profile-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
 .orders-block.history .profile-row strong {
   color: var(--ink-600);
   font-weight: 500;
