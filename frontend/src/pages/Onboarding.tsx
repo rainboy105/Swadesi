@@ -10,8 +10,29 @@ export default function Onboarding({ onDone }: { onDone: (me: Me) => void }) {
   const [address, setAddress] = useState("");
   const [coords, setCoords] = useState<{ lat: number; lng: number } | null>(null);
   const [locating, setLocating] = useState(false);
+  const [addressEdited, setAddressEdited] = useState(false);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  /** Turn lat/lng into a readable address via BigDataCloud's free keyless client API. */
+  const reverseGeocode = async (lat: number, lng: number): Promise<string | null> => {
+    try {
+      const res = await fetch(
+        `https://api.bigdatacloud.net/data/reverse-geocode-client?latitude=${lat}&longitude=${lng}&localityLanguage=en`,
+      );
+      if (!res.ok) return null;
+      const d = await res.json();
+      const parts = [
+        d.locality,
+        d.city && d.city !== d.locality ? d.city : null,
+        d.principalSubdivision,
+        d.postcode,
+      ].filter((p: string | null | undefined) => p && String(p).trim());
+      return parts.length ? Array.from(new Set(parts)).join(", ") : null;
+    } catch {
+      return null;
+    }
+  };
 
   const useMyLocation = () => {
     if (!navigator.geolocation) {
@@ -21,8 +42,15 @@ export default function Onboarding({ onDone }: { onDone: (me: Me) => void }) {
     setLocating(true);
     setError(null);
     navigator.geolocation.getCurrentPosition(
-      (pos) => {
-        setCoords({ lat: pos.coords.latitude, lng: pos.coords.longitude });
+      async (pos) => {
+        const lat = pos.coords.latitude;
+        const lng = pos.coords.longitude;
+        setCoords({ lat, lng });
+        // Auto-fill the address unless the user has already typed their own.
+        if (!addressEdited) {
+          const resolved = await reverseGeocode(lat, lng);
+          if (resolved && !addressEdited) setAddress(resolved);
+        }
         setLocating(false);
       },
       () => {
@@ -73,11 +101,21 @@ export default function Onboarding({ onDone }: { onDone: (me: Me) => void }) {
         id="address"
         placeholder="A-402, Green Meadows, Baner"
         value={address}
-        onChange={(e) => setAddress(e.target.value)}
+        onChange={(e) => {
+          setAddress(e.target.value);
+          setAddressEdited(true);
+        }}
       />
+      <p className="hint">
+        Tap below and we'll fill this from your location — add your flat & building to it.
+      </p>
 
       <button className="secondary" disabled={locating} onClick={useMyLocation}>
-        {locating ? "Locating…" : coords ? "✓ Location captured — tap to refresh" : "📍 Use my location"}
+        {locating
+          ? "Locating…"
+          : coords
+            ? "✓ Location captured — tap to refresh"
+            : "📍 Use my location & fill address"}
       </button>
 
       <button disabled={busy} onClick={save}>
