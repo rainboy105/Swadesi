@@ -96,9 +96,6 @@ export default function Onboarding({ onDone }: { onDone: (me: Me) => void }) {
           setAddressEdited(true);
         }}
       />
-      <p className="hint">
-        Tap below and we'll fill this from your location — add your flat & building to it.
-      </p>
 
       <button className="secondary" disabled={locating} onClick={useMyLocation}>
         {locating
