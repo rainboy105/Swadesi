@@ -26,10 +26,10 @@ export default function CookPanel() {
   };
   const toLocalInput = (iso: string | null) => (iso ? fmtLocal(new Date(iso)) : "");
   // Earliest selectable time = 5 minutes from now (no past cutoffs).
-  // Default when opening a fresh listing: ~3 hours from now, rounded up to the next 30 min.
+  // Default when opening a fresh listing: 2 hours from now, on the hour.
   const defaultOrderBy = () => {
-    const d = new Date(Date.now() + 3 * 60 * 60 * 1000);
-    d.setMinutes(d.getMinutes() > 30 ? 60 : 30, 0, 0);
+    const d = new Date(Date.now() + 2 * 60 * 60 * 1000);
+    d.setMinutes(0, 0, 0);
     return fmtLocal(d);
   };
 
@@ -38,8 +38,8 @@ export default function CookPanel() {
   const dayPart = (local: string) => (local ? local.split("T")[0] : "");
   const timePart = (local: string) => (local ? local.split("T")[1] : "");
 
-  // Next 14 days as options.
-  const dayOptions = Array.from({ length: 14 }, (_, i) => {
+  // Next 5 days as options.
+  const dayOptions = Array.from({ length: 5 }, (_, i) => {
     const d = new Date();
     d.setDate(d.getDate() + i);
     const label = i === 0 ? "Today" : i === 1 ? "Tomorrow"
@@ -47,19 +47,16 @@ export default function CookPanel() {
     return { value: dateKey(d), label };
   });
 
-  // 30-min time slots for a given day; past slots hidden when the day is today.
+  // Hourly time slots; for today, only hours at least 1 hour from now (no past times).
   const timeOptions = (day: string) => {
     const now = new Date();
     const isToday = day === dateKey(now);
+    const earliestHour = isToday ? now.getHours() + 1 : 0; // 1-hour minimum lead
     const out: { value: string; label: string }[] = [];
-    for (let h = 0; h < 24; h++) {
-      for (const m of [0, 30]) {
-        if (isToday && (h < now.getHours() || (h === now.getHours() && m <= now.getMinutes()))) continue;
-        const hh = String(h).padStart(2, "0");
-        const mm = String(m).padStart(2, "0");
-        const label = new Date(2000, 0, 1, h, m).toLocaleTimeString([], { hour: "numeric", minute: "2-digit" });
-        out.push({ value: `${hh}:${mm}`, label });
-      }
+    for (let h = earliestHour; h < 24; h++) {
+      const hh = String(h).padStart(2, "0");
+      const label = new Date(2000, 0, 1, h, 0).toLocaleTimeString([], { hour: "numeric", minute: "2-digit" });
+      out.push({ value: `${hh}:00`, label });
     }
     return out;
   };
