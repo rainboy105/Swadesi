@@ -23,7 +23,8 @@ import org.springframework.web.server.ResponseStatusException;
 public class MeController {
 
     public record MeResponse(String id, String phone, String name, String addressText,
-                             Double lat, Double lng, boolean onboarded, String activeRole) {}
+                             Double lat, Double lng, boolean onboarded, String activeRole,
+                             String upiId) {}
 
     public record OnboardingRequest(
             @NotBlank @Size(max = 80) String name,
@@ -32,6 +33,8 @@ public class MeController {
             @NotNull @Min(-180) @Max(180) Double lng) {}
 
     public record RoleRequest(@NotBlank String role) {}
+
+    public record PayoutRequest(@NotBlank @Size(max = 120) String upiId) {}
 
     private final UserRepository users;
 
@@ -76,8 +79,26 @@ public class MeController {
         return toResponse(users.save(u));
     }
 
+    /** Set the cook's payout UPI ID (where order money is sent on pickup). */
+    @PostMapping("/payout")
+    public MeResponse setPayout(@AuthenticationPrincipal AuthenticatedUser auth,
+                                @Valid @RequestBody PayoutRequest req) {
+        String upi = req.upiId().trim();
+        // Lenient UPI VPA check: handle@provider
+        if (!upi.matches("^[a-zA-Z0-9.\\-_]{2,}@[a-zA-Z]{2,}$")) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST,
+                    "Enter a valid UPI ID, e.g. name@okhdfcbank");
+        }
+        User u = users.findById(auth.id())
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Unknown user"));
+        u.setUpiId(upi);
+        u.setUpdatedAt(OffsetDateTime.now());
+        return toResponse(users.save(u));
+    }
+
     private static MeResponse toResponse(User u) {
         return new MeResponse(u.getId().toString(), u.getPhone(), u.getName(),
-                u.getAddressText(), u.getLat(), u.getLng(), u.isOnboarded(), u.getActiveRole());
+                u.getAddressText(), u.getLat(), u.getLng(), u.isOnboarded(), u.getActiveRole(),
+                u.getUpiId());
     }
 }

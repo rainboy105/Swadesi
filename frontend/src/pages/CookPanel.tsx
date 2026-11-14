@@ -1,9 +1,25 @@
 import { useEffect, useRef, useState } from "react";
-import { api, type Listing, type Order } from "../lib/api";
+import { api, type Listing, type Order, type Me } from "../lib/api";
 import { downscaleToJpeg } from "../lib/image";
 
 /** Cook mode: create a dish (with serving cap + order cutoff), manage listings, handle orders. */
-export default function CookPanel() {
+export default function CookPanel({ me, onMe }: { me: Me; onMe: (me: Me) => void }) {
+  const [upiInput, setUpiInput] = useState("");
+  const [upiBusy, setUpiBusy] = useState(false);
+  const [upiErr, setUpiErr] = useState<string | null>(null);
+
+  const saveUpi = async () => {
+    setUpiBusy(true);
+    setUpiErr(null);
+    try {
+      onMe(await api.setPayout(upiInput.trim()));
+      setUpiInput("");
+    } catch (e) {
+      setUpiErr(e instanceof Error ? e.message : "Could not save UPI.");
+    } finally {
+      setUpiBusy(false);
+    }
+  };
   const [listings, setListings] = useState<Listing[]>([]);
   const [orders, setOrders] = useState<Order[]>([]);
   const [loading, setLoading] = useState(true);
@@ -204,6 +220,27 @@ export default function CookPanel() {
         <span className="tile marigold">🍳</span>
         <h1>Your kitchen</h1>
       </div>
+
+      {/* Cooks need a UPI to get paid when an order is picked up. */}
+      {!me.upiId ? (
+        <div className="upi-setup">
+          <strong>💸 Add your UPI to get paid</strong>
+          <span className="muted">Order money is sent here when a customer picks up.</span>
+          <div className="order-row">
+            <input
+              placeholder="name@okhdfcbank"
+              value={upiInput}
+              onChange={(e) => setUpiInput(e.target.value)}
+            />
+            <button className="small" disabled={upiBusy || !upiInput.trim()} onClick={saveUpi}>
+              {upiBusy ? "…" : "Save"}
+            </button>
+          </div>
+          {upiErr && <span className="error-inline">{upiErr}</span>}
+        </div>
+      ) : (
+        <div className="upi-ok">💸 Payouts to <strong>{me.upiId}</strong></div>
+      )}
 
       {!showForm && <button onClick={openCreate}>+ List a dish</button>}
 

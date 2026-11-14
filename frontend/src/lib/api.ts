@@ -68,6 +68,7 @@ export interface Me {
   lng: number | null;
   onboarded: boolean;
   activeRole: Role;
+  upiId: string | null;
 }
 
 export const api = {
@@ -91,6 +92,8 @@ export const api = {
     call<{ address: string }>(`/api/public/reverse-geocode?lat=${lat}&lng=${lng}`),
   setRole: (role: Role) =>
     call<Me>("/api/v1/me/role", { method: "POST", body: JSON.stringify({ role }) }),
+  setPayout: (upiId: string) =>
+    call<Me>("/api/v1/me/payout", { method: "POST", body: JSON.stringify({ upiId }) }),
 
   createListing: (body: {
     title: string;

@@ -39,6 +39,10 @@ public class User {
     @Column(name = "active_role", nullable = false)
     private String activeRole = "consumer";
 
+    /** Cook's UPI ID — where order payouts are sent on pickup. */
+    @Column(name = "upi_id")
+    private String upiId;
+
     @Column(name = "admin", nullable = false)
     private boolean admin = false;
 
@@ -64,6 +68,8 @@ public class User {
     public void setOnboarded(boolean onboarded) { this.onboarded = onboarded; }
     public String getActiveRole() { return activeRole; }
     public void setActiveRole(String activeRole) { this.activeRole = activeRole; }
+    public String getUpiId() { return upiId; }
+    public void setUpiId(String upiId) { this.upiId = upiId; }
     public boolean isAdmin() { return admin; }
     public void setAdmin(boolean admin) { this.admin = admin; }
     public OffsetDateTime getCreatedAt() { return createdAt; }

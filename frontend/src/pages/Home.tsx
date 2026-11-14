@@ -48,7 +48,7 @@ export default function Home({ me, onMe }: { me: Me; onMe: (me: Me) => void }) {
           </button>
         </div>
 
-        {role === "consumer" ? <FeedPanel /> : <CookPanel />}
+        {role === "consumer" ? <FeedPanel /> : <CookPanel me={me} onMe={onMe} />}
       </div>
     </>
   );
