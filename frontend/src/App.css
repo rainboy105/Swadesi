@@ -405,22 +405,23 @@ select {
 /* Bottom section navigation (Feed / Orders, etc.) */
 .bottom-nav {
   position: fixed;
-  left: 0;
-  right: 0;
+  left: 50%;
+  transform: translateX(-50%);
   bottom: 0;
+  width: 100%;
+  max-width: 440px;
   display: flex;
-  justify-content: center;
   gap: 8px;
-  padding: 8px 10px calc(8px + env(safe-area-inset-bottom));
+  padding: 8px 12px calc(8px + env(safe-area-inset-bottom));
   background: var(--card);
   border-top: 1px solid var(--line);
-  box-shadow: 0 -6px 20px rgba(59, 23, 130, 0.07);
+  border-radius: 20px 20px 0 0;
+  box-shadow: 0 -6px 20px rgba(59, 23, 130, 0.08);
   z-index: 20;
 }
 
 .nav-item {
-  flex: 1;
-  max-width: 200px;
+  flex: 1 1 0;
   width: auto;
   display: flex;
   flex-direction: column;
@@ -429,7 +430,7 @@ select {
   background: transparent;
   color: var(--ink-400);
   box-shadow: none;
-  padding: 6px 4px;
+  padding: 7px 4px;
   border-radius: 14px;
 }
 
