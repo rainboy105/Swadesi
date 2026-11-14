@@ -146,11 +146,16 @@ public class OrderController {
             throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Not your order to manage");
         }
         String s = req.status() == null ? "" : req.status().trim().toLowerCase();
-        if (!s.equals("accepted") && !s.equals("rejected")) {
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "status must be 'accepted' or 'rejected'");
+        if (!s.equals("accepted") && !s.equals("rejected") && !s.equals("completed")) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST,
+                    "status must be 'accepted', 'rejected' or 'completed'");
         }
-        if (!"requested".equals(o.getStatus())) {
-            throw new ResponseStatusException(HttpStatus.CONFLICT, "This order was already " + o.getStatus());
+        // Allowed transitions: requested -> accepted | rejected; accepted -> completed.
+        boolean ok = ((s.equals("accepted") || s.equals("rejected")) && "requested".equals(o.getStatus()))
+                || (s.equals("completed") && "accepted".equals(o.getStatus()));
+        if (!ok) {
+            throw new ResponseStatusException(HttpStatus.CONFLICT,
+                    "Can't move an order from " + o.getStatus() + " to " + s);
         }
         o.setStatus(s);
         o.setUpdatedAt(now);
@@ -160,9 +165,12 @@ public class OrderController {
             listings.release(l.getId(), o.getQty(), now); // give the servings back
         }
         // Notify the consumer.
-        notify(o.getConsumerPhone(), s.equals("accepted")
-                ? "Your Swaadeshi order (" + o.getQty() + " × " + l.getTitle() + ") was accepted! 🎉"
-                : "Sorry, your Swaadeshi order (" + o.getQty() + " × " + l.getTitle() + ") was declined.");
+        String msg = switch (s) {
+            case "accepted" -> "Your Swaadeshi order (" + o.getQty() + " × " + l.getTitle() + ") was accepted! 🎉";
+            case "completed" -> "Your Swaadeshi order (" + o.getQty() + " × " + l.getTitle() + ") is complete. Enjoy your meal! 🍴";
+            default -> "Sorry, your Swaadeshi order (" + o.getQty() + " × " + l.getTitle() + ") was declined.";
+        };
+        notify(o.getConsumerPhone(), msg);
 
         return toResponse(o, l.getTitle(), l.getCookName());
     }

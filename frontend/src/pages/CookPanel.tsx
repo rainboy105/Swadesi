@@ -66,7 +66,7 @@ export default function CookPanel() {
     }
   };
 
-  const decide = async (o: Order, status: "accepted" | "rejected") => {
+  const decide = async (o: Order, status: "accepted" | "rejected" | "completed") => {
     try {
       await api.setOrderStatus(o.id, status);
       await load();
@@ -76,6 +76,13 @@ export default function CookPanel() {
   };
 
   const pending = orders.filter((o) => o.status === "requested");
+  const accepted = orders.filter((o) => o.status === "accepted");
+  const history = orders.filter((o) => o.status === "completed" || o.status === "rejected" || o.status === "cancelled");
+  const histLabel: Record<string, string> = {
+    completed: "🍴 Completed",
+    rejected: "❌ Declined",
+    cancelled: "Cancelled",
+  };
   const timeOf = (iso: string | null) =>
     iso ? new Date(iso).toLocaleTimeString([], { hour: "numeric", minute: "2-digit" }) : null;
 
@@ -127,6 +134,35 @@ export default function CookPanel() {
                 <button className="small" onClick={() => decide(o, "accepted")}>Accept</button>
                 <button className="secondary small" onClick={() => decide(o, "rejected")}>Reject</button>
               </div>
+            </div>
+          ))}
+        </div>
+      )}
+
+      {/* Accepted orders in progress -> mark completed */}
+      {accepted.length > 0 && (
+        <div className="orders-block">
+          <label>In progress</label>
+          {accepted.map((o) => (
+            <div className="listing" key={o.id}>
+              <div className="listing-main">
+                <strong>{o.qty} × {o.listingTitle}</strong>
+                {o.consumerName && <span className="muted">for {o.consumerName}</span>}
+              </div>
+              <button className="small" onClick={() => decide(o, "completed")}>Mark done</button>
+            </div>
+          ))}
+        </div>
+      )}
+
+      {/* Order history */}
+      {history.length > 0 && (
+        <div className="orders-block history">
+          <label>Order history</label>
+          {history.map((o) => (
+            <div className="profile-row" key={o.id}>
+              <span>{o.qty} × {o.listingTitle}{o.consumerName ? ` · ${o.consumerName}` : ""}</span>
+              <strong>{histLabel[o.status]}</strong>
             </div>
           ))}
         </div>

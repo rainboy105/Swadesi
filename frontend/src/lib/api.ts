@@ -115,19 +115,21 @@ export const api = {
     }),
   myOrders: () => call<Order[]>("/api/v1/orders/mine"),
   receivedOrders: () => call<Order[]>("/api/v1/orders/received"),
-  setOrderStatus: (id: string, status: "accepted" | "rejected") =>
+  setOrderStatus: (id: string, status: "accepted" | "rejected" | "completed") =>
     call<Order>(`/api/v1/orders/${id}/status`, {
       method: "POST",
       body: JSON.stringify({ status }),
     }),
 };
 
+export type OrderStatus = "requested" | "accepted" | "rejected" | "cancelled" | "completed";
+
 export interface Order {
   id: string;
   listingId: string;
   listingTitle: string;
   qty: number;
-  status: "requested" | "accepted" | "rejected" | "cancelled";
+  status: OrderStatus;
   cookName: string | null;
   consumerName: string | null;
   createdAt: string;

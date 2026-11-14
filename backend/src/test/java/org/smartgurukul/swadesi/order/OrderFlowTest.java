@@ -99,4 +99,28 @@ class OrderFlowTest {
         assertThat(mine.getBody()).hasSize(1);
         assertThat(((Map) mine.getBody().get(0)).get("status")).isEqualTo("rejected");
     }
+
+    @Test
+    void acceptThenComplete() {
+        String cook = login("+919888800011", 12.9719, 77.6412, "Meera");
+        String buyer = login("+919888800012", 12.9735, 77.6420, "Rohit");
+        String listingId = (String) rest.exchange("/api/v1/listings", HttpMethod.POST,
+                new HttpEntity<>(Map.of("title", "Idli", "pricePerServing", 50, "maxServings", 5), auth(cook)),
+                Map.class).getBody().get("id");
+        rest.exchange("/api/v1/orders", HttpMethod.POST,
+                new HttpEntity<>(Map.of("listingId", listingId, "qty", 1), auth(buyer)), Map.class);
+        String orderId = (String) ((Map) rest.exchange("/api/v1/orders/received", HttpMethod.GET,
+                new HttpEntity<>(auth(cook)), List.class).getBody().get(0)).get("id");
+
+        // Can't complete before accepting.
+        var early = rest.exchange("/api/v1/orders/" + orderId + "/status", HttpMethod.POST,
+                new HttpEntity<>(Map.of("status", "completed"), auth(cook)), Map.class);
+        assertThat(early.getStatusCode().value()).isEqualTo(409);
+
+        rest.exchange("/api/v1/orders/" + orderId + "/status", HttpMethod.POST,
+                new HttpEntity<>(Map.of("status", "accepted"), auth(cook)), Map.class);
+        var done = rest.exchange("/api/v1/orders/" + orderId + "/status", HttpMethod.POST,
+                new HttpEntity<>(Map.of("status", "completed"), auth(cook)), Map.class);
+        assertThat(done.getBody().get("status")).isEqualTo("completed");
+    }
 }

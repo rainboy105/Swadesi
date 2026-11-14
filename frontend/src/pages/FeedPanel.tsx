@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { api, type FeedItem, type Order } from "../lib/api";
+import { api, type FeedItem, type Order, type OrderStatus } from "../lib/api";
 
 /** Consumer mode: vicinity feed of open dishes, order with a quantity, and your orders. */
 export default function FeedPanel() {
@@ -44,12 +44,16 @@ export default function FeedPanel() {
     }
   };
 
-  const statusLabel: Record<Order["status"], string> = {
+  const statusLabel: Record<OrderStatus, string> = {
     requested: "⏳ Waiting for cook",
     accepted: "✅ Accepted",
     rejected: "❌ Declined",
     cancelled: "Cancelled",
+    completed: "🍴 Completed",
   };
+
+  const active = orders.filter((o) => o.status === "requested" || o.status === "accepted");
+  const past = orders.filter((o) => o.status !== "requested" && o.status !== "accepted");
 
   return (
     <div className="mode-panel">
@@ -99,10 +103,22 @@ export default function FeedPanel() {
         </div>
       )}
 
-      {orders.length > 0 && (
+      {active.length > 0 && (
         <div className="orders-block">
           <label>Your orders</label>
-          {orders.map((o) => (
+          {active.map((o) => (
+            <div className="profile-row" key={o.id}>
+              <span>{o.qty} × {o.listingTitle}{o.cookName ? ` · ${o.cookName}` : ""}</span>
+              <strong>{statusLabel[o.status]}</strong>
+            </div>
+          ))}
+        </div>
+      )}
+
+      {past.length > 0 && (
+        <div className="orders-block history">
+          <label>Order history</label>
+          {past.map((o) => (
             <div className="profile-row" key={o.id}>
               <span>{o.qty} × {o.listingTitle}{o.cookName ? ` · ${o.cookName}` : ""}</span>
               <strong>{statusLabel[o.status]}</strong>

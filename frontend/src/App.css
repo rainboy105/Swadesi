@@ -513,6 +513,16 @@ button.small {
   padding: 14px 16px;
 }
 
+.orders-block.history {
+  background: transparent;
+  border: 1px solid var(--line);
+}
+
+.orders-block.history .profile-row strong {
+  color: var(--ink-600);
+  font-weight: 500;
+}
+
 /* Keep the card comfortably inside small screens. */
 @media (max-width: 480px) {
   .shell {
