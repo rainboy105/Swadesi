@@ -1,8 +1,8 @@
 {
   "packageId": "org.smartgurukul.swadesi",
   "host": "swaadesi.org",
-  "name": "Swaadeshi",
-  "launcherName": "Swaadeshi",
+  "name": "Swaadesi",
+  "launcherName": "Swaadesi",
   "display": "standalone",
   "themeColor": "#7c3aed",
   "themeColorDark": "#14101f",

@@ -117,7 +117,7 @@ public class OtpService {
         codes.save(row);
 
         try {
-            whatsApp.send(phone, "Your Swaadeshi login code is " + code
+            whatsApp.send(phone, "Your Swaadesi login code is " + code
                     + ". It is valid for " + expiryMinutes + " minutes. Never share it with anyone.");
         } catch (Exception e) {
             log.error("otp request: delivery failed to {} ({})",

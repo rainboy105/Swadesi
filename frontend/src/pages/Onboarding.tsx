@@ -72,7 +72,7 @@ export default function Onboarding({ onDone }: { onDone: (me: Me) => void }) {
   return (
     <>
       <div className="hero">
-        <div className="logo-box">🍲 Swaadeshi</div>
+        <div className="logo-box">🍲 Swaadesi</div>
         <h2>Almost there</h2>
         <p>Tell us who you are and where you live</p>
       </div>

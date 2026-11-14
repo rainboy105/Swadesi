@@ -105,7 +105,7 @@ public class OrderController {
 
         // Notify the cook (never fails the order).
         users.findById(l.getCookId()).ifPresent(cook -> notify(cook.getPhone(),
-                "New Swaadeshi order: " + req.qty() + " × " + l.getTitle()
+                "New Swaadesi order: " + req.qty() + " × " + l.getTitle()
                         + (consumer.getName() != null ? " from " + consumer.getName() : "")
                         + ". Open the app to accept."));
 
@@ -179,12 +179,12 @@ public class OrderController {
         }
         // Notify the consumer.
         String msg = switch (s) {
-            case "accepted" -> "Your Swaadeshi order (" + o.getQty() + " × " + l.getTitle() + ") was accepted! 🎉";
+            case "accepted" -> "Your Swaadesi order (" + o.getQty() + " × " + l.getTitle() + ") was accepted! 🎉";
             case "preparing" -> l.getTitle() + " is being prepared. We'll tell you when it's ready.";
             case "ready" -> "Your order is ready for pickup! 🛍️ Show the cook your pickup code: "
                     + o.getPickupCode() + " (" + o.getQty() + " × " + l.getTitle() + ")";
             case "completed" -> "Order picked up. Enjoy your meal! 🍴 (" + o.getQty() + " × " + l.getTitle() + ")";
-            default -> "Sorry, your Swaadeshi order (" + o.getQty() + " × " + l.getTitle() + ") was declined.";
+            default -> "Sorry, your Swaadesi order (" + o.getQty() + " × " + l.getTitle() + ") was declined.";
         };
         notify(o.getConsumerPhone(), msg);
 
