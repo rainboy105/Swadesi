@@ -44,6 +44,8 @@ public class OrderController {
 
     public record StatusRequest(String status, String pickupCode) {}
 
+    public record BulkStatusRequest(String status) {}
+
     // Allowed forward transitions in the order lifecycle.
     private static final java.util.Map<String, java.util.Set<String>> NEXT = java.util.Map.of(
             "requested", java.util.Set.of("accepted", "rejected"),
@@ -289,7 +291,48 @@ public class OrderController {
                 razorpay.refund(o.getRazorpayPaymentId(), o.getAmountPaise());
             }
         }
-        // Notify the consumer.
+        notifyStatusChange(o, l, s);
+        return toResponse(o, l, false);
+    }
+
+    /**
+     * Cook advances every order of one dish by a single step (accepted / preparing / ready),
+     * instead of touching each order. The pickup code stays unique per order, so each customer
+     * still gets their own code when the dish is marked ready, and pickup is confirmed per order.
+     */
+    @PostMapping("/listing/{listingId}/status")
+    @Transactional
+    public List<OrderResponse> bulkStatus(@AuthenticationPrincipal AuthenticatedUser auth,
+                                          @PathVariable UUID listingId,
+                                          @RequestBody BulkStatusRequest req) {
+        Listing l = listings.findById(listingId)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Dish not found"));
+        if (!l.getCookId().equals(auth.id())) {
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Not your dish to manage");
+        }
+        String s = req.status() == null ? "" : req.status().trim().toLowerCase();
+        // Only forward cooking steps can be bulk-applied; pickup (completed) needs each order's
+        // code, and rejecting is a per-order decision.
+        if (!java.util.Set.of("accepted", "preparing", "ready").contains(s)) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST,
+                    "Bulk update supports 'accepted', 'preparing' or 'ready' only");
+        }
+        OffsetDateTime now = OffsetDateTime.now();
+        List<OrderResponse> out = new ArrayList<>();
+        for (FoodOrder o : orders.findByListingIdInOrderByCreatedAtDesc(java.util.Set.of(listingId))) {
+            // Advance only orders currently in the step right before the target.
+            if (!NEXT.getOrDefault(o.getStatus(), java.util.Set.of()).contains(s)) continue;
+            o.setStatus(s);
+            o.setUpdatedAt(now);
+            orders.save(o);
+            notifyStatusChange(o, l, s);
+            out.add(toResponse(o, l, false));
+        }
+        return out;
+    }
+
+    /** Tell the consumer their order moved. For 'ready', includes their own pickup code. */
+    private void notifyStatusChange(FoodOrder o, Listing l, String s) {
         boolean refunded = s.equals("rejected") && o.isPaid();
         String msg = switch (s) {
             case "accepted" -> "Your Swaadesi order (" + o.getQty() + " × " + l.getTitle() + ") was accepted! 🎉";
@@ -301,8 +344,6 @@ public class OrderController {
                     + (refunded ? " Your payment has been refunded." : "");
         };
         notify(o.getConsumerPhone(), msg);
-
-        return toResponse(o, l, false);
     }
 
     private Map<UUID, Listing> loadListings(List<FoodOrder> os) {

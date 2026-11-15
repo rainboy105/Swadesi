@@ -222,9 +222,25 @@ export default function CookPanel({ me, onMe, view }: {
     }
   };
 
-  const pending = orders.filter((o) => o.status === "requested");
-  const activeOrders = orders.filter(
-    (o) => o.status === "accepted" || o.status === "preparing" || o.status === "ready",
+  // Advance every order of one dish by a step (accept / prepare / ready) in one tap.
+  const bulkDecide = async (listingId: string, status: Order["status"]) => {
+    try {
+      await api.bulkOrderStatus(listingId, status);
+      await load();
+    } catch {
+      /* ignore */
+    }
+  };
+
+  const activeAll = orders.filter(
+    (o) => o.status === "requested" || o.status === "accepted" || o.status === "preparing" || o.status === "ready",
+  );
+  // Group active orders by dish so the cook manages a whole dish at once.
+  const dishGroups = Object.values(
+    activeAll.reduce<Record<string, { listingId: string; title: string; items: Order[] }>>((acc, o) => {
+      (acc[o.listingId] ??= { listingId: o.listingId, title: o.listingTitle, items: [] }).items.push(o);
+      return acc;
+    }, {}),
   );
   const history = orders.filter((o) => o.status === "completed" || o.status === "rejected" || o.status === "cancelled");
   const histLabel: Record<string, string> = {
@@ -245,69 +261,82 @@ export default function CookPanel({ me, onMe, view }: {
           <button className="link refresh" onClick={load} aria-label="Refresh">↻</button>
         </div>
 
-        {pending.length === 0 && activeOrders.length === 0 && history.length === 0 && (
+        {dishGroups.length === 0 && history.length === 0 && (
           <p className="hint">No orders yet. They'll show up here when customers order.</p>
         )}
 
-        {pending.length > 0 && (
-          <div className="orders-block">
-            <label>New orders</label>
-            {pending.map((o) => (
-              <div className="listing" key={o.id}>
-                <div className="listing-main">
-                  <strong>{o.qty} × {o.listingTitle}</strong>
-                  {o.consumerName && <span className="muted">from {o.consumerName}</span>}
-                </div>
-                <div className="order-actions">
-                  <button className="small" onClick={() => decide(o, "accepted")}>Accept</button>
-                  <button className="secondary small" onClick={() => decide(o, "rejected")}>Reject</button>
-                </div>
+        {dishGroups.map((g) => {
+          const requested = g.items.filter((o) => o.status === "requested");
+          const accepted = g.items.filter((o) => o.status === "accepted");
+          const preparing = g.items.filter((o) => o.status === "preparing");
+          const statusText: Record<string, string> = {
+            requested: "⏳ New",
+            accepted: "✅ Accepted",
+            preparing: "👨‍🍳 Preparing",
+            ready: "🛍️ Ready",
+          };
+          return (
+            <div className="dish-group" key={g.listingId}>
+              <div className="dish-group-head">
+                <strong>{g.title}</strong>
+                <span className="muted">{g.items.length} order{g.items.length > 1 ? "s" : ""}</span>
               </div>
-            ))}
-          </div>
-        )}
 
-        {activeOrders.length > 0 && (
-          <div className="orders-block">
-            <label>In progress</label>
-            {activeOrders.map((o) => (
-              <div className="listing col" key={o.id}>
-                <div className="listing-main">
-                  <strong>{o.qty} × {o.listingTitle}</strong>
-                  {o.consumerName && <span className="muted">for {o.consumerName}</span>}
-                  <span className="meta">
-                    {o.status === "accepted" && "Accepted"}
-                    {o.status === "preparing" && "👨‍🍳 Preparing"}
-                    {o.status === "ready" && "🛍️ Ready for pickup"}
-                  </span>
-                </div>
-                {o.status === "accepted" && (
-                  <button className="small" onClick={() => decide(o, "preparing")}>Start preparing</button>
+              {/* One tap moves every order of this dish forward a step. */}
+              <div className="dish-actions">
+                {requested.length > 0 && (
+                  <button className="small" onClick={() => bulkDecide(g.listingId, "accepted")}>
+                    Accept all ({requested.length})
+                  </button>
                 )}
-                {o.status === "preparing" && (
-                  <button className="small" onClick={() => decide(o, "ready")}>Mark ready</button>
+                {accepted.length > 0 && (
+                  <button className="small" onClick={() => bulkDecide(g.listingId, "preparing")}>
+                    Start preparing ({accepted.length})
+                  </button>
                 )}
-                {o.status === "ready" && (
-                  <div className="pickup-confirm">
-                    <span className="muted">Ask for the pickup code:</span>
-                    <div className="order-row">
-                      <input
-                        inputMode="numeric"
-                        placeholder="4-digit code"
-                        value={codeInput[o.id] ?? ""}
-                        onChange={(e) => setCodeInput({ ...codeInput, [o.id]: e.target.value })}
-                      />
-                      <button className="small" onClick={() => decide(o, "completed", codeInput[o.id])}>
-                        Confirm pickup
-                      </button>
-                    </div>
-                    {codeErr[o.id] && <span className="error-inline">{codeErr[o.id]}</span>}
-                  </div>
+                {preparing.length > 0 && (
+                  <button className="small" onClick={() => bulkDecide(g.listingId, "ready")}>
+                    Mark all ready ({preparing.length})
+                  </button>
                 )}
               </div>
-            ))}
-          </div>
-        )}
+
+              {/* Each customer is a separate order with its own pickup code. */}
+              <div className="dish-orders">
+                {g.items.map((o) => (
+                  <div className="dish-order" key={o.id}>
+                    <div className="dish-order-row">
+                      <span className="dish-order-main">
+                        <strong>{o.qty} ×</strong> {o.consumerName ?? "Customer"}
+                      </span>
+                      <span className={`status-pill s-${o.status}`}>{statusText[o.status]}</span>
+                      {o.status === "requested" && (
+                        <button className="secondary small" onClick={() => decide(o, "rejected")}>Reject</button>
+                      )}
+                    </div>
+                    {o.status === "ready" && (
+                      <div className="pickup-confirm">
+                        <span className="muted">Enter {o.consumerName ?? "the customer"}'s pickup code:</span>
+                        <div className="order-row">
+                          <input
+                            inputMode="numeric"
+                            placeholder="4-digit code"
+                            value={codeInput[o.id] ?? ""}
+                            onChange={(e) => setCodeInput({ ...codeInput, [o.id]: e.target.value })}
+                          />
+                          <button className="small" onClick={() => decide(o, "completed", codeInput[o.id])}>
+                            Confirm pickup
+                          </button>
+                        </div>
+                        {codeErr[o.id] && <span className="error-inline">{codeErr[o.id]}</span>}
+                      </div>
+                    )}
+                  </div>
+                ))}
+              </div>
+            </div>
+          );
+        })}
 
         {history.length > 0 && (
           <div className="orders-block history">

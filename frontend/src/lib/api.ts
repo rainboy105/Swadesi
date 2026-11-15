@@ -188,6 +188,12 @@ export const api = {
       method: "POST",
       body: JSON.stringify({ status, pickupCode }),
     }),
+  // Advance every order of one dish by a step (accepted / preparing / ready).
+  bulkOrderStatus: (listingId: string, status: OrderStatus) =>
+    call<Order[]>(`/api/v1/orders/listing/${listingId}/status`, {
+      method: "POST",
+      body: JSON.stringify({ status }),
+    }),
 };
 
 export type OrderStatus =
