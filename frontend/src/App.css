@@ -1113,6 +1113,17 @@ button.small {
   gap: 10px;
 }
 
+/* The kitchen set/change button sits on a light card, so give it a grayer fill. */
+.kitchen-ok button.secondary {
+  background: #e7e4ee;
+  color: var(--ink-600, #575070);
+  border: 1px solid #cfc9dc;
+  flex: 0 0 auto;
+}
+.kitchen-ok button.secondary:hover:not(:disabled) {
+  background: #dcd8e6;
+}
+
 .kitchen-ok span {
   min-width: 0;
   overflow-wrap: anywhere;
