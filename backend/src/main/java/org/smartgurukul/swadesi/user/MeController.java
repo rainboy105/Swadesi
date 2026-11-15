@@ -36,7 +36,7 @@ public class MeController {
 
     public record OnboardingRequest(
             @NotBlank @Size(max = 80) String name,
-            @NotBlank @Size(max = 300) String addressText,
+            @Size(max = 300) String addressText,
             @NotNull @Min(-90) @Max(90) Double lat,
             @NotNull @Min(-180) @Max(180) Double lng) {}
 
@@ -64,7 +64,8 @@ public class MeController {
         User u = users.findById(auth.id())
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Unknown user"));
         u.setName(req.name().trim());
-        u.setAddressText(req.addressText().trim());
+        u.setAddressText(req.addressText() == null || req.addressText().isBlank()
+                ? null : req.addressText().trim());
         u.setLat(req.lat());
         u.setLng(req.lng());
         u.setOnboarded(true);

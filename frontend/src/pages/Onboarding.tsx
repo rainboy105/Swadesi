@@ -1,37 +1,50 @@
 import { useState } from "react";
 import { api, type Me } from "../lib/api";
-import LocationPicker, { type PickedLocation } from "../components/LocationPicker";
 
 /**
- * First-login details: name + the location used for all vicinity searches
- * (for a cook it is the kitchen; for a consumer, home).
- *
- * Address is two lines: line 1 (flat/building) typed by the user, line 2 (area,
- * city, state, pincode) auto-filled from GPS but editable.
+ * First-login details: name + current location (one tap). No typed address —
+ * we just capture GPS and auto-fill a readable area name from it for display.
  */
 export default function Onboarding({ onDone }: { onDone: (me: Me) => void }) {
   const [name, setName] = useState("");
-  const [flat, setFlat] = useState(""); // line 1 — flat, building, society
-  const [area, setArea] = useState(""); // line 2 — area, city, state, pincode
   const [coords, setCoords] = useState<{ lat: number; lng: number } | null>(null);
+  const [area, setArea] = useState<string | null>(null);
+  const [locating, setLocating] = useState(false);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const onPick = (p: PickedLocation) => {
-    setCoords({ lat: p.lat, lng: p.lng });
-    if (p.address) setArea(p.address); // fill line 2
+  const useLocation = () => {
+    if (!navigator.geolocation) return setError("Location isn't available on this device.");
+    setLocating(true);
+    setError(null);
+    navigator.geolocation.getCurrentPosition(
+      async (pos) => {
+        const { latitude: lat, longitude: lng } = pos.coords;
+        setCoords({ lat, lng });
+        try {
+          const { address } = await api.reverseGeocode(lat, lng);
+          setArea(address && address.trim() ? address : null);
+        } catch {
+          setArea(null);
+        } finally {
+          setLocating(false);
+        }
+      },
+      () => {
+        setLocating(false);
+        setError("Couldn't get your location. Please allow location access and try again.");
+      },
+      { enableHighAccuracy: true, timeout: 10000 },
+    );
   };
 
   const save = async () => {
     if (!name.trim()) return setError("Please tell us your name.");
-    if (!flat.trim()) return setError("Please enter your flat / building / society.");
-    if (!area.trim()) return setError("Please add your area — tap “Use my location” or type it.");
-    if (!coords) return setError('Please tap "Use my location" — we need it to show food near you.');
+    if (!coords) return setError('Please tap "Use my current location" so we can show food near you.');
     setBusy(true);
     setError(null);
     try {
-      const addressText = `${flat.trim()}, ${area.trim()}`;
-      const me = await api.onboard(name.trim(), addressText, coords.lat, coords.lng);
+      const me = await api.onboard(name.trim(), coords.lat, coords.lng, area);
       onDone(me);
     } catch (e) {
       setError(e instanceof Error ? e.message : "Could not save. Please try again.");
@@ -45,7 +58,7 @@ export default function Onboarding({ onDone }: { onDone: (me: Me) => void }) {
       <div className="hero">
         <div className="logo-box">🍲 Swaadesi</div>
         <h2>Almost there</h2>
-        <p>Tell us who you are and where you live</p>
+        <p>Tell us your name and set your location</p>
       </div>
       <div className="card">
         <span className="chip">📍 Food near you, within walking distance</span>
@@ -59,24 +72,14 @@ export default function Onboarding({ onDone }: { onDone: (me: Me) => void }) {
           onChange={(e) => setName(e.target.value)}
         />
 
-        <label htmlFor="flat">Flat / building / society <span className="req">*</span></label>
-        <input
-          id="flat"
-          placeholder="e.g. A-402, Green Meadows"
-          value={flat}
-          onChange={(e) => setFlat(e.target.value)}
-        />
-
-        <label htmlFor="area">Area, city, state, pincode <span className="req">*</span></label>
-        <input
-          id="area"
-          placeholder="Filled from the map"
-          value={area}
-          onChange={(e) => setArea(e.target.value)}
-        />
-
-        <label>Pin your society on the map <span className="req">*</span></label>
-        <LocationPicker value={coords ? { ...coords, address: area } : null} onChange={onPick} />
+        <label>Your location <span className="req">*</span></label>
+        <button type="button" className="secondary" disabled={locating} onClick={useLocation}>
+          {locating ? "Locating…" : coords ? "📍 Update my location" : "📍 Use my current location"}
+        </button>
+        {coords && (
+          <p className="loc-ok">✓ Location set{area ? ` — ${area}` : ""}</p>
+        )}
+        <p className="hint">We use this only to show home-cooked food near you.</p>
 
         <button disabled={busy} onClick={save}>
           {busy ? "Saving…" : "Finish"}

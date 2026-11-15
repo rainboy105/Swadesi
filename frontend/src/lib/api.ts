@@ -101,10 +101,10 @@ export const api = {
       body: JSON.stringify({ phone, code }),
     }),
   me: () => call<Me>("/api/v1/me"),
-  onboard: (name: string, addressText: string, lat: number, lng: number) =>
+  onboard: (name: string, lat: number, lng: number, addressText?: string | null) =>
     call<Me>("/api/v1/me/onboarding", {
       method: "POST",
-      body: JSON.stringify({ name, addressText, lat, lng }),
+      body: JSON.stringify({ name, addressText: addressText ?? null, lat, lng }),
     }),
   reverseGeocode: (lat: number, lng: number) =>
     call<{ address: string }>(`/api/public/reverse-geocode?lat=${lat}&lng=${lng}`),
