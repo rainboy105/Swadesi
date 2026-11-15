@@ -92,11 +92,10 @@ export default function LocationPicker({
         : defaultCenter;
     const map = L.map(ref.current, { attributionControl: true, zoomControl: true })
       .setView(start, value || savedCoords ? 16 : 5);
-    // CARTO "Voyager" — a clean, labelled basemap that reads well in a light UI.
-    L.tileLayer("https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png", {
-      maxZoom: 20,
-      subdomains: "abcd",
-      attribution: "© OpenStreetMap, © CARTO",
+    // Keyless OpenStreetMap raster tiles.
+    L.tileLayer("https://tile.openstreetmap.org/{z}/{x}/{y}.png", {
+      maxZoom: 19,
+      attribution: "© OpenStreetMap",
     }).addTo(map);
     map.on("click", (e: L.LeafletMouseEvent) => {
       moveTo(e.latlng.lat, e.latlng.lng, false);
@@ -174,9 +173,14 @@ export default function LocationPicker({
           onChange={(e) => setQuery(e.target.value)}
           onFocus={() => hits.length && setOpen(true)}
         />
-        {open && (searching || hits.length > 0) && (
+        {open && (searching || query.trim().length >= 3) && (
           <ul className="loc-results">
             {searching && <li className="loc-result muted">Searching…</li>}
+            {!searching && hits.length === 0 && (
+              <li className="loc-result muted">
+                No match. Try your area or a nearby landmark, then drag the pin to your spot.
+              </li>
+            )}
             {hits.map((h, i) => (
               <li key={i} className="loc-result" onClick={() => choose(h)}>
                 {h.label}

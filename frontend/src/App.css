@@ -950,12 +950,8 @@ button.small {
   border-radius: 14px;
   overflow: hidden;
   border: 1.5px solid var(--line);
-}
-
-/* Leaflet controls/pins must sit above the map but below our dropdown. */
-.loc-canvas .leaflet-pane,
-.loc-canvas .leaflet-control {
-  z-index: 1;
+  position: relative;
+  z-index: 0; /* keep the map's stacking context below the search dropdown */
 }
 
 .loc-actions {
