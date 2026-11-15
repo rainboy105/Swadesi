@@ -278,8 +278,10 @@ export default function FeedPanel({ view, me, onMe }: {
             const cutoff = timeOf(it.orderBy);
             return (
               <div className="listing" key={it.id}>
-                {it.hasPhoto && (
+                {it.hasPhoto ? (
                   <img className="listing-thumb" src={api.listingPhotoUrl(it.id)} alt={it.title} />
+                ) : (
+                  <div className="listing-thumb placeholder" aria-hidden="true">🍲</div>
                 )}
                 <div className="listing-main">
                   <strong>{it.title}</strong>

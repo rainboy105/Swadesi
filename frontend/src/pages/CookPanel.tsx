@@ -534,8 +534,10 @@ export default function CookPanel({ me, onMe, view }: {
             const cutoff = timeOf(l.orderBy);
             return (
               <div className={`listing ${l.status === "closed" || l.expired ? "dim" : ""}`} key={l.id}>
-                {l.hasPhoto && (
+                {l.hasPhoto ? (
                   <img className="listing-thumb" src={api.listingPhotoUrl(l.id)} alt={l.title} />
+                ) : (
+                  <div className="listing-thumb placeholder" aria-hidden="true">🍲</div>
                 )}
                 <div className="listing-main">
                   <strong>{l.title}</strong>
