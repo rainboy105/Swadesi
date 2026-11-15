@@ -1113,6 +1113,22 @@ button.small {
   gap: 10px;
 }
 
+.notif-block {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 14px 16px;
+  border: 1px solid var(--line, #e6e0f0);
+  border-radius: 14px;
+}
+.notif-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  font-weight: 600;
+}
+
 /* The kitchen set/change button sits on a light card, so give it a grayer fill. */
 .kitchen-ok button.secondary {
   background: #e7e4ee;

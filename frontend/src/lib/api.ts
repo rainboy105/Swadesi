@@ -160,6 +160,19 @@ export const api = {
   },
   listingPhotoUrl: (id: string) => `${BASE}/api/public/listings/${id}/photo`,
 
+  // --- Web Push ---
+  vapidKey: () => call<{ publicKey: string }>("/api/public/vapid-key"),
+  pushSubscribe: (sub: { endpoint: string; p256dh: string; auth: string }) =>
+    call<{ ok: boolean }>("/api/v1/me/push/subscribe", {
+      method: "POST",
+      body: JSON.stringify(sub),
+    }),
+  pushUnsubscribe: (endpoint: string) =>
+    call<{ ok: boolean }>("/api/v1/me/push/unsubscribe", {
+      method: "POST",
+      body: JSON.stringify({ endpoint }),
+    }),
+
   placeOrder: (listingId: string, qty: number) =>
     call<PlaceResponse>("/api/v1/orders", {
       method: "POST",

@@ -1,8 +1,9 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { api, setToken, type Me } from "../lib/api";
 import AppHeader from "../components/AppHeader";
 import RadiusSlider from "../components/RadiusSlider";
+import { enablePush, disablePush, isPushEnabled, pushPermission } from "../lib/push";
 
 /** The /profile page: view details, edit name/address/location, and log out. */
 export default function Profile({ me, onMe, onLogout }: {
@@ -21,6 +22,34 @@ export default function Profile({ me, onMe, onLogout }: {
   const [locating, setLocating] = useState(false);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  // Push notifications.
+  const [pushOn, setPushOn] = useState(false);
+  const [pushBusy, setPushBusy] = useState(false);
+  const [pushMsg, setPushMsg] = useState<string | null>(null);
+  const pushState = pushPermission();
+
+  useEffect(() => {
+    isPushEnabled().then(setPushOn).catch(() => setPushOn(false));
+  }, []);
+
+  const togglePush = async () => {
+    setPushBusy(true);
+    setPushMsg(null);
+    try {
+      if (pushOn) {
+        await disablePush();
+        setPushOn(false);
+      } else {
+        await enablePush();
+        setPushOn(true);
+      }
+    } catch (e) {
+      setPushMsg(e instanceof Error ? e.message : "Could not change notifications.");
+    } finally {
+      setPushBusy(false);
+    }
+  };
 
   const logout = () => {
     setToken(null);
@@ -121,6 +150,24 @@ export default function Profile({ me, onMe, onLogout }: {
             <div className="profile-radius">
               <RadiusSlider value={me.searchRadiusM} onChange={changeRadius} />
             </div>
+            {pushState !== "unsupported" && (
+              <div className="notif-block">
+                <div className="notif-head">
+                  <span>🔔 New-dish alerts</span>
+                  <button
+                    className={pushOn ? "secondary small" : "small"}
+                    disabled={pushBusy}
+                    onClick={togglePush}
+                  >
+                    {pushBusy ? "…" : pushOn ? "Turn off" : "Turn on"}
+                  </button>
+                </div>
+                <span className="muted">
+                  Get notified when a cook lists food within 5 km of you.
+                </span>
+                {pushMsg && <span className="error-inline">{pushMsg}</span>}
+              </div>
+            )}
             {me.admin && (
               <button className="secondary" onClick={() => navigate("/admin/settlements")}>
                 💸 Cook settlements

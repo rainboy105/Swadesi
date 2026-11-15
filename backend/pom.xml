@@ -88,6 +88,23 @@
             <scope>runtime</scope>
         </dependency>
 
+        <!-- Web Push (VAPID) delivery to browser push services. Needs BouncyCastle (below). -->
+        <dependency>
+            <groupId>nl.martijndwars</groupId>
+            <artifactId>web-push</artifactId>
+            <version>5.1.1</version>
+        </dependency>
+        <dependency>
+            <groupId>org.bouncycastle</groupId>
+            <artifactId>bcprov-jdk18on</artifactId>
+            <version>1.78.1</version>
+        </dependency>
+        <dependency>
+            <groupId>org.bouncycastle</groupId>
+            <artifactId>bcpkix-jdk18on</artifactId>
+            <version>1.78.1</version>
+        </dependency>
+
         <!-- Local/test in-memory DB -->
         <dependency>
             <groupId>com.h2database</groupId>

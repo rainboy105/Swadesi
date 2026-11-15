@@ -55,17 +55,23 @@ public class ListingController {
                            int remaining, OffsetDateTime readyBy, OffsetDateTime orderBy,
                            String cookName, int distanceMeters, boolean hasPhoto, String foodType) {}
 
+    /** Fixed range for "new dish nearby" push notifications, regardless of each user's feed radius. */
+    private static final double NOTIFY_RADIUS_METERS = 5000;
+
     private final ListingRepository listings;
     private final ListingPhotoRepository photos;
     private final UserRepository users;
+    private final org.smartgurukul.swadesi.push.PushService push;
     private final double radiusMeters;
 
     public ListingController(ListingRepository listings, ListingPhotoRepository photos,
                              UserRepository users,
+                             org.smartgurukul.swadesi.push.PushService push,
                              @Value("${swadesi.vicinity.radius-meters:500}") double radiusMeters) {
         this.listings = listings;
         this.photos = photos;
         this.users = users;
+        this.push = push;
         this.radiusMeters = radiusMeters;
     }
 
@@ -127,7 +133,33 @@ public class ListingController {
         applyPickup(l, cook, req);
         l.setCreatedAt(now);
         l.setUpdatedAt(now);
-        return toResponse(listings.save(l));
+        Listing saved = listings.save(l);
+        notifyNearbyConsumers(saved, cook);
+        return toResponse(saved);
+    }
+
+    /** Push "new dish nearby" to every user within 5 km of the dish (except the cook). */
+    private void notifyNearbyConsumers(Listing l, User cook) {
+        try {
+            double lat = l.getLat();
+            double lng = l.getLng();
+            double latDelta = NOTIFY_RADIUS_METERS / 111_320.0;
+            double lngDelta = NOTIFY_RADIUS_METERS / (111_320.0 * Math.cos(Math.toRadians(lat)));
+            List<UUID> targets = new ArrayList<>();
+            for (User u : users.findInBox(cook.getId(),
+                    lat - latDelta, lat + latDelta, lng - lngDelta, lng + lngDelta)) {
+                if (haversineMeters(lat, lng, u.getLat(), u.getLng()) <= NOTIFY_RADIUS_METERS) {
+                    targets.add(u.getId());
+                }
+            }
+            if (!targets.isEmpty()) {
+                String cookName = cook.getName() == null ? "A home cook" : cook.getName();
+                push.notifyUsers(targets, "New dish near you 🍲",
+                        cookName + " just listed " + l.getTitle(), "/");
+            }
+        } catch (Exception e) {
+            // Never let a notification failure break listing creation.
+        }
     }
 
     /** The cook's own listings. */
