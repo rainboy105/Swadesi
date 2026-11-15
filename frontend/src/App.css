@@ -631,11 +631,13 @@ select {
   height: 80px;
 }
 
-/* the visual track + fill + ticks sit behind the native input */
+/* the visual track + fill + ticks sit behind the native input.
+   Inset by 12px (half the thumb) so the track begins at the first point
+   and ends at the last point, lining up with the thumb's travel. */
 .rs-track {
   position: absolute;
-  left: 0;
-  right: 0;
+  left: 12px;
+  right: 12px;
   top: 44px;
   height: 6px;
   border-radius: 999px;
@@ -644,7 +646,7 @@ select {
 
 .rs-fill {
   position: absolute;
-  left: 12px;
+  left: 0;
   top: 0;
   height: 100%;
   border-radius: 999px;
@@ -654,18 +656,16 @@ select {
 .rs-tick {
   position: absolute;
   top: 50%;
-  width: 4px;
-  height: 4px;
-  margin-left: -2px;
-  margin-top: -2px;
+  width: 5px;
+  height: 5px;
+  margin-left: -2.5px;
+  margin-top: -2.5px;
   border-radius: 50%;
-  background: #fff;
-  box-shadow: 0 0 0 1px var(--line);
+  background: #cfc6e6; /* dot on the unfilled track */
 }
 
 .rs-tick.on {
-  background: #fff;
-  box-shadow: 0 0 0 1px var(--violet-200);
+  background: rgba(255, 255, 255, 0.9); /* dot on the filled track */
 }
 
 /* native input: transparent track, only the thumb is drawn; sits on top */
@@ -687,12 +687,12 @@ select {
 .rs-wrap input[type="range"]::-webkit-slider-thumb {
   -webkit-appearance: none;
   appearance: none;
-  width: 24px;
-  height: 24px;
+  width: 20px;
+  height: 20px;
   border-radius: 50%;
   background: var(--violet-600);
-  border: 4px solid #fff;
-  box-shadow: 0 2px 6px rgba(45, 16, 110, 0.3);
+  border: none;
+  box-shadow: 0 2px 5px rgba(45, 16, 110, 0.35);
   cursor: pointer;
 }
 
@@ -701,13 +701,17 @@ select {
   height: 20px;
   border-radius: 50%;
   background: var(--violet-600);
-  border: 4px solid #fff;
-  box-shadow: 0 2px 6px rgba(45, 16, 110, 0.3);
+  border: none;
+  box-shadow: 0 2px 5px rgba(45, 16, 110, 0.35);
   cursor: pointer;
 }
 
 .rs-wrap input[type="range"]::-moz-range-track {
   background: transparent;
+}
+
+.rs-wrap input[type="range"]:focus {
+  outline: none;
 }
 
 /* value bubble riding above the thumb */

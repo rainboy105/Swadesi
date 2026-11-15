@@ -20,23 +20,25 @@ export default function RadiusSlider({ value, onChange }: {
   useEffect(() => setV(value), [value]);
 
   const frac = (v - MIN) / (MAX - MIN); // 0..1
-  // Thumb centre travels inset by half its width (12px) at each end.
-  const at = (f: number) => `calc(12px + ${f} * (100% - 24px))`;
+  const pct = (f: number) => `${f * 100}%`;
+  // The thumb centre travels inset by half its width (12px); the bubble follows it.
+  const bubbleAt = `calc(12px + ${frac} * (100% - 24px))`;
 
   return (
     <div className="rs-wrap">
       {/* value bubble above the thumb */}
-      <div className="rs-bubble" style={{ left: at(frac) }}>{radiusLabel(v)}</div>
+      <div className="rs-bubble" style={{ left: bubbleAt }}>{radiusLabel(v)}</div>
 
+      {/* track spans exactly from the first point to the last point */}
       <div className="rs-track">
-        <div className="rs-fill" style={{ width: `calc(${frac} * (100% - 24px))` }} />
+        <div className="rs-fill" style={{ width: pct(frac) }} />
         {Array.from({ length: STEPS + 1 }, (_, i) => {
           const f = i / STEPS;
           return (
             <span
               key={i}
               className={`rs-tick ${f <= frac + 1e-6 ? "on" : ""}`}
-              style={{ left: at(f) }}
+              style={{ left: pct(f) }}
             />
           );
         })}
