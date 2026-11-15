@@ -618,16 +618,17 @@ select {
 .profile-radius {
   background: var(--sunk);
   border-radius: 16px;
-  padding: 44px 16px 14px; /* top room for the value bubble */
+  padding: 10px 16px;
   margin-top: 4px;
 }
 
-/* ---- Radius slider: ticks + value bubble (Material style) ---- */
+/* ---- Radius slider: ticks + value bubble (Material style) ----
+   Fixed vertical zones so the bubble (top), track (middle) and scale
+   labels (bottom) never overlap. */
 .rs-wrap {
   position: relative;
   width: 100%;
-  padding-top: 38px; /* room for the bubble above the track */
-  height: auto;
+  height: 80px;
 }
 
 /* the visual track + fill + ticks sit behind the native input */
@@ -635,7 +636,7 @@ select {
   position: absolute;
   left: 0;
   right: 0;
-  top: 46px;
+  top: 44px;
   height: 6px;
   border-radius: 999px;
   background: var(--line);
@@ -672,7 +673,7 @@ select {
   position: absolute;
   left: 0;
   right: 0;
-  top: 35px;
+  top: 33px;
   width: 100%;
   height: 28px;
   margin: 0;
@@ -740,9 +741,12 @@ select {
 }
 
 .rs-scale {
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: 60px;
   display: flex;
   justify-content: space-between;
-  margin-top: 8px;
   font-size: 0.78rem;
   color: var(--ink-400);
 }
