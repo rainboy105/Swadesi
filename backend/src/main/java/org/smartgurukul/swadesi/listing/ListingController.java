@@ -37,13 +37,17 @@ public class ListingController {
             @Min(0) @Max(100000) int pricePerServing,
             @Min(1) @Max(500) int maxServings,
             OffsetDateTime readyBy,
-            OffsetDateTime orderBy) {}
+            OffsetDateTime orderBy,
+            Double pickupLat,
+            Double pickupLng,
+            @Size(max = 300) String pickupAddress) {}
 
     /** A listing as its own cook sees it. {@code expired} = past its order cutoff. */
     public record ListingResponse(String id, String title, String description, int pricePerServing,
                                   int maxServings, int remaining, OffsetDateTime readyBy,
                                   OffsetDateTime orderBy, String status, boolean hasPhoto,
-                                  boolean expired, OffsetDateTime createdAt) {}
+                                  boolean expired, double pickupLat, double pickupLng,
+                                  String pickupAddress, OffsetDateTime createdAt) {}
 
     /** A listing in the consumer's vicinity feed, with cook name and distance. */
     public record FeedItem(String id, String title, String description, int pricePerServing,
@@ -102,10 +106,6 @@ public class ListingController {
                                   @Valid @RequestBody CreateRequest req) {
         User cook = users.findById(auth.id())
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Unknown user"));
-        if (cook.getLat() == null || cook.getLng() == null) {
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST,
-                    "Set your location first (finish onboarding) before listing food.");
-        }
         OffsetDateTime now = OffsetDateTime.now();
         if (req.orderBy() != null && !req.orderBy().isAfter(now)) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Order-by time must be in the future.");
@@ -122,8 +122,7 @@ public class ListingController {
         l.setReadyBy(req.readyBy());
         l.setOrderBy(req.orderBy());
         l.setStatus("open");
-        l.setLat(cook.getLat());
-        l.setLng(cook.getLng());
+        applyPickup(l, cook, req);
         l.setCreatedAt(now);
         l.setUpdatedAt(now);
         return toResponse(listings.save(l));
@@ -182,8 +181,34 @@ public class ListingController {
         l.setMaxServings(req.maxServings());
         l.setReadyBy(req.readyBy());
         l.setOrderBy(req.orderBy());
+        User cook = users.findById(auth.id())
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Unknown user"));
+        applyPickup(l, cook, req);
         l.setUpdatedAt(OffsetDateTime.now());
         return toResponse(listings.save(l));
+    }
+
+    /**
+     * Resolve a listing's pickup location: the per-dish override if the form sent one, else the
+     * cook's saved kitchen, else their society/home. Fails only if none of the three is set.
+     */
+    private static void applyPickup(Listing l, User cook, CreateRequest req) {
+        if (req.pickupLat() != null && req.pickupLng() != null) {
+            l.setLat(req.pickupLat());
+            l.setLng(req.pickupLng());
+            l.setPickupAddress(req.pickupAddress() == null ? null : req.pickupAddress().trim());
+        } else if (cook.getKitchenLat() != null && cook.getKitchenLng() != null) {
+            l.setLat(cook.getKitchenLat());
+            l.setLng(cook.getKitchenLng());
+            l.setPickupAddress(cook.getKitchenAddress());
+        } else if (cook.getLat() != null && cook.getLng() != null) {
+            l.setLat(cook.getLat());
+            l.setLng(cook.getLng());
+            l.setPickupAddress(cook.getAddressText());
+        } else {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST,
+                    "Set a pickup location (kitchen address) before listing food.");
+        }
     }
 
     public record StatusRequest(String status) {}
@@ -225,7 +250,8 @@ public class ListingController {
     private static ListingResponse toResponse(Listing l) {
         return new ListingResponse(l.getId().toString(), l.getTitle(), l.getDescription(),
                 l.getPricePerServing(), l.getMaxServings(), l.remaining(), l.getReadyBy(),
-                l.getOrderBy(), l.getStatus(), l.isHasPhoto(), isExpired(l), l.getCreatedAt());
+                l.getOrderBy(), l.getStatus(), l.isHasPhoto(), isExpired(l),
+                l.getLat(), l.getLng(), l.getPickupAddress(), l.getCreatedAt());
     }
 
     private static double haversineMeters(double lat1, double lon1, double lat2, double lon2) {

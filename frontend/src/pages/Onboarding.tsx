@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { api, type Me } from "../lib/api";
+import LocationPicker, { type PickedLocation } from "../components/LocationPicker";
 
 /**
  * First-login details: name + the location used for all vicinity searches
@@ -13,42 +14,12 @@ export default function Onboarding({ onDone }: { onDone: (me: Me) => void }) {
   const [flat, setFlat] = useState(""); // line 1 — flat, building, society
   const [area, setArea] = useState(""); // line 2 — area, city, state, pincode
   const [coords, setCoords] = useState<{ lat: number; lng: number } | null>(null);
-  const [locating, setLocating] = useState(false);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  /** Turn lat/lng into a readable address via our own backend (no blocker/CORS issues). */
-  const reverseGeocode = async (lat: number, lng: number): Promise<string | null> => {
-    try {
-      const { address } = await api.reverseGeocode(lat, lng);
-      return address && address.trim() ? address : null;
-    } catch {
-      return null;
-    }
-  };
-
-  const useMyLocation = () => {
-    if (!navigator.geolocation) {
-      setError("Location is not available in this browser. You can still type your address.");
-      return;
-    }
-    setLocating(true);
-    setError(null);
-    navigator.geolocation.getCurrentPosition(
-      async (pos) => {
-        const lat = pos.coords.latitude;
-        const lng = pos.coords.longitude;
-        setCoords({ lat, lng });
-        const resolved = await reverseGeocode(lat, lng);
-        if (resolved) setArea(resolved); // fill line 2
-        setLocating(false);
-      },
-      () => {
-        setLocating(false);
-        setError("Could not get your location. Please allow location access and try again.");
-      },
-      { enableHighAccuracy: true, timeout: 10000 },
-    );
+  const onPick = (p: PickedLocation) => {
+    setCoords({ lat: p.lat, lng: p.lng });
+    if (p.address) setArea(p.address); // fill line 2
   };
 
   const save = async () => {
@@ -99,18 +70,13 @@ export default function Onboarding({ onDone }: { onDone: (me: Me) => void }) {
         <label htmlFor="area">Area, city, state, pincode <span className="req">*</span></label>
         <input
           id="area"
-          placeholder="Filled from your location"
+          placeholder="Filled from the map"
           value={area}
           onChange={(e) => setArea(e.target.value)}
         />
 
-        <button className="secondary" disabled={locating} onClick={useMyLocation}>
-          {locating
-            ? "Locating…"
-            : coords
-              ? "✓ Location captured — tap to refresh"
-              : "📍 Use my location & fill area"}
-        </button>
+        <label>Pin your society on the map <span className="req">*</span></label>
+        <LocationPicker value={coords ? { ...coords, address: area } : null} onChange={onPick} />
 
         <button disabled={busy} onClick={save}>
           {busy ? "Saving…" : "Finish"}

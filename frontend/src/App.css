@@ -901,6 +901,84 @@ button.small {
   border: 1px solid var(--line);
 }
 
+/* ---- Map location picker ---- */
+.loc-picker {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.loc-canvas {
+  width: 100%;
+  height: 220px;
+  border-radius: 14px;
+  overflow: hidden;
+  border: 1.5px solid var(--line);
+}
+
+.loc-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.loc-actions .small {
+  width: auto;
+  flex: 1;
+  min-width: 140px;
+}
+
+.loc-address {
+  font-size: 0.86rem;
+  color: var(--ink-600);
+  overflow-wrap: anywhere;
+}
+
+/* Per-dish pickup confirmation row */
+.pickup-box {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  background: var(--sunk);
+  border-radius: 12px;
+  padding: 10px 12px;
+}
+
+.pickup-current {
+  flex: 1;
+  min-width: 0;
+  font-size: 0.9rem;
+  overflow-wrap: anywhere;
+}
+
+.pickup-box .link {
+  flex-shrink: 0;
+  white-space: nowrap;
+}
+
+.kitchen-ok {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.kitchen-ok span {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+/* Consumer feed location note */
+.feed-locnote {
+  background: var(--sunk);
+  border-radius: 12px;
+  padding: 10px 12px;
+  font-size: 0.84rem;
+  color: var(--ink-600);
+  overflow-wrap: anywhere;
+}
+
 /* A dish and all its live orders, managed together. */
 .dish-group {
   display: flex;

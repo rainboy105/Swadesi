@@ -255,6 +255,11 @@ export default function FeedPanel({ view, me, onMe }: {
         <button className="link refresh" onClick={load} aria-label="Refresh">↻</button>
       </div>
 
+      <div className="feed-locnote">
+        📍 Showing food near <strong>{me.addressText ?? "your saved society"}</strong>.
+        Somewhere else? Update your address in profile.
+      </div>
+
       {error && <p className="error">{error}</p>}
 
       {loading ? (

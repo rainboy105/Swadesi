@@ -3,6 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { api, setToken, type Me } from "../lib/api";
 import AppHeader from "../components/AppHeader";
 import RadiusSlider from "../components/RadiusSlider";
+import LocationPicker, { type PickedLocation } from "../components/LocationPicker";
 
 /** The /profile page: view details, edit name/address/location, and log out. */
 export default function Profile({ me, onMe, onLogout }: {
@@ -18,7 +19,6 @@ export default function Profile({ me, onMe, onLogout }: {
     lat: me.lat ?? 0,
     lng: me.lng ?? 0,
   });
-  const [locating, setLocating] = useState(false);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -27,29 +27,9 @@ export default function Profile({ me, onMe, onLogout }: {
     onLogout();
   };
 
-  const useMyLocation = () => {
-    if (!navigator.geolocation) return setError("Location isn't available in this browser.");
-    setLocating(true);
-    setError(null);
-    navigator.geolocation.getCurrentPosition(
-      async (pos) => {
-        const lat = pos.coords.latitude;
-        const lng = pos.coords.longitude;
-        setCoords({ lat, lng });
-        try {
-          const { address: resolved } = await api.reverseGeocode(lat, lng);
-          if (resolved) setAddress(resolved);
-        } catch {
-          /* keep coords */
-        }
-        setLocating(false);
-      },
-      () => {
-        setLocating(false);
-        setError("Could not get your location. Please allow access and try again.");
-      },
-      { enableHighAccuracy: true, timeout: 10000 },
-    );
+  const onPick = (p: PickedLocation) => {
+    setCoords({ lat: p.lat, lng: p.lng });
+    if (p.address) setAddress(p.address);
   };
 
   const changeRadius = async (m: number) => {
@@ -135,9 +115,11 @@ export default function Profile({ me, onMe, onLogout }: {
             <input id="pname" value={name} onChange={(e) => setName(e.target.value)} />
             <label htmlFor="paddr">Address <span className="req">*</span></label>
             <input id="paddr" value={address} onChange={(e) => setAddress(e.target.value)} />
-            <button className="secondary" disabled={locating} onClick={useMyLocation}>
-              {locating ? "Locating…" : "📍 Update location from GPS"}
-            </button>
+            <label>Your society on the map (feed is centered here)</label>
+            <LocationPicker
+              value={coords.lat || coords.lng ? { lat: coords.lat, lng: coords.lng, address } : null}
+              onChange={onPick}
+            />
             <button disabled={busy} onClick={save}>{busy ? "Saving…" : "Save changes"}</button>
             <button className="link" onClick={() => {
               setEditing(false);

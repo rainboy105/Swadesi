@@ -71,6 +71,9 @@ export interface Me {
   upiId: string | null;
   admin: boolean;
   searchRadiusM: number;
+  kitchenLat: number | null;
+  kitchenLng: number | null;
+  kitchenAddress: string | null;
 }
 
 export const RADIUS_OPTIONS = [500, 1000, 1500, 2000, 3000, 5000, 7500, 10000];
@@ -111,6 +114,11 @@ export const api = {
     call<Me>("/api/v1/me/payout", { method: "POST", body: JSON.stringify({ upiId }) }),
   setRadius: (radiusMeters: number) =>
     call<Me>("/api/v1/me/radius", { method: "POST", body: JSON.stringify({ radiusMeters }) }),
+  setKitchen: (lat: number, lng: number, addressText: string) =>
+    call<Me>("/api/v1/me/kitchen", {
+      method: "POST",
+      body: JSON.stringify({ lat, lng, addressText }),
+    }),
   settlements: () =>
     call<{ pending: Settlement[]; totalOwedPaise: number }>("/api/v1/admin/settlements"),
   markPaidOut: (orderId: string) =>
@@ -121,25 +129,10 @@ export const api = {
       if (!r.ok) throw new ApiError(r.status, "Could not mark paid");
     }),
 
-  createListing: (body: {
-    title: string;
-    description: string;
-    pricePerServing: number;
-    maxServings: number;
-    readyBy?: string | null;
-    orderBy?: string | null;
-  }) => call<Listing>("/api/v1/listings", { method: "POST", body: JSON.stringify(body) }),
-  updateListing: (
-    id: string,
-    body: {
-      title: string;
-      description: string;
-      pricePerServing: number;
-      maxServings: number;
-      readyBy?: string | null;
-      orderBy?: string | null;
-    },
-  ) => call<Listing>(`/api/v1/listings/${id}`, { method: "PUT", body: JSON.stringify(body) }),
+  createListing: (body: ListingBody) =>
+    call<Listing>("/api/v1/listings", { method: "POST", body: JSON.stringify(body) }),
+  updateListing: (id: string, body: ListingBody) =>
+    call<Listing>(`/api/v1/listings/${id}`, { method: "PUT", body: JSON.stringify(body) }),
   myListings: () => call<Listing[]>("/api/v1/listings/mine"),
   setListingStatus: (id: string, status: "open" | "closed") =>
     call<Listing>(`/api/v1/listings/${id}/status`, {
@@ -230,6 +223,19 @@ export interface Order {
   createdAt: string;
 }
 
+export interface ListingBody {
+  title: string;
+  description: string;
+  pricePerServing: number;
+  maxServings: number;
+  readyBy?: string | null;
+  orderBy?: string | null;
+  // Per-dish pickup override; omit to use the cook's saved kitchen location.
+  pickupLat?: number | null;
+  pickupLng?: number | null;
+  pickupAddress?: string | null;
+}
+
 export interface Listing {
   id: string;
   title: string;
@@ -242,6 +248,9 @@ export interface Listing {
   status: "open" | "closed";
   hasPhoto: boolean;
   expired: boolean;
+  pickupLat: number;
+  pickupLng: number;
+  pickupAddress: string | null;
   createdAt: string;
 }
 

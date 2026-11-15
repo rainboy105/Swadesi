@@ -1,0 +1,139 @@
+import { useEffect, useRef, useState } from "react";
+import L from "leaflet";
+import "leaflet/dist/leaflet.css";
+import { api } from "../lib/api";
+
+export interface PickedLocation {
+  lat: number;
+  lng: number;
+  address: string | null;
+}
+
+/**
+ * Pick a point on a map: tap/drag the pin, use current GPS, or reuse a saved location
+ * (e.g. "my society"). Reverse-geocodes the chosen point to a readable address.
+ */
+export default function LocationPicker({
+  value,
+  onChange,
+  savedCoords,
+  savedLabel = "Use my society",
+  defaultCenter = [20.5937, 78.9629], // India, if nothing else is known
+}: {
+  value: PickedLocation | null;
+  onChange: (v: PickedLocation) => void;
+  savedCoords?: { lat: number; lng: number } | null;
+  savedLabel?: string;
+  defaultCenter?: [number, number];
+}) {
+  const ref = useRef<HTMLDivElement>(null);
+  const mapRef = useRef<L.Map | null>(null);
+  const markerRef = useRef<L.Marker | null>(null);
+  const [address, setAddress] = useState<string | null>(value?.address ?? null);
+  const [resolving, setResolving] = useState(false);
+  const [locating, setLocating] = useState(false);
+
+  const pinIcon = L.divIcon({
+    className: "",
+    html: '<div style="font-size:30px;line-height:1;transform:translate(-2px,-6px)">📍</div>',
+    iconSize: [30, 30],
+    iconAnchor: [15, 28],
+  });
+
+  // Reverse-geocode a point, update the shown address, and bubble the pick upward.
+  const commit = async (lat: number, lng: number) => {
+    onChange({ lat, lng, address });
+    setResolving(true);
+    try {
+      const { address: resolved } = await api.reverseGeocode(lat, lng);
+      const a = resolved && resolved.trim() ? resolved : null;
+      setAddress(a);
+      onChange({ lat, lng, address: a });
+    } catch {
+      setAddress(null);
+    } finally {
+      setResolving(false);
+    }
+  };
+
+  const moveTo = (lat: number, lng: number, recenter = true) => {
+    const map = mapRef.current;
+    if (!map) return;
+    if (!markerRef.current) {
+      markerRef.current = L.marker([lat, lng], { icon: pinIcon, draggable: true }).addTo(map);
+      markerRef.current.on("dragend", () => {
+        const p = markerRef.current!.getLatLng();
+        commit(p.lat, p.lng);
+      });
+    } else {
+      markerRef.current.setLatLng([lat, lng]);
+    }
+    if (recenter) map.setView([lat, lng], Math.max(map.getZoom(), 16));
+  };
+
+  useEffect(() => {
+    if (!ref.current || mapRef.current) return;
+    const start: [number, number] = value
+      ? [value.lat, value.lng]
+      : savedCoords
+        ? [savedCoords.lat, savedCoords.lng]
+        : defaultCenter;
+    const map = L.map(ref.current, { attributionControl: true, zoomControl: true })
+      .setView(start, value || savedCoords ? 16 : 5);
+    L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
+      maxZoom: 19,
+      attribution: "© OpenStreetMap",
+    }).addTo(map);
+    map.on("click", (e: L.LeafletMouseEvent) => {
+      moveTo(e.latlng.lat, e.latlng.lng, false);
+      commit(e.latlng.lat, e.latlng.lng);
+    });
+    mapRef.current = map;
+    if (value) moveTo(value.lat, value.lng, false);
+    return () => {
+      map.remove();
+      mapRef.current = null;
+      markerRef.current = null;
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  const useGps = () => {
+    if (!navigator.geolocation) return;
+    setLocating(true);
+    navigator.geolocation.getCurrentPosition(
+      (pos) => {
+        setLocating(false);
+        moveTo(pos.coords.latitude, pos.coords.longitude);
+        commit(pos.coords.latitude, pos.coords.longitude);
+      },
+      () => setLocating(false),
+      { enableHighAccuracy: true, timeout: 10000 },
+    );
+  };
+
+  const useSaved = () => {
+    if (!savedCoords) return;
+    moveTo(savedCoords.lat, savedCoords.lng);
+    commit(savedCoords.lat, savedCoords.lng);
+  };
+
+  return (
+    <div className="loc-picker">
+      <div ref={ref} className="loc-canvas" />
+      <div className="loc-actions">
+        <button type="button" className="secondary small" disabled={locating} onClick={useGps}>
+          {locating ? "Locating…" : "📍 Current location"}
+        </button>
+        {savedCoords && (
+          <button type="button" className="secondary small" onClick={useSaved}>
+            🏠 {savedLabel}
+          </button>
+        )}
+      </div>
+      <span className="loc-address">
+        {resolving ? "Finding address…" : address ? `📌 ${address}` : "Tap the map or use a button to set the location"}
+      </span>
+    </div>
+  );
+}

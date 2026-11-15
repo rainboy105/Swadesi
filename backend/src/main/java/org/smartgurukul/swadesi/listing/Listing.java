@@ -56,6 +56,10 @@ public class Listing {
     @Column(name = "lng", nullable = false)
     private double lng;
 
+    /** Human-readable pickup address for this dish (lat/lng above are the pickup point). */
+    @Column(name = "pickup_address")
+    private String pickupAddress;
+
     @Column(name = "created_at", nullable = false, updatable = false)
     private OffsetDateTime createdAt;
 
@@ -94,6 +98,8 @@ public class Listing {
     public void setLat(double lat) { this.lat = lat; }
     public double getLng() { return lng; }
     public void setLng(double lng) { this.lng = lng; }
+    public String getPickupAddress() { return pickupAddress; }
+    public void setPickupAddress(String pickupAddress) { this.pickupAddress = pickupAddress; }
     public OffsetDateTime getCreatedAt() { return createdAt; }
     public void setCreatedAt(OffsetDateTime createdAt) { this.createdAt = createdAt; }
     public OffsetDateTime getUpdatedAt() { return updatedAt; }

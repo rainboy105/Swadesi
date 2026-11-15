@@ -24,9 +24,15 @@ public class MeController {
 
     public record MeResponse(String id, String phone, String name, String addressText,
                              Double lat, Double lng, boolean onboarded, String activeRole,
-                             String upiId, boolean admin, int searchRadiusM) {}
+                             String upiId, boolean admin, int searchRadiusM,
+                             Double kitchenLat, Double kitchenLng, String kitchenAddress) {}
 
     public record RadiusRequest(@Min(100) @Max(20000) int radiusMeters) {}
+
+    public record KitchenRequest(
+            @NotNull @Min(-90) @Max(90) Double lat,
+            @NotNull @Min(-180) @Max(180) Double lng,
+            @NotBlank @Size(max = 300) String addressText) {}
 
     public record OnboardingRequest(
             @NotBlank @Size(max = 80) String name,
@@ -98,6 +104,19 @@ public class MeController {
         return toResponse(users.save(u));
     }
 
+    /** Set the cook's kitchen (pickup) location — where their dishes are collected. */
+    @PostMapping("/kitchen")
+    public MeResponse setKitchen(@AuthenticationPrincipal AuthenticatedUser auth,
+                                 @Valid @RequestBody KitchenRequest req) {
+        User u = users.findById(auth.id())
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Unknown user"));
+        u.setKitchenLat(req.lat());
+        u.setKitchenLng(req.lng());
+        u.setKitchenAddress(req.addressText().trim());
+        u.setUpdatedAt(OffsetDateTime.now());
+        return toResponse(users.save(u));
+    }
+
     /** Set the consumer's vicinity search radius (metres). */
     @PostMapping("/radius")
     public MeResponse setRadius(@AuthenticationPrincipal AuthenticatedUser auth,
@@ -112,6 +131,7 @@ public class MeController {
     private static MeResponse toResponse(User u) {
         return new MeResponse(u.getId().toString(), u.getPhone(), u.getName(),
                 u.getAddressText(), u.getLat(), u.getLng(), u.isOnboarded(), u.getActiveRole(),
-                u.getUpiId(), u.isAdmin(), u.getSearchRadiusM());
+                u.getUpiId(), u.isAdmin(), u.getSearchRadiusM(),
+                u.getKitchenLat(), u.getKitchenLng(), u.getKitchenAddress());
     }
 }

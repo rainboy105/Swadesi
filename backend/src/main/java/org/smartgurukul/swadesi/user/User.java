@@ -43,6 +43,16 @@ public class User {
     @Column(name = "upi_id")
     private String upiId;
 
+    /** Cook's kitchen (pickup) location — where dishes are collected; may differ from home. */
+    @Column(name = "kitchen_lat")
+    private Double kitchenLat;
+
+    @Column(name = "kitchen_lng")
+    private Double kitchenLng;
+
+    @Column(name = "kitchen_address")
+    private String kitchenAddress;
+
     /** Consumer's vicinity search radius in metres. */
     @Column(name = "search_radius_m", nullable = false)
     private int searchRadiusM = 500;
@@ -74,6 +84,12 @@ public class User {
     public void setActiveRole(String activeRole) { this.activeRole = activeRole; }
     public String getUpiId() { return upiId; }
     public void setUpiId(String upiId) { this.upiId = upiId; }
+    public Double getKitchenLat() { return kitchenLat; }
+    public void setKitchenLat(Double kitchenLat) { this.kitchenLat = kitchenLat; }
+    public Double getKitchenLng() { return kitchenLng; }
+    public void setKitchenLng(Double kitchenLng) { this.kitchenLng = kitchenLng; }
+    public String getKitchenAddress() { return kitchenAddress; }
+    public void setKitchenAddress(String kitchenAddress) { this.kitchenAddress = kitchenAddress; }
     public int getSearchRadiusM() { return searchRadiusM; }
     public void setSearchRadiusM(int searchRadiusM) { this.searchRadiusM = searchRadiusM; }
     public boolean isAdmin() { return admin; }

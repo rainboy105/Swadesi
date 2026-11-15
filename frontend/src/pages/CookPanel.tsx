@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { api, type Listing, type Order, type Me } from "../lib/api";
 import { downscaleToJpeg } from "../lib/image";
+import LocationPicker, { type PickedLocation } from "../components/LocationPicker";
 
 /** Cook mode: create a dish (with serving cap + order cutoff), manage listings, handle orders. */
 export default function CookPanel({ me, onMe, view }: {
@@ -39,6 +40,40 @@ export default function CookPanel({ me, onMe, view }: {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const fileRef = useRef<HTMLInputElement>(null);
+
+  // Pickup location for the dish being created/edited, and whether the map is open.
+  const [pickup, setPickup] = useState<PickedLocation | null>(null);
+  const [pickupEditing, setPickupEditing] = useState(false);
+
+  // Kitchen (pickup) location setup.
+  const [kitchenEditing, setKitchenEditing] = useState(false);
+  const [kitchenPick, setKitchenPick] = useState<PickedLocation | null>(null);
+  const [kitchenBusy, setKitchenBusy] = useState(false);
+  const [kitchenErr, setKitchenErr] = useState<string | null>(null);
+
+  // The cook's default pickup point: their saved kitchen, else their society/home.
+  const defaultPickup = (): PickedLocation | null =>
+    me.kitchenLat != null && me.kitchenLng != null
+      ? { lat: me.kitchenLat, lng: me.kitchenLng, address: me.kitchenAddress }
+      : me.lat != null && me.lng != null
+        ? { lat: me.lat, lng: me.lng, address: me.addressText }
+        : null;
+
+  const society = me.lat != null && me.lng != null ? { lat: me.lat, lng: me.lng } : null;
+
+  const saveKitchen = async () => {
+    if (!kitchenPick) return setKitchenErr("Pick your kitchen on the map.");
+    setKitchenBusy(true);
+    setKitchenErr(null);
+    try {
+      onMe(await api.setKitchen(kitchenPick.lat, kitchenPick.lng, kitchenPick.address ?? "Kitchen location"));
+      setKitchenEditing(false);
+    } catch (e) {
+      setKitchenErr(e instanceof Error ? e.message : "Could not save kitchen location.");
+    } finally {
+      setKitchenBusy(false);
+    }
+  };
 
   const fmtLocal = (d: Date) => {
     const p = (n: number) => String(n).padStart(2, "0");
@@ -98,11 +133,13 @@ export default function CookPanel({ me, onMe, view }: {
   const resetForm = () => {
     setTitle(""); setDescription(""); setPrice(""); setServings(""); setOrderBy("");
     setPhoto(null); setPhotoPreview(null); setEditingId(null); setError(null);
+    setPickup(null); setPickupEditing(false);
   };
 
   const openCreate = () => {
     resetForm();
     setOrderBy(defaultOrderBy());
+    setPickup(defaultPickup()); // default pickup = kitchen (or society)
     setShowForm(true);
   };
 
@@ -114,6 +151,9 @@ export default function CookPanel({ me, onMe, view }: {
     setServings(String(l.maxServings));
     setOrderBy(toLocalInput(l.orderBy));
     setPhoto(null); setPhotoPreview(null);
+    // Keep this listing's existing pickup point unless the cook changes it.
+    setPickup({ lat: l.pickupLat, lng: l.pickupLng, address: l.pickupAddress });
+    setPickupEditing(false);
     setShowForm(true);
     setError(null);
   };
@@ -160,6 +200,7 @@ export default function CookPanel({ me, onMe, view }: {
     if (new Date(orderBy).getTime() <= Date.now()) return setError("Order-by time must be in the future.");
     setBusy(true);
     setError(null);
+    if (!pickup) return setError("Set a pickup location for this dish.");
     const body = {
       title: title.trim(),
       description: description.trim(),
@@ -167,6 +208,9 @@ export default function CookPanel({ me, onMe, view }: {
       maxServings: s,
       readyBy: null,
       orderBy: new Date(orderBy).toISOString(),
+      pickupLat: pickup.lat,
+      pickupLng: pickup.lng,
+      pickupAddress: pickup.address,
     };
     try {
       if (editingId) {
@@ -382,6 +426,34 @@ export default function CookPanel({ me, onMe, view }: {
         <div className="upi-ok">💸 Payouts to <strong>{me.upiId}</strong></div>
       )}
 
+      {/* Kitchen (pickup) location — where customers collect dishes. */}
+      {!kitchenEditing ? (
+        <div className="upi-ok kitchen-ok">
+          <span>🍳 Pickup at <strong>{me.kitchenAddress ?? me.addressText ?? "your society (default)"}</strong></span>
+          <button className="link" onClick={() => { setKitchenPick(defaultPickup()); setKitchenEditing(true); }}>
+            {me.kitchenAddress ? "Change" : "Set kitchen"}
+          </button>
+        </div>
+      ) : (
+        <div className="upi-setup">
+          <strong>🍳 Set your kitchen (pickup) location</strong>
+          <span className="muted">Customers come here to collect. Defaults to your society.</span>
+          <LocationPicker
+            value={kitchenPick}
+            onChange={setKitchenPick}
+            savedCoords={society}
+            savedLabel="Use my society"
+          />
+          <div className="order-row">
+            <button className="small" disabled={kitchenBusy} onClick={saveKitchen}>
+              {kitchenBusy ? "…" : "Save kitchen"}
+            </button>
+            <button className="secondary small" onClick={() => setKitchenEditing(false)}>Cancel</button>
+          </div>
+          {kitchenErr && <span className="error-inline">{kitchenErr}</span>}
+        </div>
+      )}
+
       {!showForm && <button onClick={openCreate}>+ List a dish</button>}
 
       {showForm && (
@@ -415,6 +487,25 @@ export default function CookPanel({ me, onMe, view }: {
             </select>
           </div>
           {orderBy && <span className="when-note">⏰ Orders close {prettyWhen(orderBy)}</span>}
+
+          <label>Pickup location <span className="req">*</span></label>
+          <div className="pickup-box">
+            <span className="pickup-current">
+              📍 {pickup?.address ?? (pickup ? "Pinned location" : "Not set")}
+            </span>
+            <button type="button" className="link" onClick={() => setPickupEditing((v) => !v)}>
+              {pickupEditing ? "Done" : "Change for this dish"}
+            </button>
+          </div>
+          {pickupEditing && (
+            <LocationPicker
+              value={pickup}
+              onChange={setPickup}
+              savedCoords={society}
+              savedLabel="Use my society"
+            />
+          )}
+
           <label>Photo {editingId ? "(replace, optional)" : "(optional)"}</label>
           <input
             ref={fileRef}
