@@ -8,14 +8,94 @@
     <link rel="manifest" href="/manifest.webmanifest" />
     <meta name="theme-color" content="#7c3aed" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+
+    <!-- Primary SEO -->
+    <title>Swaadesi — Home-cooked food &amp; tiffin from cooks near you</title>
+    <meta
+      name="description"
+      content="Swaadesi is a hyperlocal marketplace for fresh home-cooked food and tiffin. Order ghar ka khana from verified home cooks in your society and neighbourhood, then pick it up nearby. Home cooks can list meals and earn."
+    />
+    <meta
+      name="keywords"
+      content="home cooked food, homemade food near me, tiffin service, ghar ka khana, home food delivery, society tiffin, home chef, homemade meals, local home food, tiffin near me, home kitchen food, swaadesi"
+    />
+    <meta name="robots" content="index, follow" />
+    <meta name="author" content="Swaadesi" />
+    <link rel="canonical" href="https://swaadesi.org/" />
+
+    <!-- Open Graph (link previews on WhatsApp, Facebook, LinkedIn) -->
+    <meta property="og:type" content="website" />
+    <meta property="og:site_name" content="Swaadesi" />
+    <meta property="og:title" content="Swaadesi — Home-cooked food &amp; tiffin from cooks near you" />
+    <meta
+      property="og:description"
+      content="Order fresh home-cooked meals and tiffin from verified home cooks in your society and neighbourhood. Hyperlocal, affordable ghar ka khana."
+    />
+    <meta property="og:url" content="https://swaadesi.org/" />
+    <meta property="og:image" content="https://swaadesi.org/icon-512.png" />
+    <meta property="og:locale" content="en_IN" />
+
+    <!-- Twitter / X card -->
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:title" content="Swaadesi — Home-cooked food &amp; tiffin from cooks near you" />
+    <meta
+      name="twitter:description"
+      content="Order fresh home-cooked meals and tiffin from verified home cooks near you. Hyperlocal ghar ka khana — browse, order, pick up."
+    />
+    <meta name="twitter:image" content="https://swaadesi.org/icon-512.png" />
+
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@500;600;700&family=Mukta:wght@400;500;600;700&display=swap" rel="stylesheet" />
-    <title>Swaadesi</title>
     <script src="https://checkout.razorpay.com/v1/checkout.js"></script>
+
+    <!-- Structured data for rich results -->
+    <script type="application/ld+json">
+      {
+        "@context": "https://schema.org",
+        "@graph": [
+          {
+            "@type": "WebSite",
+            "name": "Swaadesi",
+            "url": "https://swaadesi.org/",
+            "description": "Hyperlocal marketplace for home-cooked food and tiffin from cooks near you."
+          },
+          {
+            "@type": "Organization",
+            "name": "Swaadesi",
+            "url": "https://swaadesi.org/",
+            "logo": "https://swaadesi.org/icon-512.png"
+          },
+          {
+            "@type": "Service",
+            "name": "Home-cooked food &amp; tiffin ordering",
+            "serviceType": "Hyperlocal home food marketplace",
+            "areaServed": "IN",
+            "provider": { "@type": "Organization", "name": "Swaadesi" },
+            "description": "Order fresh home-cooked meals and tiffin from verified home cooks in your society and neighbourhood, then pick them up nearby."
+          }
+        ]
+      }
+    </script>
   </head>
   <body>
     <div id="root"></div>
+    <!-- Content for crawlers and no-JavaScript visitors. -->
+    <noscript>
+      <main style="max-width: 640px; margin: 0 auto; padding: 24px; font-family: system-ui, sans-serif">
+        <h1>Swaadesi — Home-cooked food &amp; tiffin from cooks near you</h1>
+        <p>
+          Swaadesi is a hyperlocal marketplace for fresh <strong>home-cooked food</strong> and
+          <strong>tiffin</strong>. Discover <strong>ghar ka khana</strong> from verified home cooks
+          in your own society and neighbourhood, order in a tap, and pick it up nearby.
+        </p>
+        <h2>For food lovers</h2>
+        <p>Browse homemade dishes near you, see what's cooking today, and order fresh meals from real home kitchens — affordable, local, and made with care.</p>
+        <h2>For home cooks</h2>
+        <p>List the dishes you cook, set your serving limit and pickup time, and earn from your kitchen. Payments are handled securely.</p>
+        <p>Please enable JavaScript to use the Swaadesi app.</p>
+      </main>
+    </noscript>
     <script type="module" src="/src/main.tsx"></script>
   </body>
 </html>
