@@ -1,7 +1,8 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { api, setToken, RADIUS_OPTIONS, radiusLabel, type Me } from "../lib/api";
+import { api, setToken, type Me } from "../lib/api";
 import AppHeader from "../components/AppHeader";
+import RadiusSlider from "../components/RadiusSlider";
 
 /** The /profile page: view details, edit name/address/location, and log out. */
 export default function Profile({ me, onMe, onLogout }: {
@@ -116,18 +117,9 @@ export default function Profile({ me, onMe, onLogout }: {
                 <span>Current mode</span>
                 <strong>{me.activeRole === "cook" ? "🍳 Cook" : "🍽️ Consumer"}</strong>
               </div>
-              <div className="profile-row">
-                <span>Search radius</span>
-                <select
-                  className="radius-select"
-                  value={me.searchRadiusM}
-                  onChange={(e) => changeRadius(Number(e.target.value))}
-                >
-                  {RADIUS_OPTIONS.map((m) => (
-                    <option key={m} value={m}>{radiusLabel(m)}</option>
-                  ))}
-                </select>
-              </div>
+            </div>
+            <div className="profile-radius">
+              <RadiusSlider value={me.searchRadiusM} onChange={changeRadius} />
             </div>
             {me.admin && (
               <button className="secondary" onClick={() => navigate("/admin/settlements")}>

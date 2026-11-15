@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
-import { api, RADIUS_OPTIONS, radiusLabel, type FeedItem, type Me, type Order, type OrderStatus } from "../lib/api";
+import { api, radiusLabel, type FeedItem, type Me, type Order, type OrderStatus } from "../lib/api";
 import PickupMap from "../components/PickupMap";
+import RadiusSlider from "../components/RadiusSlider";
 
 /** Consumer mode. view="feed": dishes to order. view="orders": your orders + pickup map. */
 export default function FeedPanel({ view, me, onMe }: {
@@ -60,14 +61,7 @@ export default function FeedPanel({ view, me, onMe }: {
   };
 
   const RadiusPicker = () => (
-    <div className="radius-picker">
-      <span className="muted">Search within</span>
-      <select value={me.searchRadiusM} onChange={(e) => changeRadius(Number(e.target.value))}>
-        {RADIUS_OPTIONS.map((m) => (
-          <option key={m} value={m}>{radiusLabel(m)}</option>
-        ))}
-      </select>
-    </div>
+    <RadiusSlider value={me.searchRadiusM} onChange={changeRadius} />
   );
   const timeOf = (iso: string | null) =>
     iso ? new Date(iso).toLocaleTimeString([], { hour: "numeric", minute: "2-digit" }) : null;
