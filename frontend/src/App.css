@@ -542,6 +542,17 @@ select {
   color: #fff;
 }
 .ft-chip.on .veg-mark { color: #fff; }
+.ft-chip .veg-mark {
+  width: 11px;
+  height: 11px;
+  border-width: 1.5px;
+  border-radius: 2px;
+  margin-right: 5px;
+}
+.ft-chip .veg-mark::after {
+  width: 4.5px;
+  height: 4.5px;
+}
 
 .error {
   margin: 0;
