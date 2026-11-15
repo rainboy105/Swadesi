@@ -202,15 +202,17 @@ public class ListingController {
         }
         double lat = me.getLat();
         double lng = me.getLng();
+        // The consumer's own radius (falls back to the global default if unset).
+        double radius = me.getSearchRadiusM() > 0 ? me.getSearchRadiusM() : radiusMeters;
         // Bounding box prefilter (degrees per metre), then exact Haversine.
-        double latDelta = radiusMeters / 111_320.0;
-        double lngDelta = radiusMeters / (111_320.0 * Math.cos(Math.toRadians(lat)));
+        double latDelta = radius / 111_320.0;
+        double lngDelta = radius / (111_320.0 * Math.cos(Math.toRadians(lat)));
 
         List<FeedItem> out = new ArrayList<>();
         for (Listing l : listings.findOpenInBox(me.getId(), OffsetDateTime.now(),
                 lat - latDelta, lat + latDelta, lng - lngDelta, lng + lngDelta)) {
             double d = haversineMeters(lat, lng, l.getLat(), l.getLng());
-            if (d <= radiusMeters) {
+            if (d <= radius) {
                 out.add(new FeedItem(l.getId().toString(), l.getTitle(), l.getDescription(),
                         l.getPricePerServing(), l.remaining(), l.getReadyBy(), l.getOrderBy(),
                         l.getCookName(), (int) Math.round(d), l.isHasPhoto()));

@@ -43,6 +43,10 @@ public class User {
     @Column(name = "upi_id")
     private String upiId;
 
+    /** Consumer's vicinity search radius in metres. */
+    @Column(name = "search_radius_m", nullable = false)
+    private int searchRadiusM = 500;
+
     @Column(name = "admin", nullable = false)
     private boolean admin = false;
 
@@ -70,6 +74,8 @@ public class User {
     public void setActiveRole(String activeRole) { this.activeRole = activeRole; }
     public String getUpiId() { return upiId; }
     public void setUpiId(String upiId) { this.upiId = upiId; }
+    public int getSearchRadiusM() { return searchRadiusM; }
+    public void setSearchRadiusM(int searchRadiusM) { this.searchRadiusM = searchRadiusM; }
     public boolean isAdmin() { return admin; }
     public void setAdmin(boolean admin) { this.admin = admin; }
     public OffsetDateTime getCreatedAt() { return createdAt; }

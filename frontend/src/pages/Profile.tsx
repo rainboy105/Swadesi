@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { api, setToken, type Me } from "../lib/api";
+import { api, setToken, RADIUS_OPTIONS, radiusLabel, type Me } from "../lib/api";
 import AppHeader from "../components/AppHeader";
 
 /** The /profile page: view details, edit name/address/location, and log out. */
@@ -49,6 +49,14 @@ export default function Profile({ me, onMe, onLogout }: {
       },
       { enableHighAccuracy: true, timeout: 10000 },
     );
+  };
+
+  const changeRadius = async (m: number) => {
+    try {
+      onMe(await api.setRadius(m));
+    } catch {
+      /* ignore */
+    }
   };
 
   const save = async () => {
@@ -107,6 +115,18 @@ export default function Profile({ me, onMe, onLogout }: {
               <div className="profile-row">
                 <span>Current mode</span>
                 <strong>{me.activeRole === "cook" ? "🍳 Cook" : "🍽️ Consumer"}</strong>
+              </div>
+              <div className="profile-row">
+                <span>Search radius</span>
+                <select
+                  className="radius-select"
+                  value={me.searchRadiusM}
+                  onChange={(e) => changeRadius(Number(e.target.value))}
+                >
+                  {RADIUS_OPTIONS.map((m) => (
+                    <option key={m} value={m}>{radiusLabel(m)}</option>
+                  ))}
+                </select>
               </div>
             </div>
             {me.admin && (

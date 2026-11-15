@@ -70,7 +70,11 @@ export interface Me {
   activeRole: Role;
   upiId: string | null;
   admin: boolean;
+  searchRadiusM: number;
 }
+
+export const RADIUS_OPTIONS = [500, 1000, 1500, 2000, 3000, 5000];
+export const radiusLabel = (m: number) => (m < 1000 ? `${m} m` : `${(m / 1000).toFixed(m % 1000 === 0 ? 0 : 1)} km`);
 
 export interface Settlement {
   orderId: string;
@@ -105,6 +109,8 @@ export const api = {
     call<Me>("/api/v1/me/role", { method: "POST", body: JSON.stringify({ role }) }),
   setPayout: (upiId: string) =>
     call<Me>("/api/v1/me/payout", { method: "POST", body: JSON.stringify({ upiId }) }),
+  setRadius: (radiusMeters: number) =>
+    call<Me>("/api/v1/me/radius", { method: "POST", body: JSON.stringify({ radiusMeters }) }),
   settlements: () =>
     call<{ pending: Settlement[]; totalOwedPaise: number }>("/api/v1/admin/settlements"),
   markPaidOut: (orderId: string) =>

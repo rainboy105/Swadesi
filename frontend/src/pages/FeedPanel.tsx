@@ -1,9 +1,13 @@
 import { useEffect, useState } from "react";
-import { api, type FeedItem, type Order, type OrderStatus } from "../lib/api";
+import { api, RADIUS_OPTIONS, radiusLabel, type FeedItem, type Me, type Order, type OrderStatus } from "../lib/api";
 import PickupMap from "../components/PickupMap";
 
 /** Consumer mode. view="feed": dishes to order. view="orders": your orders + pickup map. */
-export default function FeedPanel({ view }: { view: "feed" | "orders" }) {
+export default function FeedPanel({ view, me, onMe }: {
+  view: "feed" | "orders";
+  me: Me;
+  onMe: (me: Me) => void;
+}) {
   const [items, setItems] = useState<FeedItem[]>([]);
   const [orders, setOrders] = useState<Order[]>([]);
   const [loading, setLoading] = useState(true);
@@ -45,6 +49,26 @@ export default function FeedPanel({ view }: { view: "feed" | "orders" }) {
   }, []);
 
   const distance = (m: number) => (m < 1000 ? `${m} m away` : `${(m / 1000).toFixed(1)} km away`);
+
+  const changeRadius = async (m: number) => {
+    try {
+      onMe(await api.setRadius(m));
+      await fetchData(true);
+    } catch {
+      /* ignore */
+    }
+  };
+
+  const RadiusPicker = () => (
+    <div className="radius-picker">
+      <span className="muted">Search within</span>
+      <select value={me.searchRadiusM} onChange={(e) => changeRadius(Number(e.target.value))}>
+        {RADIUS_OPTIONS.map((m) => (
+          <option key={m} value={m}>{radiusLabel(m)}</option>
+        ))}
+      </select>
+    </div>
+  );
   const timeOf = (iso: string | null) =>
     iso ? new Date(iso).toLocaleTimeString([], { hour: "numeric", minute: "2-digit" }) : null;
 
@@ -242,7 +266,12 @@ export default function FeedPanel({ view }: { view: "feed" | "orders" }) {
       {loading ? (
         <p className="hint">Looking for dishes nearby…</p>
       ) : items.length === 0 ? (
-        <p className="hint">No dishes nearby right now. Check back around meal times!</p>
+        <>
+          <p className="hint">
+            No dishes within {radiusLabel(me.searchRadiusM)}. Try a wider search area:
+          </p>
+          <RadiusPicker />
+        </>
       ) : (
         <div className="list">
           {items.map((it) => {
@@ -277,6 +306,10 @@ export default function FeedPanel({ view }: { view: "feed" | "orders" }) {
               </div>
             );
           })}
+          <div className="list-footer">
+            <span className="muted">Not finding enough? Widen your search.</span>
+            <RadiusPicker />
+          </div>
         </div>
       )}
     </div>

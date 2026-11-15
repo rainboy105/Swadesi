@@ -24,7 +24,9 @@ public class MeController {
 
     public record MeResponse(String id, String phone, String name, String addressText,
                              Double lat, Double lng, boolean onboarded, String activeRole,
-                             String upiId, boolean admin) {}
+                             String upiId, boolean admin, int searchRadiusM) {}
+
+    public record RadiusRequest(@Min(100) @Max(20000) int radiusMeters) {}
 
     public record OnboardingRequest(
             @NotBlank @Size(max = 80) String name,
@@ -96,9 +98,20 @@ public class MeController {
         return toResponse(users.save(u));
     }
 
+    /** Set the consumer's vicinity search radius (metres). */
+    @PostMapping("/radius")
+    public MeResponse setRadius(@AuthenticationPrincipal AuthenticatedUser auth,
+                                @Valid @RequestBody RadiusRequest req) {
+        User u = users.findById(auth.id())
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Unknown user"));
+        u.setSearchRadiusM(req.radiusMeters());
+        u.setUpdatedAt(OffsetDateTime.now());
+        return toResponse(users.save(u));
+    }
+
     private static MeResponse toResponse(User u) {
         return new MeResponse(u.getId().toString(), u.getPhone(), u.getName(),
                 u.getAddressText(), u.getLat(), u.getLng(), u.isOnboarded(), u.getActiveRole(),
-                u.getUpiId(), u.isAdmin());
+                u.getUpiId(), u.isAdmin(), u.getSearchRadiusM());
     }
 }
