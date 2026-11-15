@@ -93,16 +93,8 @@ export default function FeedPanel({ view }: { view: "feed" | "orders" }) {
             await load();
           },
         },
-        // Show UPI first; the rest of the methods appear below it.
-        config: {
-          display: {
-            blocks: {
-              upi: { name: "Pay by UPI", instruments: [{ method: "upi" }] },
-            },
-            sequence: ["block.upi"],
-            preferences: { show_default_blocks: true },
-          },
-        },
+        // Let Razorpay render its full native UPI flow (apps + "enter UPI ID" collect),
+        // which is device-optimized and avoids the QR-gallery path some apps restrict.
         theme: { color: "#7c3aed" },
       });
       rzp.open();
