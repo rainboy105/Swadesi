@@ -4,10 +4,12 @@ import { radiusLabel } from "../lib/api";
 const MIN = 500;
 const MAX = 5000;
 const STEP = 500;
+const STEPS = Math.round((MAX - MIN) / STEP); // number of gaps between ticks
 
 /**
- * Slide to set the vicinity search radius. Commits (calls onChange) only when the
- * user releases the thumb, so we don't fire an API call on every pixel of drag.
+ * Slide to set the vicinity search radius. Tick "checkpoints" mark each step and a
+ * value bubble rides above the thumb. Commits (calls onChange) only on release, so
+ * we don't fire an API call on every pixel of drag.
  */
 export default function RadiusSlider({ value, onChange }: {
   value: number;
@@ -17,28 +19,43 @@ export default function RadiusSlider({ value, onChange }: {
   // Keep the thumb in sync if the value changes elsewhere (e.g. after reload).
   useEffect(() => setV(value), [value]);
 
-  const pct = ((v - MIN) / (MAX - MIN)) * 100;
+  const frac = (v - MIN) / (MAX - MIN); // 0..1
+  // Thumb centre travels inset by half its width (12px) at each end.
+  const at = (f: number) => `calc(12px + ${f} * (100% - 24px))`;
 
   return (
-    <div className="radius-slider">
-      <div className="radius-slider-head">
-        <span className="muted">Search within</span>
-        <strong className="radius-value">{radiusLabel(v)}</strong>
+    <div className="rs-wrap">
+      {/* value bubble above the thumb */}
+      <div className="rs-bubble" style={{ left: at(frac) }}>{radiusLabel(v)}</div>
+
+      <div className="rs-track">
+        <div className="rs-fill" style={{ width: `calc(${frac} * (100% - 24px))` }} />
+        {Array.from({ length: STEPS + 1 }, (_, i) => {
+          const f = i / STEPS;
+          return (
+            <span
+              key={i}
+              className={`rs-tick ${f <= frac + 1e-6 ? "on" : ""}`}
+              style={{ left: at(f) }}
+            />
+          );
+        })}
       </div>
+
       <input
         type="range"
         min={MIN}
         max={MAX}
         step={STEP}
         value={v}
-        style={{ background: `linear-gradient(to right, var(--violet-600) ${pct}%, var(--line) ${pct}%)` }}
         onChange={(e) => setV(Number(e.target.value))}
         onMouseUp={(e) => onChange(Number((e.target as HTMLInputElement).value))}
         onTouchEnd={(e) => onChange(Number((e.target as HTMLInputElement).value))}
         onKeyUp={(e) => onChange(Number((e.target as HTMLInputElement).value))}
         aria-label="Search radius"
       />
-      <div className="radius-scale">
+
+      <div className="rs-scale">
         <span>{radiusLabel(MIN)}</span>
         <span>{radiusLabel(MAX)}</span>
       </div>
