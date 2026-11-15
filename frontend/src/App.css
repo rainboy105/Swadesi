@@ -3,23 +3,26 @@
    dark ink headings, muted-violet pill buttons. Poppins display, Mukta body. */
 
 :root {
-  --violet-100: #ede4fe;
+  /* "Jamun" theme — deeper blackberry-violet primary with marigold accents. */
+  --violet-100: #ede7fb;
   --violet-200: #d9c8fb;
   --violet-500: #8b5cf6;
-  --violet-600: #7c3aed;
-  --violet-700: #6d28d9;
-  --marigold-100: #fff1d0;
-  --marigold-300: #ffe4a3;
-  --marigold-600: #c98a12;
-  --ink-900: #1e1633;
-  --ink-600: #564e6b;
+  --violet-600: #6d28d9;
+  --violet-700: #5b21b6;
+  --marigold-100: #ffebc7;
+  --marigold-300: #fddda6;
+  --marigold-600: #b57b0f;
+  --ink-900: #1e1433;
+  --ink-600: #575070;
   --ink-400: #8c85a0;
-  --page: #e9e3f7;      /* pale lavender behind the card */
+  --page: #ece4fd;      /* pale lavender behind the card */
   --card: #ffffff;      /* the white playful box */
-  --sunk: #f3eefc;      /* input fill */
+  --sunk: #f1edfb;      /* input fill / tinted surfaces */
   --line: #e6e1ef;
-  --success: #1e9e5a;
-  --danger: #d6453d;
+  --success: #15803d;
+  --success-bg: #dcfce7;
+  --danger: #b91c1c;
+  --danger-bg: #fee2e2;
   --radius-card: 28px;
   --radius-button: 999px;
   --font-display: "Poppins", "Mukta", system-ui, sans-serif;
@@ -898,6 +901,10 @@ button.small {
 }
 
 .status-pill.s-ready { background: var(--marigold-100); color: var(--marigold-600); }
+.status-pill.s-pending_payment { background: var(--marigold-100); color: var(--marigold-600); }
+.status-pill.s-completed { background: var(--success-bg); color: var(--success); }
+.status-pill.s-rejected,
+.status-pill.s-cancelled { background: var(--danger-bg); color: var(--danger); }
 
 .order-card-meta {
   display: flex;
@@ -935,7 +942,7 @@ button.small {
 
 /* active/placed orders get a highlighted theme */
 .order-row-btn.active {
-  background: var(--violet-50);
+  background: var(--violet-100);
   border: 1.5px solid var(--violet-200);
 }
 

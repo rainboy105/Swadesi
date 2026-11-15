@@ -199,7 +199,7 @@ export default function FeedPanel({ view, me, onMe }: {
     return (
       <div className="mode-panel">
         <div className="panel-head">
-          <span className="tile">📦</span>
+          <span className="tile marigold">📦</span>
           <h1>My orders</h1>
           <button className="link refresh" onClick={load} aria-label="Refresh">↻</button>
         </div>
@@ -234,7 +234,7 @@ export default function FeedPanel({ view, me, onMe }: {
                       <strong>{o.qty} × {o.listingTitle}</strong>
                       <span className="muted">{o.cookName ?? ""} · {when(o.createdAt)}</span>
                     </div>
-                    <span className="status-pill ghost">{statusLabel[o.status]}</span>
+                    <span className={`status-pill s-${o.status}`}>{statusLabel[o.status]}</span>
                     <span className="chev">›</span>
                   </button>
                 ))}
