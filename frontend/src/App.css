@@ -669,7 +669,9 @@ select {
 }
 
 /* native input: transparent track, only the thumb is drawn; sits on top */
-.rs-wrap input[type="range"] {
+.rs-wrap input[type="range"],
+.rs-wrap input[type="range"]:hover,
+.rs-wrap input[type="range"]:focus {
   position: absolute;
   left: 0;
   right: 0;
@@ -677,9 +679,13 @@ select {
   width: 100%;
   height: 28px;
   margin: 0;
+  padding: 0;
   -webkit-appearance: none;
   appearance: none;
   background: transparent;
+  border: none;
+  border-radius: 0;
+  box-shadow: none;
   outline: none;
   cursor: pointer;
 }
