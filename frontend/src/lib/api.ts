@@ -108,6 +108,10 @@ export const api = {
     }),
   reverseGeocode: (lat: number, lng: number) =>
     call<{ address: string }>(`/api/public/reverse-geocode?lat=${lat}&lng=${lng}`),
+  searchPlaces: (q: string) =>
+    call<{ label: string; lat: number; lng: number }[]>(
+      `/api/public/geocode-search?q=${encodeURIComponent(q)}`,
+    ),
   setRole: (role: Role) =>
     call<Me>("/api/v1/me/role", { method: "POST", body: JSON.stringify({ role }) }),
   setPayout: (upiId: string) =>

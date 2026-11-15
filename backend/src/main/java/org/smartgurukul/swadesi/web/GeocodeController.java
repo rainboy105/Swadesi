@@ -27,6 +27,39 @@ public class GeocodeController {
             .defaultHeader("User-Agent", "Swadesi/1.0 (hyperlocal food app)")
             .build();
 
+    /**
+     * Forward search: turn a typed query ("Green Meadows, Baner") into a few candidate places with
+     * coordinates, so the user can pick their society instead of panning the map. India-biased.
+     */
+    @GetMapping("/geocode-search")
+    public java.util.List<java.util.Map<String, Object>> search(@RequestParam("q") String q) {
+        java.util.List<java.util.Map<String, Object>> out = new java.util.ArrayList<>();
+        if (q == null || q.trim().length() < 3) return out;
+        try {
+            JsonNode r = client.get()
+                    .uri(u -> u.path("/search")
+                            .queryParam("q", q.trim())
+                            .queryParam("format", "jsonv2")
+                            .queryParam("addressdetails", 1)
+                            .queryParam("limit", 6)
+                            .queryParam("countrycodes", "in")
+                            .build())
+                    .retrieve()
+                    .body(JsonNode.class);
+            if (r == null || !r.isArray()) return out;
+            for (JsonNode n : r) {
+                String label = n.path("display_name").asText("");
+                double lat = n.path("lat").asDouble(Double.NaN);
+                double lon = n.path("lon").asDouble(Double.NaN);
+                if (label.isBlank() || Double.isNaN(lat) || Double.isNaN(lon)) continue;
+                out.add(java.util.Map.of("label", label, "lat", lat, "lng", lon));
+            }
+        } catch (Exception e) {
+            return out;
+        }
+        return out;
+    }
+
     @GetMapping("/reverse-geocode")
     public java.util.Map<String, Object> reverse(@RequestParam double lat, @RequestParam double lng) {
         try {

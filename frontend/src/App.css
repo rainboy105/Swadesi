@@ -908,12 +908,54 @@ button.small {
   gap: 8px;
 }
 
+.loc-search {
+  position: relative;
+}
+
+.loc-results {
+  list-style: none;
+  margin: 4px 0 0;
+  padding: 4px;
+  position: absolute;
+  z-index: 1000;
+  left: 0;
+  right: 0;
+  background: var(--card);
+  border: 1.5px solid var(--line);
+  border-radius: 12px;
+  box-shadow: var(--shadow-card);
+  max-height: 220px;
+  overflow-y: auto;
+}
+
+.loc-result {
+  padding: 9px 10px;
+  border-radius: 8px;
+  font-size: 0.85rem;
+  cursor: pointer;
+  overflow-wrap: anywhere;
+}
+
+.loc-result:hover {
+  background: var(--sunk);
+}
+
+.loc-result.muted {
+  cursor: default;
+}
+
 .loc-canvas {
   width: 100%;
-  height: 220px;
+  height: 240px;
   border-radius: 14px;
   overflow: hidden;
   border: 1.5px solid var(--line);
+}
+
+/* Leaflet controls/pins must sit above the map but below our dropdown. */
+.loc-canvas .leaflet-pane,
+.loc-canvas .leaflet-control {
+  z-index: 1;
 }
 
 .loc-actions {

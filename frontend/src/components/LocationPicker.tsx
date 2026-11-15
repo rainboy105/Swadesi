@@ -9,9 +9,15 @@ export interface PickedLocation {
   address: string | null;
 }
 
+interface Hit {
+  label: string;
+  lat: number;
+  lng: number;
+}
+
 /**
- * Pick a point on a map: tap/drag the pin, use current GPS, or reuse a saved location
- * (e.g. "my society"). Reverse-geocodes the chosen point to a readable address.
+ * Pick a point on a map: search by name, tap/drag the pin, use current GPS, or reuse a saved
+ * location (e.g. "my society"). Reverse-geocodes the chosen point to a readable address.
  */
 export default function LocationPicker({
   value,
@@ -32,6 +38,12 @@ export default function LocationPicker({
   const [address, setAddress] = useState<string | null>(value?.address ?? null);
   const [resolving, setResolving] = useState(false);
   const [locating, setLocating] = useState(false);
+
+  // Search box.
+  const [query, setQuery] = useState("");
+  const [hits, setHits] = useState<Hit[]>([]);
+  const [searching, setSearching] = useState(false);
+  const [open, setOpen] = useState(false);
 
   const pinIcon = L.divIcon({
     className: "",
@@ -80,9 +92,11 @@ export default function LocationPicker({
         : defaultCenter;
     const map = L.map(ref.current, { attributionControl: true, zoomControl: true })
       .setView(start, value || savedCoords ? 16 : 5);
-    L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
-      maxZoom: 19,
-      attribution: "© OpenStreetMap",
+    // CARTO "Voyager" — a clean, labelled basemap that reads well in a light UI.
+    L.tileLayer("https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png", {
+      maxZoom: 20,
+      subdomains: "abcd",
+      attribution: "© OpenStreetMap, © CARTO",
     }).addTo(map);
     map.on("click", (e: L.LeafletMouseEvent) => {
       moveTo(e.latlng.lat, e.latlng.lng, false);
@@ -90,6 +104,8 @@ export default function LocationPicker({
     });
     mapRef.current = map;
     if (value) moveTo(value.lat, value.lng, false);
+    // Leaflet needs a size recalc once its container is laid out.
+    setTimeout(() => map.invalidateSize(), 0);
     return () => {
       map.remove();
       mapRef.current = null;
@@ -97,6 +113,36 @@ export default function LocationPicker({
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  // Debounced place search.
+  useEffect(() => {
+    const q = query.trim();
+    if (q.length < 3) {
+      setHits([]);
+      return;
+    }
+    setSearching(true);
+    const t = setTimeout(async () => {
+      try {
+        const r = await api.searchPlaces(q);
+        setHits(r);
+        setOpen(true);
+      } catch {
+        setHits([]);
+      } finally {
+        setSearching(false);
+      }
+    }, 350);
+    return () => clearTimeout(t);
+  }, [query]);
+
+  const choose = (h: Hit) => {
+    setQuery(h.label.split(",").slice(0, 2).join(",").trim());
+    setOpen(false);
+    setHits([]);
+    moveTo(h.lat, h.lng);
+    commit(h.lat, h.lng);
+  };
 
   const useGps = () => {
     if (!navigator.geolocation) return;
@@ -120,7 +166,28 @@ export default function LocationPicker({
 
   return (
     <div className="loc-picker">
+      <div className="loc-search">
+        <input
+          type="text"
+          placeholder="Search your society, area, landmark…"
+          value={query}
+          onChange={(e) => setQuery(e.target.value)}
+          onFocus={() => hits.length && setOpen(true)}
+        />
+        {open && (searching || hits.length > 0) && (
+          <ul className="loc-results">
+            {searching && <li className="loc-result muted">Searching…</li>}
+            {hits.map((h, i) => (
+              <li key={i} className="loc-result" onClick={() => choose(h)}>
+                {h.label}
+              </li>
+            ))}
+          </ul>
+        )}
+      </div>
+
       <div ref={ref} className="loc-canvas" />
+
       <div className="loc-actions">
         <button type="button" className="secondary small" disabled={locating} onClick={useGps}>
           {locating ? "Locating…" : "📍 Current location"}
@@ -131,8 +198,9 @@ export default function LocationPicker({
           </button>
         )}
       </div>
+
       <span className="loc-address">
-        {resolving ? "Finding address…" : address ? `📌 ${address}` : "Tap the map or use a button to set the location"}
+        {resolving ? "Finding address…" : address ? `📌 ${address}` : "Search, tap the map, or use a button to set the location"}
       </span>
     </div>
   );
