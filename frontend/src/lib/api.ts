@@ -227,11 +227,14 @@ export interface Order {
   createdAt: string;
 }
 
+export type FoodType = "veg" | "nonveg";
+
 export interface ListingBody {
   title: string;
   description: string;
   pricePerServing: number;
   maxServings: number;
+  foodType: FoodType;
   readyBy?: string | null;
   orderBy?: string | null;
   // Per-dish pickup override; omit to use the cook's saved kitchen location.
@@ -250,6 +253,7 @@ export interface Listing {
   readyBy: string | null;
   orderBy: string | null;
   status: "open" | "closed";
+  foodType: FoodType;
   hasPhoto: boolean;
   expired: boolean;
   pickupLat: number;
@@ -269,6 +273,7 @@ export interface FeedItem {
   cookName: string | null;
   distanceMeters: number;
   hasPhoto: boolean;
+  foodType: FoodType;
 }
 
 /** India-first phone normalization for display; the server does the authoritative one. */

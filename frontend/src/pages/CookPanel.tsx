@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import { api, type Listing, type Order, type Me } from "../lib/api";
+import { api, type Listing, type Order, type Me, type FoodType } from "../lib/api";
 import { downscaleToJpeg } from "../lib/image";
 import LocationPicker, { type PickedLocation } from "../components/LocationPicker";
 
@@ -34,6 +34,7 @@ export default function CookPanel({ me, onMe, view }: {
   const [price, setPrice] = useState("");
   const [servings, setServings] = useState("");
   const [orderBy, setOrderBy] = useState("");
+  const [foodType, setFoodType] = useState<FoodType>("veg");
   const [photo, setPhoto] = useState<File | null>(null);
   const [photoPreview, setPhotoPreview] = useState<string | null>(null);
   const [editingId, setEditingId] = useState<string | null>(null);
@@ -132,6 +133,7 @@ export default function CookPanel({ me, onMe, view }: {
 
   const resetForm = () => {
     setTitle(""); setDescription(""); setPrice(""); setServings(""); setOrderBy("");
+    setFoodType("veg");
     setPhoto(null); setPhotoPreview(null); setEditingId(null); setError(null);
     setPickup(null); setPickupEditing(false);
   };
@@ -150,6 +152,7 @@ export default function CookPanel({ me, onMe, view }: {
     setPrice(String(l.pricePerServing));
     setServings(String(l.maxServings));
     setOrderBy(toLocalInput(l.orderBy));
+    setFoodType(l.foodType);
     setPhoto(null); setPhotoPreview(null);
     // Keep this listing's existing pickup point unless the cook changes it.
     setPickup({ lat: l.pickupLat, lng: l.pickupLng, address: l.pickupAddress });
@@ -206,6 +209,7 @@ export default function CookPanel({ me, onMe, view }: {
       description: description.trim(),
       pricePerServing: p,
       maxServings: s,
+      foodType,
       readyBy: null,
       orderBy: new Date(orderBy).toISOString(),
       pickupLat: pickup.lat,
@@ -463,6 +467,21 @@ export default function CookPanel({ me, onMe, view }: {
           <input placeholder="e.g. Veg Thali" value={title} onChange={(e) => setTitle(e.target.value)} autoFocus />
           <label>Description (optional)</label>
           <input placeholder="Dal, rice, 2 sabzi, roti" value={description} onChange={(e) => setDescription(e.target.value)} />
+          <label>Food type <span className="req">*</span></label>
+          <div className="foodtype-toggle">
+            {(["veg", "nonveg"] as FoodType[]).map((ft) => (
+              <button
+                type="button"
+                key={ft}
+                className={`ft-btn ${ft} ${foodType === ft ? "on" : ""}`}
+                aria-pressed={foodType === ft}
+                onClick={() => setFoodType(ft)}
+              >
+                <span className={`veg-mark ${ft}`} aria-hidden="true" />
+                {ft === "veg" ? "Veg" : "Non-veg"}
+              </button>
+            ))}
+          </div>
           <div className="row2">
             <div>
               <label>Price / serving (₹) <span className="req">*</span></label>
@@ -540,7 +559,10 @@ export default function CookPanel({ me, onMe, view }: {
                   <div className="listing-thumb placeholder" aria-hidden="true">🍲</div>
                 )}
                 <div className="listing-main">
-                  <strong>{l.title}</strong>
+                  <strong>
+                    <span className={`veg-mark ${l.foodType}`} aria-label={l.foodType === "veg" ? "Veg" : "Non-veg"} />
+                    {l.title}
+                  </strong>
                   {l.description && <span className="muted">{l.description}</span>}
                   <span className="meta">
                     ₹{l.pricePerServing}/serving · {l.remaining}/{l.maxServings} left

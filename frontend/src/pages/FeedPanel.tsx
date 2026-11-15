@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { api, radiusLabel, type FeedItem, type Me, type Order, type OrderStatus } from "../lib/api";
+import { api, radiusLabel, type FeedItem, type FoodType, type Me, type Order, type OrderStatus } from "../lib/api";
 import PickupMap from "../components/PickupMap";
 import RadiusSlider from "../components/RadiusSlider";
 
@@ -16,6 +16,7 @@ export default function FeedPanel({ view, me, onMe }: {
   const [placing, setPlacing] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [selectedId, setSelectedId] = useState<string | null>(null);
+  const [foodFilter, setFoodFilter] = useState<"all" | FoodType>("all");
 
   const fetchData = async (silent = false) => {
     if (!silent) setLoading(true);
@@ -247,6 +248,7 @@ export default function FeedPanel({ view, me, onMe }: {
   }
 
   // ---- Feed view ----
+  const visible = foodFilter === "all" ? items : items.filter((it) => it.foodType === foodFilter);
   return (
     <div className="mode-panel">
       <div className="panel-head">
@@ -257,23 +259,49 @@ export default function FeedPanel({ view, me, onMe }: {
 
       <div className="feed-locnote">
         📍 Showing food near <strong>{me.addressText ?? "your saved society"}</strong>.
-        Somewhere else? Update your address in profile.
+        Somewhere else? Update your location in profile.
       </div>
+
+      {!loading && items.length > 0 && (
+        <div className="foodtype-filter">
+          {([
+            { key: "all", label: "All" },
+            { key: "veg", label: "Veg" },
+            { key: "nonveg", label: "Non-veg" },
+          ] as { key: "all" | FoodType; label: string }[]).map((f) => (
+            <button
+              key={f.key}
+              className={`ft-chip ${f.key} ${foodFilter === f.key ? "on" : ""}`}
+              aria-pressed={foodFilter === f.key}
+              onClick={() => setFoodFilter(f.key)}
+            >
+              {f.key !== "all" && <span className={`veg-mark ${f.key}`} aria-hidden="true" />}
+              {f.label}
+            </button>
+          ))}
+        </div>
+      )}
 
       {error && <p className="error">{error}</p>}
 
       {loading ? (
         <p className="hint">Looking for dishes nearby…</p>
-      ) : items.length === 0 ? (
-        <>
+      ) : visible.length === 0 ? (
+        foodFilter !== "all" && items.length > 0 ? (
           <p className="hint">
-            No dishes within {radiusLabel(me.searchRadiusM)}. Try a wider search area:
+            No {foodFilter === "veg" ? "veg" : "non-veg"} dishes nearby right now. Try “All”.
           </p>
-          <RadiusPicker />
-        </>
+        ) : (
+          <>
+            <p className="hint">
+              No dishes within {radiusLabel(me.searchRadiusM)}. Try a wider search area:
+            </p>
+            <RadiusPicker />
+          </>
+        )
       ) : (
         <div className="list">
-          {items.map((it) => {
+          {visible.map((it) => {
             const n = qty[it.id] ?? 1;
             const cutoff = timeOf(it.orderBy);
             return (
@@ -284,7 +312,10 @@ export default function FeedPanel({ view, me, onMe }: {
                   <div className="listing-thumb placeholder" aria-hidden="true">🍲</div>
                 )}
                 <div className="listing-main">
-                  <strong>{it.title}</strong>
+                  <strong>
+                    <span className={`veg-mark ${it.foodType}`} aria-label={it.foodType === "veg" ? "Veg" : "Non-veg"} />
+                    {it.title}
+                  </strong>
                   {it.description && <span className="muted">{it.description}</span>}
                   <span className="meta">
                     {it.cookName ? `${it.cookName} · ` : ""}₹{it.pricePerServing}/serving · {it.remaining} left

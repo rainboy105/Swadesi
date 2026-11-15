@@ -38,6 +38,7 @@ public class ListingController {
             @Min(1) @Max(500) int maxServings,
             OffsetDateTime readyBy,
             OffsetDateTime orderBy,
+            String foodType,
             Double pickupLat,
             Double pickupLng,
             @Size(max = 300) String pickupAddress) {}
@@ -45,14 +46,14 @@ public class ListingController {
     /** A listing as its own cook sees it. {@code expired} = past its order cutoff. */
     public record ListingResponse(String id, String title, String description, int pricePerServing,
                                   int maxServings, int remaining, OffsetDateTime readyBy,
-                                  OffsetDateTime orderBy, String status, boolean hasPhoto,
-                                  boolean expired, double pickupLat, double pickupLng,
+                                  OffsetDateTime orderBy, String status, String foodType,
+                                  boolean hasPhoto, boolean expired, double pickupLat, double pickupLng,
                                   String pickupAddress, OffsetDateTime createdAt) {}
 
     /** A listing in the consumer's vicinity feed, with cook name and distance. */
     public record FeedItem(String id, String title, String description, int pricePerServing,
                            int remaining, OffsetDateTime readyBy, OffsetDateTime orderBy,
-                           String cookName, int distanceMeters, boolean hasPhoto) {}
+                           String cookName, int distanceMeters, boolean hasPhoto, String foodType) {}
 
     private final ListingRepository listings;
     private final ListingPhotoRepository photos;
@@ -121,6 +122,7 @@ public class ListingController {
         l.setServingsClaimed(0);
         l.setReadyBy(req.readyBy());
         l.setOrderBy(req.orderBy());
+        l.setFoodType(normalizeFoodType(req.foodType()));
         l.setStatus("open");
         applyPickup(l, cook, req);
         l.setCreatedAt(now);
@@ -181,6 +183,7 @@ public class ListingController {
         l.setMaxServings(req.maxServings());
         l.setReadyBy(req.readyBy());
         l.setOrderBy(req.orderBy());
+        l.setFoodType(normalizeFoodType(req.foodType()));
         User cook = users.findById(auth.id())
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Unknown user"));
         applyPickup(l, cook, req);
@@ -209,6 +212,11 @@ public class ListingController {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST,
                     "Set a pickup location (kitchen address) before listing food.");
         }
+    }
+
+    /** Normalize the food type to "veg" or "nonveg"; default "veg". */
+    private static String normalizeFoodType(String ft) {
+        return ft != null && ft.trim().equalsIgnoreCase("nonveg") ? "nonveg" : "veg";
     }
 
     public record StatusRequest(String status) {}
@@ -240,7 +248,7 @@ public class ListingController {
             if (d <= radius) {
                 out.add(new FeedItem(l.getId().toString(), l.getTitle(), l.getDescription(),
                         l.getPricePerServing(), l.remaining(), l.getReadyBy(), l.getOrderBy(),
-                        l.getCookName(), (int) Math.round(d), l.isHasPhoto()));
+                        l.getCookName(), (int) Math.round(d), l.isHasPhoto(), l.getFoodType()));
             }
         }
         out.sort(Comparator.comparingInt(FeedItem::distanceMeters));
@@ -250,7 +258,7 @@ public class ListingController {
     private static ListingResponse toResponse(Listing l) {
         return new ListingResponse(l.getId().toString(), l.getTitle(), l.getDescription(),
                 l.getPricePerServing(), l.getMaxServings(), l.remaining(), l.getReadyBy(),
-                l.getOrderBy(), l.getStatus(), l.isHasPhoto(), isExpired(l),
+                l.getOrderBy(), l.getStatus(), l.getFoodType(), l.isHasPhoto(), isExpired(l),
                 l.getLat(), l.getLng(), l.getPickupAddress(), l.getCreatedAt());
     }
 

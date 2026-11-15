@@ -462,6 +462,87 @@ select {
   color: var(--success, #15803d);
 }
 
+/* Classic India veg / non-veg mark: a bordered square with a filled dot. */
+.veg-mark {
+  display: inline-block;
+  width: 14px;
+  height: 14px;
+  border: 1.5px solid currentColor;
+  border-radius: 3px;
+  position: relative;
+  vertical-align: middle;
+  margin-right: 6px;
+  flex: 0 0 auto;
+}
+.veg-mark::after {
+  content: "";
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  transform: translate(-50%, -50%);
+  background: currentColor;
+}
+.veg-mark.veg { color: #15803d; }
+.veg-mark.nonveg { color: #b91c1c; }
+
+/* Cook form: veg / non-veg picker. */
+.foodtype-toggle {
+  display: flex;
+  gap: 10px;
+}
+.ft-btn {
+  flex: 1;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 2px;
+  padding: 10px 12px;
+  border: 1.5px solid var(--line, #e6e0f0);
+  border-radius: 12px;
+  background: #fff;
+  font-weight: 600;
+  color: var(--ink-600, #575070);
+  cursor: pointer;
+}
+.ft-btn.on.veg {
+  border-color: #15803d;
+  background: #dcfce7;
+  color: #15803d;
+}
+.ft-btn.on.nonveg {
+  border-color: #b91c1c;
+  background: #fee2e2;
+  color: #b91c1c;
+}
+
+/* Feed: veg / non-veg filter chips. */
+.foodtype-filter {
+  display: flex;
+  gap: 8px;
+  margin: 4px 0 2px;
+}
+.ft-chip {
+  display: inline-flex;
+  align-items: center;
+  padding: 7px 14px;
+  border: 1.5px solid var(--line, #e6e0f0);
+  border-radius: 999px;
+  background: #fff;
+  font-weight: 600;
+  font-size: 0.9rem;
+  color: var(--ink-600, #575070);
+  cursor: pointer;
+}
+.ft-chip.on {
+  border-color: var(--violet-600, #6d28d9);
+  background: var(--violet-600, #6d28d9);
+  color: #fff;
+}
+.ft-chip.on .veg-mark { color: #fff; }
+
 .error {
   margin: 0;
   color: var(--danger);
