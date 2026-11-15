@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { radiusLabel } from "../lib/api";
 
 const MIN = 500;
-const MAX = 5000;
+const MAX = 10000;
 const STEP = 500;
 const STEPS = Math.round((MAX - MIN) / STEP); // number of gaps between ticks
 

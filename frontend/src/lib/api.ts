@@ -73,7 +73,7 @@ export interface Me {
   searchRadiusM: number;
 }
 
-export const RADIUS_OPTIONS = [500, 1000, 1500, 2000, 3000, 5000];
+export const RADIUS_OPTIONS = [500, 1000, 1500, 2000, 3000, 5000, 7500, 10000];
 export const radiusLabel = (m: number) => (m < 1000 ? `${m} m` : `${(m / 1000).toFixed(m % 1000 === 0 ? 0 : 1)} km`);
 
 export interface Settlement {
