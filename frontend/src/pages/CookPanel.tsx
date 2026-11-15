@@ -434,7 +434,7 @@ export default function CookPanel({ me, onMe, view }: {
       {!kitchenEditing ? (
         <div className="upi-ok kitchen-ok">
           <span>🍳 Pickup at <strong>{me.kitchenAddress ?? me.addressText ?? "your society (default)"}</strong></span>
-          <button className="link" onClick={() => { setKitchenPick(defaultPickup()); setKitchenEditing(true); }}>
+          <button className="secondary small" onClick={() => { setKitchenPick(defaultPickup()); setKitchenEditing(true); }}>
             {me.kitchenAddress ? "Change" : "Set kitchen"}
           </button>
         </div>
