@@ -1,0 +1,23 @@
+<svg viewBox="0 0 200 200" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Consumer">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#efe7fe"/>
+      <stop offset="1" stop-color="#e3d8fb"/>
+    </linearGradient>
+  </defs>
+  <rect width="200" height="200" fill="url(#bg)"/>
+  <!-- shoulders / shirt -->
+  <path d="M30 200 C30 150 62 130 100 130 C138 130 170 150 170 200 Z" fill="#7c3aed"/>
+  <path d="M84 134 h32 v10 a16 16 0 0 1 -32 0 Z" fill="#6d28d9"/>
+  <!-- neck -->
+  <rect x="88" y="110" width="24" height="30" rx="11" fill="#e3ad84"/>
+  <!-- head -->
+  <circle cx="100" cy="84" r="40" fill="#f2c6a0"/>
+  <!-- hair -->
+  <path d="M58 86 C58 56 76 42 100 42 C124 42 142 56 142 86 C142 72 128 64 100 64 C72 64 58 72 58 86 Z" fill="#3b2d4d"/>
+  <!-- eyes -->
+  <circle cx="86" cy="86" r="4.5" fill="#3b2d4d"/>
+  <circle cx="114" cy="86" r="4.5" fill="#3b2d4d"/>
+  <!-- smile -->
+  <path d="M85 100 Q100 112 115 100" stroke="#3b2d4d" stroke-width="4.5" fill="none" stroke-linecap="round"/>
+</svg>

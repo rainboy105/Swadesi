@@ -143,13 +143,12 @@ export default function Profile({ me, onMe, onLogout }: {
         <div className="avatar-block">
           <button className="avatar" onClick={() => fileRef.current?.click()}
                   disabled={avatarBusy} aria-label="Change profile photo">
-            {me.hasAvatar ? (
-              <img src={`${api.avatarUrl(me.id)}?v=${avatarVer}`} alt="Profile" />
-            ) : (
-              <span className="avatar-default" aria-hidden="true">
-                {me.activeRole === "cook" ? "🧑‍🍳" : "🙂"}
-              </span>
-            )}
+            <img
+              src={me.hasAvatar
+                ? `${api.avatarUrl(me.id)}?v=${avatarVer}`
+                : me.activeRole === "cook" ? "/avatars/cook.svg" : "/avatars/consumer.svg"}
+              alt="Profile"
+            />
             <span className="avatar-cam" aria-hidden="true">
               {avatarBusy ? "…" : "📷"}
             </span>
