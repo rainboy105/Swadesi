@@ -60,6 +60,9 @@ public class User {
     @Column(name = "admin", nullable = false)
     private boolean admin = false;
 
+    @Column(name = "has_avatar", nullable = false)
+    private boolean hasAvatar = false;
+
     @Column(name = "created_at", nullable = false, updatable = false)
     private OffsetDateTime createdAt;
 
@@ -92,6 +95,8 @@ public class User {
     public void setKitchenAddress(String kitchenAddress) { this.kitchenAddress = kitchenAddress; }
     public int getSearchRadiusM() { return searchRadiusM; }
     public void setSearchRadiusM(int searchRadiusM) { this.searchRadiusM = searchRadiusM; }
+    public boolean isHasAvatar() { return hasAvatar; }
+    public void setHasAvatar(boolean hasAvatar) { this.hasAvatar = hasAvatar; }
     public boolean isAdmin() { return admin; }
     public void setAdmin(boolean admin) { this.admin = admin; }
     public OffsetDateTime getCreatedAt() { return createdAt; }

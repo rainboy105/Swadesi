@@ -14,8 +14,11 @@ import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.multipart.MultipartFile;
 import org.springframework.web.server.ResponseStatusException;
+import java.io.IOException;
 
 /** The logged-in user's own profile: read it, and complete onboarding (name + location). */
 @RestController
@@ -25,7 +28,8 @@ public class MeController {
     public record MeResponse(String id, String phone, String name, String addressText,
                              Double lat, Double lng, boolean onboarded, String activeRole,
                              String upiId, boolean admin, int searchRadiusM,
-                             Double kitchenLat, Double kitchenLng, String kitchenAddress) {}
+                             Double kitchenLat, Double kitchenLng, String kitchenAddress,
+                             boolean hasAvatar) {}
 
     public record RadiusRequest(@Min(100) @Max(20000) int radiusMeters) {}
 
@@ -45,9 +49,39 @@ public class MeController {
     public record PayoutRequest(@NotBlank @Size(max = 120) String upiId) {}
 
     private final UserRepository users;
+    private final UserPhotoRepository photos;
 
-    public MeController(UserRepository users) {
+    public MeController(UserRepository users, UserPhotoRepository photos) {
         this.users = users;
+        this.photos = photos;
+    }
+
+    /** Upload (or replace) the user's profile photo. */
+    @PostMapping("/avatar")
+    public MeResponse uploadAvatar(@AuthenticationPrincipal AuthenticatedUser auth,
+                                   @RequestParam("file") MultipartFile file) {
+        User u = users.findById(auth.id())
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Unknown user"));
+        String ct = file.getContentType();
+        if (ct == null || !ct.startsWith("image/")) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Please upload an image");
+        }
+        if (file.getSize() > 5_000_000) {
+            throw new ResponseStatusException(HttpStatus.PAYLOAD_TOO_LARGE, "Image too large (max 5 MB)");
+        }
+        try {
+            UserPhoto p = photos.findById(u.getId()).orElseGet(UserPhoto::new);
+            p.setUserId(u.getId());
+            p.setData(file.getBytes());
+            p.setContentType(ct);
+            p.setCreatedAt(OffsetDateTime.now());
+            photos.save(p);
+        } catch (IOException e) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Could not read the image");
+        }
+        u.setHasAvatar(true);
+        u.setUpdatedAt(OffsetDateTime.now());
+        return toResponse(users.save(u));
     }
 
     @GetMapping
@@ -133,6 +167,6 @@ public class MeController {
         return new MeResponse(u.getId().toString(), u.getPhone(), u.getName(),
                 u.getAddressText(), u.getLat(), u.getLng(), u.isOnboarded(), u.getActiveRole(),
                 u.getUpiId(), u.isAdmin(), u.getSearchRadiusM(),
-                u.getKitchenLat(), u.getKitchenLng(), u.getKitchenAddress());
+                u.getKitchenLat(), u.getKitchenLng(), u.getKitchenAddress(), u.isHasAvatar());
     }
 }

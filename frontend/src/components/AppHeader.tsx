@@ -52,7 +52,7 @@ export default function AppHeader({
           )}
         </div>
       </div>
-      <h2>{title}</h2>
+      {title && <h2>{title}</h2>}
       {subtitle && <p>{subtitle}</p>}
     </div>
   );

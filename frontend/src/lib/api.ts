@@ -74,6 +74,7 @@ export interface Me {
   kitchenLat: number | null;
   kitchenLng: number | null;
   kitchenAddress: string | null;
+  hasAvatar: boolean;
 }
 
 export const RADIUS_OPTIONS = [500, 1000, 1500, 2000, 3000, 5000, 7500, 10000];
@@ -177,6 +178,17 @@ export const api = {
     return (await resp.json()) as Listing;
   },
   listingPhotoUrl: (id: string) => `${BASE}/api/public/listings/${id}/photo`,
+  avatarUrl: (id: string) => `${BASE}/api/public/users/${id}/avatar`,
+  uploadAvatar: async (file: Blob) => {
+    const form = new FormData();
+    form.append("file", file, "avatar.jpg");
+    const headers: Record<string, string> = {};
+    const token = getToken();
+    if (token) headers["Authorization"] = `Bearer ${token}`;
+    const resp = await fetch(`${BASE}/api/v1/me/avatar`, { method: "POST", headers, body: form });
+    if (!resp.ok) throw new ApiError(resp.status, "Could not upload the photo");
+    return (await resp.json()) as Me;
+  },
 
   // --- Web Push ---
   vapidKey: () => call<{ publicKey: string }>("/api/public/vapid-key"),

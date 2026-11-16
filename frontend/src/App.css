@@ -1162,6 +1162,57 @@ button.small {
   gap: 8px;
 }
 
+/* Profile avatar (centered, tap to change). */
+.avatar-block {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  margin: 4px 0 10px;
+}
+.avatar {
+  position: relative;
+  width: 108px;
+  height: 108px;
+  border-radius: 50%;
+  border: 3px solid var(--violet-600, #6d28d9);
+  background: var(--sunk, #f1edf8);
+  padding: 0;
+  overflow: hidden;
+  cursor: pointer;
+  display: grid;
+  place-items: center;
+}
+.avatar img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+.avatar-default {
+  font-size: 54px;
+  line-height: 1;
+}
+.avatar-cam {
+  position: absolute;
+  right: 2px;
+  bottom: 2px;
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  background: var(--violet-600, #6d28d9);
+  color: #fff;
+  display: grid;
+  place-items: center;
+  font-size: 15px;
+  border: 2px solid #fff;
+}
+.avatar-name {
+  font-weight: 700;
+  font-size: 1.15rem;
+  color: var(--ink-900, #211b33);
+}
+
 .tab-badge {
   display: inline-flex;
   align-items: center;

@@ -1,7 +1,8 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { api, setToken, type Me } from "../lib/api";
 import AppHeader from "../components/AppHeader";
+import { downscaleToJpeg } from "../lib/image";
 import { enablePush, disablePush, isPushEnabled, pushPermission } from "../lib/push";
 
 /** The /profile page: view details, edit name/address/location, and log out. */
@@ -47,6 +48,26 @@ export default function Profile({ me, onMe, onLogout }: {
       setPushMsg(e instanceof Error ? e.message : "Could not change notifications.");
     } finally {
       setPushBusy(false);
+    }
+  };
+
+  // Profile photo.
+  const fileRef = useRef<HTMLInputElement>(null);
+  const [avatarVer, setAvatarVer] = useState(0);
+  const [avatarBusy, setAvatarBusy] = useState(false);
+  const onAvatarPick = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    e.target.value = "";
+    if (!file) return;
+    setAvatarBusy(true);
+    setError(null);
+    try {
+      onMe(await api.uploadAvatar(await downscaleToJpeg(file)));
+      setAvatarVer((v) => v + 1);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Could not update photo.");
+    } finally {
+      setAvatarBusy(false);
     }
   };
 
@@ -112,22 +133,29 @@ export default function Profile({ me, onMe, onLogout }: {
   return (
     <>
       <AppHeader
-        title="Your profile"
-        subtitle={me.activeRole === "cook" ? "Cook mode" : "Consumer mode"}
+        title=""
         showProfile={false}
         onBack={() => navigate("/")}
       />
       <div className="card">
-        <div className="profile-head">
-          <span className="tile">🙂</span>
+        <div className="avatar-block">
+          <button className="avatar" onClick={() => fileRef.current?.click()}
+                  disabled={avatarBusy} aria-label="Change profile photo">
+            {me.hasAvatar ? (
+              <img src={`${api.avatarUrl(me.id)}?v=${avatarVer}`} alt="Profile" />
+            ) : (
+              <span className="avatar-default" aria-hidden="true">
+                {me.activeRole === "cook" ? "🧑‍🍳" : "🙂"}
+              </span>
+            )}
+            <span className="avatar-cam" aria-hidden="true">
+              {avatarBusy ? "…" : "📷"}
+            </span>
+          </button>
+          <input ref={fileRef} type="file" accept="image/*" hidden onChange={onAvatarPick} />
+          {me.name && <div className="avatar-name">{me.name}</div>}
           {!editing && (
-            <button className="icon-btn" aria-label="Edit profile" onClick={() => setEditing(true)}>
-              <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor"
-                   strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                <path d="M12 20h9" />
-                <path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4Z" />
-              </svg>
-            </button>
+            <button className="link" onClick={() => setEditing(true)}>Edit details</button>
           )}
         </div>
 
