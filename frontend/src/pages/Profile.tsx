@@ -2,7 +2,6 @@ import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { api, setToken, type Me } from "../lib/api";
 import AppHeader from "../components/AppHeader";
-import RadiusSlider from "../components/RadiusSlider";
 import { enablePush, disablePush, isPushEnabled, pushPermission } from "../lib/push";
 
 /** The /profile page: view details, edit name/address/location, and log out. */
@@ -51,6 +50,19 @@ export default function Profile({ me, onMe, onLogout }: {
     }
   };
 
+  const [switching, setSwitching] = useState(false);
+  const switchMode = async () => {
+    const next = me.activeRole === "cook" ? "consumer" : "cook";
+    setSwitching(true);
+    try {
+      onMe(await api.setRole(next));
+    } catch {
+      /* keep current mode on failure */
+    } finally {
+      setSwitching(false);
+    }
+  };
+
   const logout = () => {
     setToken(null);
     onLogout();
@@ -79,14 +91,6 @@ export default function Profile({ me, onMe, onLogout }: {
       },
       { enableHighAccuracy: true, timeout: 10000 },
     );
-  };
-
-  const changeRadius = async (m: number) => {
-    try {
-      onMe(await api.setRadius(m));
-    } catch {
-      /* ignore */
-    }
   };
 
   const save = async () => {
@@ -144,11 +148,18 @@ export default function Profile({ me, onMe, onLogout }: {
               </div>
               <div className="profile-row">
                 <span>Current mode</span>
-                <strong>{me.activeRole === "cook" ? "🍳 Cook" : "🍽️ Consumer"}</strong>
+                <span className="mode-cell">
+                  <strong>{me.activeRole === "cook" ? "🍳 Cook" : "🍽️ Consumer"}</strong>
+                  <button className="icon-btn small-icon" aria-label="Switch mode"
+                          disabled={switching} onClick={switchMode} title="Switch mode">
+                    <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor"
+                         strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                      <path d="M17 1l4 4-4 4" /><path d="M3 11V9a4 4 0 0 1 4-4h14" />
+                      <path d="M7 23l-4-4 4-4" /><path d="M21 13v2a4 4 0 0 1-4 4H3" />
+                    </svg>
+                  </button>
+                </span>
               </div>
-            </div>
-            <div className="profile-radius">
-              <RadiusSlider value={me.searchRadiusM} onChange={changeRadius} />
             </div>
             {pushState !== "unsupported" && (
               <div className="notif-block">
@@ -174,15 +185,15 @@ export default function Profile({ me, onMe, onLogout }: {
               </button>
             )}
             <button className="link" onClick={() => navigate("/")}>Back to home</button>
+            <a className="link" href="/privacy/" target="_blank" rel="noopener noreferrer">Privacy policy</a>
+            <a className="link" href="/delete-account/" target="_blank" rel="noopener noreferrer">Delete my account</a>
+            <button className="link" onClick={logout}>Log out</button>
             <a className="link insta-link" href="https://www.instagram.com/swaadesi_" target="_blank" rel="noopener noreferrer">
               <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
                 <rect x="2" y="2" width="20" height="20" rx="5" ry="5" /><path d="M16 11.37A4 4 0 1 1 12.63 8 4 4 0 0 1 16 11.37z" /><line x1="17.5" y1="6.5" x2="17.51" y2="6.5" />
               </svg>
               Follow us on Instagram
             </a>
-            <a className="link" href="/privacy/" target="_blank" rel="noopener noreferrer">Privacy policy</a>
-            <a className="link" href="/delete-account/" target="_blank" rel="noopener noreferrer">Delete my account</a>
-            <button className="link" onClick={logout}>Log out</button>
           </>
         ) : (
           <>

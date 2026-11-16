@@ -1156,6 +1156,28 @@ button.small {
   gap: 7px;
 }
 
+.mode-cell {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.tab-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 20px;
+  height: 20px;
+  padding: 0 6px;
+  margin-left: 6px;
+  border-radius: 999px;
+  background: var(--danger, #b91c1c);
+  color: #fff;
+  font-size: 0.72rem;
+  font-weight: 700;
+  vertical-align: middle;
+}
+
 .notif-block {
   display: flex;
   flex-direction: column;

@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { api, type Me, type Role } from "../lib/api";
 import AppHeader from "../components/AppHeader";
 import CookPanel from "./CookPanel";
@@ -16,6 +16,31 @@ export default function Home({ me, onMe }: { me: Me; onMe: (me: Me) => void }) {
   const [consumerTab, setConsumerTab] = useState<"feed" | "orders" | "cooks">("feed");
   const [cookTab, setCookTab] = useState<"kitchen" | "orders" | "requests">("kitchen");
   const role = me.activeRole;
+  const [pendingReq, setPendingReq] = useState(0);
+
+  // Badge the cook's Requests tab with the count of new (pending) requests.
+  useEffect(() => {
+    if (role !== "cook") {
+      setPendingReq(0);
+      return;
+    }
+    let active = true;
+    const fetchCount = () =>
+      api
+        .incomingRequests()
+        .then((rs) => {
+          if (active) setPendingReq(rs.filter((r) => r.status === "pending").length);
+        })
+        .catch(() => {});
+    fetchCount();
+    const id = setInterval(() => {
+      if (document.visibilityState === "visible") fetchCount();
+    }, 15000);
+    return () => {
+      active = false;
+      clearInterval(id);
+    };
+  }, [role, cookTab]);
 
   const switchTo = async (next: Role) => {
     setSheetOpen(false);
@@ -65,6 +90,9 @@ export default function Home({ me, onMe }: { me: Me; onMe: (me: Me) => void }) {
               onClick={() => setTab(s.key)}
             >
               {s.label}
+              {s.key === "requests" && pendingReq > 0 && (
+                <span className="tab-badge">{pendingReq}</span>
+              )}
             </button>
           ))}
         </div>

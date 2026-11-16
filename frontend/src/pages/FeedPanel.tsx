@@ -203,7 +203,6 @@ export default function FeedPanel({ view, me, onMe }: {
         <div className="panel-head">
           <span className="tile marigold">📦</span>
           <h1>My orders</h1>
-          <button className="link refresh" onClick={load} aria-label="Refresh">↻</button>
         </div>
 
         {loading ? (
@@ -255,7 +254,6 @@ export default function FeedPanel({ view, me, onMe }: {
       <div className="panel-head">
         <span className="tile">🍽️</span>
         <h1>Food near you</h1>
-        <button className="link refresh" onClick={load} aria-label="Refresh">↻</button>
       </div>
 
       <div className="feed-locnote">
