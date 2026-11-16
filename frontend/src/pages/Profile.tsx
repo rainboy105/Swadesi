@@ -174,6 +174,7 @@ export default function Profile({ me, onMe, onLogout }: {
               </button>
             )}
             <button className="link" onClick={() => navigate("/")}>Back to home</button>
+            <a className="link" href="/privacy/" target="_blank" rel="noopener noreferrer">Privacy policy</a>
             <button className="link" onClick={logout}>Log out</button>
           </>
         ) : (
