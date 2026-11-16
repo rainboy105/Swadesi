@@ -13,9 +13,12 @@ import org.smartgurukul.swadesi.listing.Listing;
 import org.smartgurukul.swadesi.listing.ListingController;
 import org.smartgurukul.swadesi.listing.ListingRepository;
 import org.smartgurukul.swadesi.push.PushService;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.smartgurukul.swadesi.security.AuthenticatedUser;
 import org.smartgurukul.swadesi.user.User;
 import org.smartgurukul.swadesi.user.UserRepository;
+import org.smartgurukul.swadesi.whatsapp.WhatsAppSender;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -43,17 +46,31 @@ public class RequestController {
                                   Integer pricePerServing, String cookName, String consumerName,
                                   String listingId, OffsetDateTime createdAt) {}
 
+    private static final Logger log = LoggerFactory.getLogger(RequestController.class);
+
     private final DishRequestRepository requests;
     private final ListingRepository listings;
     private final UserRepository users;
     private final PushService push;
+    private final WhatsAppSender whatsApp;
 
     public RequestController(DishRequestRepository requests, ListingRepository listings,
-                            UserRepository users, PushService push) {
+                            UserRepository users, PushService push, WhatsAppSender whatsApp) {
         this.requests = requests;
         this.listings = listings;
         this.users = users;
         this.push = push;
+        this.whatsApp = whatsApp;
+    }
+
+    private void notifyWhatsApp(String phone, String text) {
+        if (phone == null) return;
+        try {
+            whatsApp.send(phone, text);
+        } catch (Exception e) {
+            log.warn("request notify failed to {} ({})",
+                    WhatsAppSender.mask(phone), WhatsAppSender.failureReason(e));
+        }
     }
 
     /** Consumer creates a dish request to a cook. */
@@ -82,9 +99,12 @@ public class RequestController {
         r.setCreatedAt(now);
         r.setUpdatedAt(now);
         DishRequest saved = requests.save(r);
+        String who = consumer.getName() == null ? "Someone" : consumer.getName();
         push.notifyUsers(List.of(cook.getId()), "New dish request 🍽️",
-                (consumer.getName() == null ? "Someone" : consumer.getName())
-                        + " requested " + r.getQty() + " × " + r.getDishName(), "/");
+                who + " requested " + r.getQty() + " × " + r.getDishName(), "/");
+        notifyWhatsApp(cook.getPhone(), "New Swaadesi request: " + r.getQty() + " × " + r.getDishName()
+                + " from " + who + (r.getNote() != null ? " (\"" + r.getNote() + "\")" : "")
+                + ". Open the app to accept with a price or decline.");
         return toResponse(saved);
     }
 
