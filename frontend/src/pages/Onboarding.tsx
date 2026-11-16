@@ -1,46 +1,26 @@
 import { useState } from "react";
 import { api, type Me } from "../lib/api";
+import LocationPicker, { type PickedLocation } from "../components/LocationPicker";
 
 /**
- * First-login details: name + current location (one tap). No typed address —
- * we just capture GPS and auto-fill a readable area name from it for display.
+ * First-login details: name + location picked on a map (search, tap/drag the pin, or the
+ * on-map "my location" control). We store the exact coordinates and a readable area label.
  */
 export default function Onboarding({ onDone }: { onDone: (me: Me) => void }) {
   const [name, setName] = useState("");
   const [coords, setCoords] = useState<{ lat: number; lng: number } | null>(null);
   const [area, setArea] = useState<string | null>(null);
-  const [locating, setLocating] = useState(false);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const useLocation = () => {
-    if (!navigator.geolocation) return setError("Location isn't available on this device.");
-    setLocating(true);
-    setError(null);
-    navigator.geolocation.getCurrentPosition(
-      async (pos) => {
-        const { latitude: lat, longitude: lng } = pos.coords;
-        setCoords({ lat, lng });
-        try {
-          const { address } = await api.reverseGeocode(lat, lng);
-          setArea(address && address.trim() ? address : null);
-        } catch {
-          setArea(null);
-        } finally {
-          setLocating(false);
-        }
-      },
-      () => {
-        setLocating(false);
-        setError("Couldn't get your location. Please allow location access and try again.");
-      },
-      { enableHighAccuracy: true, timeout: 10000 },
-    );
+  const onPick = (p: PickedLocation) => {
+    setCoords({ lat: p.lat, lng: p.lng });
+    setArea(p.address ?? null);
   };
 
   const save = async () => {
     if (!name.trim()) return setError("Please tell us your name.");
-    if (!coords) return setError('Please tap "Use my current location" so we can show food near you.');
+    if (!coords) return setError("Please set your location on the map.");
     setBusy(true);
     setError(null);
     try {
@@ -73,13 +53,8 @@ export default function Onboarding({ onDone }: { onDone: (me: Me) => void }) {
         />
 
         <label>Your location <span className="req">*</span></label>
-        <button type="button" className="secondary" disabled={locating} onClick={useLocation}>
-          {locating ? "Locating…" : coords ? "📍 Update my location" : "📍 Use my current location"}
-        </button>
-        {coords && (
-          <p className="loc-ok">✓ Location set{area ? ` — ${area}` : ""}</p>
-        )}
-        <p className="hint">We use this only to show home-cooked food near you.</p>
+        <LocationPicker value={coords ? { ...coords, address: area } : null} onChange={onPick} />
+        <p className="hint">Search, tap the map, or use the 📍 button. We use this only to show home-cooked food near you.</p>
 
         <button disabled={busy} onClick={save}>
           {busy ? "Saving…" : "Finish"}
