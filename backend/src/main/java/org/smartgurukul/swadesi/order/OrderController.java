@@ -64,15 +64,18 @@ public class OrderController {
     private final UserRepository users;
     private final WhatsAppSender whatsApp;
     private final org.smartgurukul.swadesi.payment.RazorpayService razorpay;
+    private final org.smartgurukul.swadesi.request.DishRequestRepository dishRequests;
 
     public OrderController(FoodOrderRepository orders, ListingRepository listings,
                            UserRepository users, WhatsAppSender whatsApp,
-                           org.smartgurukul.swadesi.payment.RazorpayService razorpay) {
+                           org.smartgurukul.swadesi.payment.RazorpayService razorpay,
+                           org.smartgurukul.swadesi.request.DishRequestRepository dishRequests) {
         this.orders = orders;
         this.listings = listings;
         this.users = users;
         this.whatsApp = whatsApp;
         this.razorpay = razorpay;
+        this.dishRequests = dishRequests;
     }
 
     /**
@@ -92,6 +95,15 @@ public class OrderController {
         }
         if (!"open".equals(l.getStatus())) {
             throw new ResponseStatusException(HttpStatus.CONFLICT, "This dish is no longer available");
+        }
+        // A request-only listing is private: only the consumer whose accepted request created it may order it.
+        if (l.isRequestOnly()) {
+            boolean ok = dishRequests.findByListingId(l.getId())
+                    .filter(r -> r.getConsumerId().equals(auth.id()) && "accepted".equals(r.getStatus()))
+                    .isPresent();
+            if (!ok) {
+                throw new ResponseStatusException(HttpStatus.FORBIDDEN, "This dish isn't available to order.");
+            }
         }
         if (l.getOrderBy() != null && !l.getOrderBy().isAfter(now)) {
             throw new ResponseStatusException(HttpStatus.CONFLICT, "Ordering has closed for this dish");
@@ -135,8 +147,20 @@ public class OrderController {
         }
 
         orders.save(o);
+        markRequestFulfilled(l, o);
         notifyCookNewOrder(l, consumer, req.qty());
         return new PlaceResponse(toResponse(o, l, true), false, null, null, null, null, null);
+    }
+
+    /** If this order fulfils an accepted dish request, mark the request fulfilled. */
+    private void markRequestFulfilled(Listing l, FoodOrder o) {
+        if (l == null || !l.isRequestOnly()) return;
+        dishRequests.findByListingId(l.getId()).ifPresent(r -> {
+            r.setStatus("fulfilled");
+            r.setOrderId(o.getId());
+            r.setUpdatedAt(OffsetDateTime.now());
+            dishRequests.save(r);
+        });
     }
 
     /** Verify the Razorpay payment, mark the order paid, and release it to the cook. */
@@ -165,6 +189,7 @@ public class OrderController {
         orders.save(o);
 
         Listing l = listings.findById(o.getListingId()).orElse(null);
+        markRequestFulfilled(l, o);
         if (l != null) {
             users.findById(l.getCookId()).ifPresent(cook -> notify(cook.getPhone(),
                     "New Swaadesi order: " + o.getQty() + " × " + l.getTitle()

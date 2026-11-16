@@ -1,0 +1,193 @@
+package org.smartgurukul.swadesi.request;
+
+import jakarta.validation.Valid;
+import jakarta.validation.constraints.Max;
+import jakarta.validation.constraints.Min;
+import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.NotNull;
+import jakarta.validation.constraints.Size;
+import java.time.OffsetDateTime;
+import java.util.List;
+import java.util.UUID;
+import org.smartgurukul.swadesi.listing.Listing;
+import org.smartgurukul.swadesi.listing.ListingController;
+import org.smartgurukul.swadesi.listing.ListingRepository;
+import org.smartgurukul.swadesi.push.PushService;
+import org.smartgurukul.swadesi.security.AuthenticatedUser;
+import org.smartgurukul.swadesi.user.User;
+import org.smartgurukul.swadesi.user.UserRepository;
+import org.springframework.http.HttpStatus;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.server.ResponseStatusException;
+
+/** Consumer requests a dish from a cook; the cook accepts (with a price) or rejects. */
+@RestController
+@RequestMapping("/api/v1/requests")
+public class RequestController {
+
+    public record CreateRequest(
+            @NotNull UUID cookId,
+            @NotBlank @Size(max = 120) String dishName,
+            @Min(1) @Max(50) int qty,
+            @Size(max = 500) String note) {}
+
+    public record AcceptRequest(@Min(0) @Max(100000) int pricePerServing) {}
+
+    public record RequestResponse(String id, String dishName, int qty, String note, String status,
+                                  Integer pricePerServing, String cookName, String consumerName,
+                                  String listingId, OffsetDateTime createdAt) {}
+
+    private final DishRequestRepository requests;
+    private final ListingRepository listings;
+    private final UserRepository users;
+    private final PushService push;
+
+    public RequestController(DishRequestRepository requests, ListingRepository listings,
+                            UserRepository users, PushService push) {
+        this.requests = requests;
+        this.listings = listings;
+        this.users = users;
+        this.push = push;
+    }
+
+    /** Consumer creates a dish request to a cook. */
+    @PostMapping
+    public RequestResponse create(@AuthenticationPrincipal AuthenticatedUser auth,
+                                  @Valid @RequestBody CreateRequest req) {
+        if (req.cookId().equals(auth.id())) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "You can't request from yourself.");
+        }
+        User consumer = users.findById(auth.id())
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Unknown user"));
+        User cook = users.findById(req.cookId())
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Cook not found"));
+        OffsetDateTime now = OffsetDateTime.now();
+        DishRequest r = new DishRequest();
+        r.setId(UUID.randomUUID());
+        r.setConsumerId(consumer.getId());
+        r.setConsumerName(consumer.getName());
+        r.setConsumerPhone(consumer.getPhone());
+        r.setCookId(cook.getId());
+        r.setCookName(cook.getName());
+        r.setDishName(req.dishName().trim());
+        r.setQty(req.qty());
+        r.setNote(req.note() == null || req.note().isBlank() ? null : req.note().trim());
+        r.setStatus("pending");
+        r.setCreatedAt(now);
+        r.setUpdatedAt(now);
+        DishRequest saved = requests.save(r);
+        push.notifyUsers(List.of(cook.getId()), "New dish request 🍽️",
+                (consumer.getName() == null ? "Someone" : consumer.getName())
+                        + " requested " + r.getQty() + " × " + r.getDishName(), "/");
+        return toResponse(saved);
+    }
+
+    /** The consumer's own requests. */
+    @GetMapping("/mine")
+    public List<RequestResponse> mine(@AuthenticationPrincipal AuthenticatedUser auth) {
+        return requests.findByConsumerIdOrderByCreatedAtDesc(auth.id()).stream()
+                .map(RequestController::toResponse).toList();
+    }
+
+    /** Requests addressed to the logged-in cook. */
+    @GetMapping("/incoming")
+    public List<RequestResponse> incoming(@AuthenticationPrincipal AuthenticatedUser auth) {
+        return requests.findByCookIdOrderByCreatedAtDesc(auth.id()).stream()
+                .map(RequestController::toResponse).toList();
+    }
+
+    /** Cook accepts a request with a price/serving; creates a private listing to pay against. */
+    @PostMapping("/{id}/accept")
+    public RequestResponse accept(@AuthenticationPrincipal AuthenticatedUser auth,
+                                  @PathVariable UUID id,
+                                  @Valid @RequestBody AcceptRequest body) {
+        DishRequest r = requests.findById(id)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Request not found"));
+        if (!r.getCookId().equals(auth.id())) {
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Not your request");
+        }
+        if (!"pending".equals(r.getStatus())) {
+            throw new ResponseStatusException(HttpStatus.CONFLICT, "This request is no longer pending.");
+        }
+        User cook = users.findById(auth.id())
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Unknown user"));
+        OffsetDateTime now = OffsetDateTime.now();
+
+        Listing l = new Listing();
+        l.setId(UUID.randomUUID());
+        l.setCookId(cook.getId());
+        l.setCookName(cook.getName());
+        l.setTitle(r.getDishName());
+        l.setDescription("Requested by " + (r.getConsumerName() == null ? "a customer" : r.getConsumerName()));
+        l.setPricePerServing(body.pricePerServing());
+        l.setMaxServings(r.getQty());
+        l.setServingsClaimed(0);
+        l.setStatus("open");
+        l.setFoodType("veg");
+        l.setRequestOnly(true);
+        ListingController.applyKitchenOrSocietyPickup(l, cook);
+        l.setCreatedAt(now);
+        l.setUpdatedAt(now);
+        listings.save(l);
+
+        r.setStatus("accepted");
+        r.setPricePerServing(body.pricePerServing());
+        r.setListingId(l.getId());
+        r.setUpdatedAt(now);
+        DishRequest saved = requests.save(r);
+        int total = body.pricePerServing() * r.getQty();
+        push.notifyUsers(List.of(r.getConsumerId()), "Request accepted ✅",
+                cook.getName() + " will make " + r.getDishName() + " — pay ₹" + total + " to confirm", "/");
+        return toResponse(saved);
+    }
+
+    /** Cook rejects a request. */
+    @PostMapping("/{id}/reject")
+    public RequestResponse reject(@AuthenticationPrincipal AuthenticatedUser auth,
+                                  @PathVariable UUID id) {
+        DishRequest r = requests.findById(id)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Request not found"));
+        if (!r.getCookId().equals(auth.id())) {
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Not your request");
+        }
+        if (!"pending".equals(r.getStatus())) {
+            throw new ResponseStatusException(HttpStatus.CONFLICT, "This request is no longer pending.");
+        }
+        r.setStatus("rejected");
+        r.setUpdatedAt(OffsetDateTime.now());
+        DishRequest saved = requests.save(r);
+        push.notifyUsers(List.of(r.getConsumerId()), "Request declined",
+                (r.getCookName() == null ? "The cook" : r.getCookName())
+                        + " can't make " + r.getDishName() + " right now", "/");
+        return toResponse(saved);
+    }
+
+    /** Consumer cancels their own pending request. */
+    @PostMapping("/{id}/cancel")
+    public RequestResponse cancel(@AuthenticationPrincipal AuthenticatedUser auth,
+                                  @PathVariable UUID id) {
+        DishRequest r = requests.findById(id)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Request not found"));
+        if (!r.getConsumerId().equals(auth.id())) {
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Not your request");
+        }
+        if (!"pending".equals(r.getStatus())) {
+            throw new ResponseStatusException(HttpStatus.CONFLICT, "Only a pending request can be cancelled.");
+        }
+        r.setStatus("cancelled");
+        r.setUpdatedAt(OffsetDateTime.now());
+        return toResponse(requests.save(r));
+    }
+
+    private static RequestResponse toResponse(DishRequest r) {
+        return new RequestResponse(r.getId().toString(), r.getDishName(), r.getQty(), r.getNote(),
+                r.getStatus(), r.getPricePerServing(), r.getCookName(), r.getConsumerName(),
+                r.getListingId() == null ? null : r.getListingId().toString(), r.getCreatedAt());
+    }
+}

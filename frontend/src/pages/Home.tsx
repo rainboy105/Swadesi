@@ -3,6 +3,8 @@ import { api, type Me, type Role } from "../lib/api";
 import AppHeader from "../components/AppHeader";
 import CookPanel from "./CookPanel";
 import FeedPanel from "./FeedPanel";
+import CooksPanel from "./CooksPanel";
+import CookRequests from "./CookRequests";
 
 /**
  * Home. Buy/sell mode is chosen from a bottom sheet (the swap icon top-right). The top toggle
@@ -11,8 +13,8 @@ import FeedPanel from "./FeedPanel";
 export default function Home({ me, onMe }: { me: Me; onMe: (me: Me) => void }) {
   const [switching, setSwitching] = useState(false);
   const [sheetOpen, setSheetOpen] = useState(false);
-  const [consumerTab, setConsumerTab] = useState<"feed" | "orders">("feed");
-  const [cookTab, setCookTab] = useState<"kitchen" | "orders">("kitchen");
+  const [consumerTab, setConsumerTab] = useState<"feed" | "orders" | "cooks">("feed");
+  const [cookTab, setCookTab] = useState<"kitchen" | "orders" | "requests">("kitchen");
   const role = me.activeRole;
 
   const switchTo = async (next: Role) => {
@@ -33,14 +35,18 @@ export default function Home({ me, onMe }: { me: Me; onMe: (me: Me) => void }) {
       ? [
           { key: "feed", label: "My Feed" },
           { key: "orders", label: "My Orders" },
+          { key: "cooks", label: "Cooks" },
         ]
       : [
           { key: "kitchen", label: "Kitchen" },
           { key: "orders", label: "Orders" },
+          { key: "requests", label: "Requests" },
         ];
   const activeTab = role === "consumer" ? consumerTab : cookTab;
   const setTab = (k: string) =>
-    role === "consumer" ? setConsumerTab(k as "feed" | "orders") : setCookTab(k as "kitchen" | "orders");
+    role === "consumer"
+      ? setConsumerTab(k as "feed" | "orders" | "cooks")
+      : setCookTab(k as "kitchen" | "orders" | "requests");
 
   return (
     <>
@@ -64,7 +70,13 @@ export default function Home({ me, onMe }: { me: Me; onMe: (me: Me) => void }) {
         </div>
 
         {role === "consumer" ? (
-          <FeedPanel view={consumerTab} me={me} onMe={onMe} />
+          consumerTab === "cooks" ? (
+            <CooksPanel onOrdered={() => setConsumerTab("orders")} />
+          ) : (
+            <FeedPanel view={consumerTab} me={me} onMe={onMe} />
+          )
+        ) : cookTab === "requests" ? (
+          <CookRequests />
         ) : (
           <CookPanel me={me} onMe={onMe} view={cookTab} />
         )}

@@ -12,6 +12,24 @@ public interface ListingRepository extends JpaRepository<Listing, UUID> {
 
     List<Listing> findByCookIdOrderByCreatedAtDesc(UUID cookId);
 
+    /** All public (non request-only) listings of a cook, newest first — the cook's menu history. */
+    List<Listing> findByCookIdAndRequestOnlyFalseOrderByCreatedAtDesc(UUID cookId);
+
+    /**
+     * Distinct cook ids that have at least one public listing inside a lat/lng bounding box,
+     * excluding the viewer. Used for the "cooks near you" directory.
+     */
+    @Query("""
+            select distinct l.cookId from Listing l
+            where l.requestOnly = false
+              and l.cookId <> :viewer
+              and l.lat between :minLat and :maxLat
+              and l.lng between :minLng and :maxLng
+            """)
+    List<UUID> findCookIdsInBox(@Param("viewer") UUID viewer,
+                               @Param("minLat") double minLat, @Param("maxLat") double maxLat,
+                               @Param("minLng") double minLng, @Param("maxLng") double maxLng);
+
     /**
      * Open listings with servings left and not past their order cutoff, inside a lat/lng
      * bounding box, excluding the viewer's own. The box is a cheap prefilter; the controller
@@ -20,6 +38,7 @@ public interface ListingRepository extends JpaRepository<Listing, UUID> {
     @Query("""
             select l from Listing l
             where l.status = 'open'
+              and l.requestOnly = false
               and l.servingsClaimed < l.maxServings
               and l.cookId <> :viewer
               and (l.orderBy is null or l.orderBy > :now)

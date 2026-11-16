@@ -253,7 +253,17 @@ public class ListingController {
             l.setLat(req.pickupLat());
             l.setLng(req.pickupLng());
             l.setPickupAddress(req.pickupAddress() == null ? null : req.pickupAddress().trim());
-        } else if (cook.getKitchenLat() != null && cook.getKitchenLng() != null) {
+        } else {
+            applyKitchenOrSocietyPickup(l, cook);
+        }
+    }
+
+    /**
+     * Set a listing's pickup to the cook's saved kitchen, else their society/home. Fails if
+     * neither is set. Reused when creating a one-off listing to fulfil a dish request.
+     */
+    public static void applyKitchenOrSocietyPickup(Listing l, User cook) {
+        if (cook.getKitchenLat() != null && cook.getKitchenLng() != null) {
             l.setLat(cook.getKitchenLat());
             l.setLng(cook.getKitchenLng());
             l.setPickupAddress(cook.getKitchenAddress());
@@ -263,7 +273,7 @@ public class ListingController {
             l.setPickupAddress(cook.getAddressText());
         } else {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST,
-                    "Set a pickup location (kitchen address) before listing food.");
+                    "Set a pickup location (kitchen address) before accepting requests.");
         }
     }
 
@@ -315,7 +325,7 @@ public class ListingController {
                 l.getLat(), l.getLng(), l.getPickupAddress(), l.getCreatedAt());
     }
 
-    private static double haversineMeters(double lat1, double lon1, double lat2, double lon2) {
+    public static double haversineMeters(double lat1, double lon1, double lat2, double lon2) {
         double R = 6_371_000;
         double dLat = Math.toRadians(lat2 - lat1);
         double dLon = Math.toRadians(lon2 - lon1);

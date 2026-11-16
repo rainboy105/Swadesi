@@ -51,6 +51,10 @@ public class Listing {
     @Column(name = "food_type", nullable = false)
     private String foodType = "veg";
 
+    /** True for a one-off listing created to fulfil a dish request; hidden from the public feed. */
+    @Column(name = "request_only", nullable = false)
+    private boolean requestOnly = false;
+
     @Column(name = "has_photo", nullable = false)
     private boolean hasPhoto = false;
 
@@ -98,6 +102,8 @@ public class Listing {
     public void setStatus(String status) { this.status = status; }
     public String getFoodType() { return foodType; }
     public void setFoodType(String foodType) { this.foodType = foodType; }
+    public boolean isRequestOnly() { return requestOnly; }
+    public void setRequestOnly(boolean requestOnly) { this.requestOnly = requestOnly; }
     public boolean isHasPhoto() { return hasPhoto; }
     public void setHasPhoto(boolean hasPhoto) { this.hasPhoto = hasPhoto; }
     public double getLat() { return lat; }

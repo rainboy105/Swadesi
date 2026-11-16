@@ -145,6 +145,23 @@ export const api = {
     }),
   nearbyListings: () => call<FeedItem[]>("/api/v1/listings/nearby"),
   getListing: (id: string) => call<DishDetail>(`/api/v1/listings/${id}`),
+
+  // --- Cooks directory & dish requests ---
+  cooksNearby: () => call<CookNearby[]>("/api/v1/cooks/nearby"),
+  cookProfile: (id: string) => call<CookProfile>(`/api/v1/cooks/${id}`),
+  createRequest: (body: { cookId: string; dishName: string; qty: number; note?: string | null }) =>
+    call<DishRequest>("/api/v1/requests", { method: "POST", body: JSON.stringify(body) }),
+  myRequests: () => call<DishRequest[]>("/api/v1/requests/mine"),
+  incomingRequests: () => call<DishRequest[]>("/api/v1/requests/incoming"),
+  acceptRequest: (id: string, pricePerServing: number) =>
+    call<DishRequest>(`/api/v1/requests/${id}/accept`, {
+      method: "POST",
+      body: JSON.stringify({ pricePerServing }),
+    }),
+  rejectRequest: (id: string) =>
+    call<DishRequest>(`/api/v1/requests/${id}/reject`, { method: "POST" }),
+  cancelRequest: (id: string) =>
+    call<DishRequest>(`/api/v1/requests/${id}/cancel`, { method: "POST" }),
   uploadListingPhoto: async (id: string, file: Blob) => {
     const form = new FormData();
     form.append("file", file, "dish.jpg");
@@ -291,6 +308,52 @@ export interface DishDetail {
   cookName: string | null;
   distanceMeters: number | null;
   pickupAddress: string | null;
+}
+
+export interface CookNearby {
+  cookId: string;
+  cookName: string;
+  distanceMeters: number;
+  dishCount: number;
+}
+
+export interface CookListingItem {
+  id: string;
+  title: string;
+  description: string | null;
+  pricePerServing: number;
+  foodType: FoodType;
+  hasPhoto: boolean;
+  status: "open" | "closed";
+  expired: boolean;
+  createdAt: string;
+}
+
+export interface CookProfile {
+  cookId: string;
+  cookName: string;
+  distanceMeters: number | null;
+  dishes: CookListingItem[];
+}
+
+export type RequestStatus =
+  | "pending"
+  | "accepted"
+  | "rejected"
+  | "cancelled"
+  | "fulfilled";
+
+export interface DishRequest {
+  id: string;
+  dishName: string;
+  qty: number;
+  note: string | null;
+  status: RequestStatus;
+  pricePerServing: number | null;
+  cookName: string | null;
+  consumerName: string | null;
+  listingId: string | null;
+  createdAt: string;
 }
 
 export interface FeedItem {
