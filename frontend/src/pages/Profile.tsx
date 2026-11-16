@@ -185,8 +185,6 @@ export default function Profile({ me, onMe, onLogout }: {
               </button>
             )}
             <button className="link" onClick={() => navigate("/")}>Back to home</button>
-            <a className="link" href="/privacy/" target="_blank" rel="noopener noreferrer">Privacy policy</a>
-            <a className="link" href="/delete-account/" target="_blank" rel="noopener noreferrer">Delete my account</a>
             <button className="link" onClick={logout}>Log out</button>
             <a className="link insta-link" href="https://www.instagram.com/swaadesi_" target="_blank" rel="noopener noreferrer">
               <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
