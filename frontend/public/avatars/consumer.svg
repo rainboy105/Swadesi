@@ -1,23 +1,31 @@
 <svg viewBox="0 0 200 200" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Consumer">
   <defs>
-    <linearGradient id="bg" x1="0" y1="0" x2="0" y2="1">
+    <linearGradient id="cbg" x1="0" y1="0" x2="0" y2="1">
       <stop offset="0" stop-color="#efe7fe"/>
       <stop offset="1" stop-color="#e3d8fb"/>
     </linearGradient>
   </defs>
-  <rect width="200" height="200" fill="url(#bg)"/>
+  <rect width="200" height="200" fill="url(#cbg)"/>
   <!-- shoulders / shirt -->
-  <path d="M30 200 C30 150 62 130 100 130 C138 130 170 150 170 200 Z" fill="#7c3aed"/>
-  <path d="M84 134 h32 v10 a16 16 0 0 1 -32 0 Z" fill="#6d28d9"/>
+  <path d="M28 200 C28 152 60 132 100 132 C140 132 172 152 172 200 Z" fill="#7c3aed"/>
+  <path d="M84 134 h32 v8 a16 16 0 0 1 -32 0 Z" fill="#6d28d9"/>
   <!-- neck -->
-  <rect x="88" y="110" width="24" height="30" rx="11" fill="#e3ad84"/>
-  <!-- head -->
-  <circle cx="100" cy="84" r="40" fill="#f2c6a0"/>
-  <!-- hair -->
-  <path d="M58 86 C58 56 76 42 100 42 C124 42 142 56 142 86 C142 72 128 64 100 64 C72 64 58 72 58 86 Z" fill="#3b2d4d"/>
+  <rect x="89" y="112" width="22" height="26" rx="10" fill="#e3ad84"/>
+  <!-- hair back -->
+  <path d="M55 92 C55 54 74 38 100 38 C126 38 145 54 145 92 C145 100 142 108 138 112 L138 84 C138 66 122 58 100 58 C78 58 62 66 62 84 L62 112 C58 108 55 100 55 92 Z" fill="#4a3b63"/>
+  <!-- face -->
+  <circle cx="100" cy="88" r="38" fill="#f2c6a0"/>
+  <!-- hair top / fringe -->
+  <path d="M62 84 C62 60 80 50 100 50 C120 50 138 60 138 84 C138 74 120 70 108 78 C101 82 92 70 80 74 C72 76 64 78 62 84 Z" fill="#4a3b63"/>
+  <!-- ears -->
+  <circle cx="63" cy="92" r="6" fill="#e3ad84"/>
+  <circle cx="137" cy="92" r="6" fill="#e3ad84"/>
   <!-- eyes -->
-  <circle cx="86" cy="86" r="4.5" fill="#3b2d4d"/>
-  <circle cx="114" cy="86" r="4.5" fill="#3b2d4d"/>
+  <circle cx="87" cy="90" r="4.5" fill="#3b2d4d"/>
+  <circle cx="113" cy="90" r="4.5" fill="#3b2d4d"/>
   <!-- smile -->
-  <path d="M85 100 Q100 112 115 100" stroke="#3b2d4d" stroke-width="4.5" fill="none" stroke-linecap="round"/>
+  <path d="M86 104 Q100 116 114 104" stroke="#3b2d4d" stroke-width="4.5" fill="none" stroke-linecap="round"/>
+  <!-- cheeks -->
+  <circle cx="78" cy="102" r="5" fill="#f0a8a0" opacity="0.5"/>
+  <circle cx="122" cy="102" r="5" fill="#f0a8a0" opacity="0.5"/>
 </svg>
