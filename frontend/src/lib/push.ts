@@ -2,6 +2,25 @@
 // subscribes with the backend's VAPID key, and stores the subscription server-side.
 import { api } from "./api";
 
+const OPT_OUT_KEY = "swadesi.push.optout";
+const ASKED_KEY = "swadesi.push.asked";
+
+function flag(key: string): boolean {
+  try {
+    return localStorage.getItem(key) === "1";
+  } catch {
+    return false;
+  }
+}
+function setFlag(key: string, on: boolean) {
+  try {
+    if (on) localStorage.setItem(key, "1");
+    else localStorage.removeItem(key);
+  } catch {
+    /* ignore */
+  }
+}
+
 export function pushSupported(): boolean {
   return (
     typeof window !== "undefined" &&
@@ -63,11 +82,35 @@ export async function enablePush(): Promise<boolean> {
     p256dh: keyToBase64Url(sub.getKey("p256dh")),
     auth: keyToBase64Url(sub.getKey("auth")),
   });
+  setFlag(OPT_OUT_KEY, false); // user wants notifications on
   return true;
 }
 
-/** Turn notifications OFF for this browser. */
+/**
+ * Enable push automatically on entry, without the user hunting for the toggle:
+ * - already granted → re-subscribe silently (no prompt);
+ * - blocked, or the user turned it off before → do nothing;
+ * - otherwise → ask once (we won't nag on later visits).
+ * Best-effort: never throws.
+ */
+export async function autoEnablePush(): Promise<void> {
+  try {
+    if (!pushSupported() || flag(OPT_OUT_KEY)) return;
+    const perm = Notification.permission;
+    if (perm === "denied") return;
+    if (perm === "default") {
+      if (flag(ASKED_KEY)) return; // already asked once; respect their choice
+      setFlag(ASKED_KEY, true);
+    }
+    await enablePush();
+  } catch {
+    /* ignore — user can still toggle it in Profile */
+  }
+}
+
+/** Turn notifications OFF for this browser. Remembers the choice so we don't auto-ask again. */
 export async function disablePush(): Promise<void> {
+  setFlag(OPT_OUT_KEY, true);
   if (!pushSupported()) return;
   const reg = await navigator.serviceWorker.getRegistration("/sw.js");
   const sub = await reg?.pushManager.getSubscription();

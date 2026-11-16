@@ -7,6 +7,7 @@ import Profile from "./pages/Profile";
 import Settlements from "./pages/Settlements";
 import DishPage from "./pages/DishPage";
 import { api, getToken, setToken, type Me } from "./lib/api";
+import { autoEnablePush } from "./lib/push";
 import "./App.css";
 
 type Phase = "loading" | "login" | "onboarding" | "ready";
@@ -31,6 +32,11 @@ export default function App() {
         setPhase("login");
       });
   }, []);
+
+  // Once the user is in, auto-prompt for notifications (once) so they don't have to find it.
+  useEffect(() => {
+    if (phase === "ready") autoEnablePush();
+  }, [phase]);
 
   const logout = () => {
     setToken(null);
