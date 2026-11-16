@@ -126,7 +126,7 @@ export default function Profile({ me, onMe, onLogout }: {
             <img
               src={me.hasAvatar
                 ? `${api.avatarUrl(me.id)}?v=${avatarVer}`
-                : me.activeRole === "cook" ? "/avatars/cook.svg?v=2" : "/avatars/consumer.svg?v=2"}
+                : me.activeRole === "cook" ? "/avatars/cook.svg?v=3" : "/avatars/consumer.svg?v=3"}
               alt="Profile"
             />
             <span className="avatar-cam" aria-hidden="true">

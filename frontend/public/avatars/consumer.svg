@@ -1,14 +1,14 @@
 <svg viewBox="0 0 200 200" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Consumer">
   <defs>
     <linearGradient id="cbg" x1="0" y1="0" x2="0" y2="1">
-      <stop offset="0" stop-color="#efe7fe"/>
-      <stop offset="1" stop-color="#e3d8fb"/>
+      <stop offset="0" stop-color="#d8f3ec"/>
+      <stop offset="1" stop-color="#bfe8dc"/>
     </linearGradient>
   </defs>
   <rect width="200" height="200" fill="url(#cbg)"/>
   <!-- shoulders / shirt -->
-  <path d="M28 200 C28 152 60 132 100 132 C140 132 172 152 172 200 Z" fill="#7c3aed"/>
-  <path d="M84 134 h32 v8 a16 16 0 0 1 -32 0 Z" fill="#6d28d9"/>
+  <path d="M28 200 C28 152 60 132 100 132 C140 132 172 152 172 200 Z" fill="#0f9d8f"/>
+  <path d="M84 134 h32 v8 a16 16 0 0 1 -32 0 Z" fill="#0b7d72"/>
   <!-- neck -->
   <rect x="89" y="112" width="22" height="26" rx="10" fill="#e3ad84"/>
   <!-- hair back -->
