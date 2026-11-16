@@ -1150,6 +1150,12 @@ button.small {
   background: var(--sunk, #f1edf8);
 }
 
+.insta-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+}
+
 .notif-block {
   display: flex;
   flex-direction: column;
