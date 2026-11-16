@@ -81,7 +81,7 @@ export default function Home({ me, onMe }: { me: Me; onMe: (me: Me) => void }) {
         onSwap={() => setSheetOpen(true)}
         avatarSrc={me.hasAvatar
           ? api.avatarUrl(me.id)
-          : role === "cook" ? "/avatars/cook.svg" : "/avatars/consumer.svg"}
+          : role === "cook" ? "/avatars/cook.svg?v=2" : "/avatars/consumer.svg?v=2"}
       />
       <div className="card">
         {/* Top toggle = section switcher */}
