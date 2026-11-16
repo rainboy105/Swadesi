@@ -144,6 +144,7 @@ export const api = {
       body: JSON.stringify({ status }),
     }),
   nearbyListings: () => call<FeedItem[]>("/api/v1/listings/nearby"),
+  getListing: (id: string) => call<DishDetail>(`/api/v1/listings/${id}`),
   uploadListingPhoto: async (id: string, file: Blob) => {
     const form = new FormData();
     form.append("file", file, "dish.jpg");
@@ -273,6 +274,23 @@ export interface Listing {
   pickupLng: number;
   pickupAddress: string | null;
   createdAt: string;
+}
+
+export interface DishDetail {
+  id: string;
+  title: string;
+  description: string | null;
+  pricePerServing: number;
+  remaining: number;
+  maxServings: number;
+  orderBy: string | null;
+  status: "open" | "closed";
+  foodType: FoodType;
+  hasPhoto: boolean;
+  expired: boolean;
+  cookName: string | null;
+  distanceMeters: number | null;
+  pickupAddress: string | null;
 }
 
 export interface FeedItem {

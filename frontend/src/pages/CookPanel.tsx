@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import { api, type Listing, type Order, type Me, type FoodType } from "../lib/api";
 import { downscaleToJpeg } from "../lib/image";
 import LocationPicker, { type PickedLocation } from "../components/LocationPicker";
+import ShareButton from "../components/ShareButton";
 
 /** Cook mode: create a dish (with serving cap + order cutoff), manage listings, handle orders. */
 export default function CookPanel({ me, onMe, view }: {
@@ -562,6 +563,7 @@ export default function CookPanel({ me, onMe, view }: {
                   <strong>
                     <span className={`veg-mark ${l.foodType}`} aria-label={l.foodType === "veg" ? "Veg" : "Non-veg"} />
                     {l.title}
+                    <ShareButton id={l.id} title={l.title} price={l.pricePerServing} />
                   </strong>
                   {l.description && <span className="muted">{l.description}</span>}
                   <span className="meta">

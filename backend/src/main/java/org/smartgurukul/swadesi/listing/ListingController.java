@@ -162,6 +162,27 @@ public class ListingController {
         }
     }
 
+    /** A single dish by id, for the share deep-link. Viewable by any logged-in user. */
+    public record DishDetail(String id, String title, String description, int pricePerServing,
+                             int remaining, int maxServings, OffsetDateTime orderBy, String status,
+                             String foodType, boolean hasPhoto, boolean expired, String cookName,
+                             Integer distanceMeters, String pickupAddress) {}
+
+    @GetMapping("/{id}")
+    public DishDetail one(@AuthenticationPrincipal AuthenticatedUser auth, @PathVariable UUID id) {
+        Listing l = listings.findById(id)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Dish not found"));
+        Integer dist = null;
+        User me = users.findById(auth.id()).orElse(null);
+        if (me != null && me.getLat() != null && me.getLng() != null) {
+            dist = (int) Math.round(haversineMeters(me.getLat(), me.getLng(), l.getLat(), l.getLng()));
+        }
+        return new DishDetail(l.getId().toString(), l.getTitle(), l.getDescription(),
+                l.getPricePerServing(), l.remaining(), l.getMaxServings(), l.getOrderBy(),
+                l.getStatus(), l.getFoodType(), l.isHasPhoto(), isExpired(l), l.getCookName(),
+                dist, l.getPickupAddress());
+    }
+
     /** The cook's own listings. */
     @GetMapping("/mine")
     public List<ListingResponse> mine(@AuthenticationPrincipal AuthenticatedUser auth) {

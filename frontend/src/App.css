@@ -1113,6 +1113,43 @@ button.small {
   gap: 10px;
 }
 
+/* Dish title row carries an inline share button pinned to the right. */
+.listing-main > strong {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+}
+.share-btn {
+  margin-left: auto;
+  color: var(--violet-600, #6d28d9);
+  flex: 0 0 auto;
+}
+.share-copied {
+  font-size: 0.72rem;
+  font-weight: 600;
+  color: var(--violet-700, #5b21b6);
+}
+
+/* Shared-dish page hero. */
+.dish-hero {
+  flex-direction: column;
+  align-items: stretch;
+}
+.dish-hero-img {
+  width: 100%;
+  height: 200px;
+  object-fit: cover;
+  border-radius: 14px;
+  margin-bottom: 10px;
+}
+.dish-hero-img.placeholder {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 56px;
+  background: var(--sunk, #f1edf8);
+}
+
 .notif-block {
   display: flex;
   flex-direction: column;

@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { api, radiusLabel, type FeedItem, type FoodType, type Me, type Order, type OrderStatus } from "../lib/api";
 import PickupMap from "../components/PickupMap";
 import RadiusSlider from "../components/RadiusSlider";
+import ShareButton from "../components/ShareButton";
 
 /** Consumer mode. view="feed": dishes to order. view="orders": your orders + pickup map. */
 export default function FeedPanel({ view, me, onMe }: {
@@ -315,6 +316,7 @@ export default function FeedPanel({ view, me, onMe }: {
                   <strong>
                     <span className={`veg-mark ${it.foodType}`} aria-label={it.foodType === "veg" ? "Veg" : "Non-veg"} />
                     {it.title}
+                    <ShareButton id={it.id} title={it.title} price={it.pricePerServing} />
                   </strong>
                   {it.description && <span className="muted">{it.description}</span>}
                   <span className="meta">

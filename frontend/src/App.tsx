@@ -5,6 +5,7 @@ import Onboarding from "./pages/Onboarding";
 import Home from "./pages/Home";
 import Profile from "./pages/Profile";
 import Settlements from "./pages/Settlements";
+import DishPage from "./pages/DishPage";
 import { api, getToken, setToken, type Me } from "./lib/api";
 import "./App.css";
 
@@ -78,6 +79,7 @@ export default function App() {
           path="/profile"
           element={<div className="shell"><Profile me={me!} onMe={setMe} onLogout={logout} /></div>}
         />
+        <Route path="/dish/:id" element={<div className="shell"><DishPage /></div>} />
         <Route
           path="/admin/settlements"
           element={
