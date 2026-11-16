@@ -190,18 +190,30 @@ export default function LocationPicker({
         )}
       </div>
 
-      <div ref={ref} className="loc-canvas" />
-
-      <div className="loc-actions">
-        <button type="button" className="secondary small" disabled={locating} onClick={useGps}>
-          {locating ? "Locating…" : "📍 Current location"}
+      <div className="loc-map-wrap">
+        <div ref={ref} className="loc-canvas" />
+        <button type="button" className="loc-locate" disabled={locating} onClick={useGps}
+                aria-label="Go to my current location" title="My current location">
+          {locating ? (
+            <span className="loc-locate-spin">◌</span>
+          ) : (
+            <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor"
+                 strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <circle cx="12" cy="12" r="7" />
+              <path d="M12 2v3M12 19v3M2 12h3M19 12h3" />
+              <circle cx="12" cy="12" r="2.5" fill="currentColor" stroke="none" />
+            </svg>
+          )}
         </button>
-        {savedCoords && (
+      </div>
+
+      {savedCoords && (
+        <div className="loc-actions">
           <button type="button" className="secondary small" onClick={useSaved}>
             🏠 {savedLabel}
           </button>
-        )}
-      </div>
+        </div>
+      )}
 
       <span className="loc-address">
         {resolving ? "Finding address…" : address ? `📌 ${address}` : "Search, tap the map, or use a button to set the location"}

@@ -3,6 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { api, setToken, type Me, type Role } from "../lib/api";
 import AppHeader from "../components/AppHeader";
 import { downscaleToJpeg } from "../lib/image";
+import LocationPicker, { type PickedLocation } from "../components/LocationPicker";
 import { enablePush, disablePush, isPushEnabled, pushPermission } from "../lib/push";
 
 /** The /profile page: view details, edit name/address/location, and log out. */
@@ -19,7 +20,6 @@ export default function Profile({ me, onMe, onLogout }: {
     lat: me.lat ?? 0,
     lng: me.lng ?? 0,
   });
-  const [locating, setLocating] = useState(false);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -91,29 +91,9 @@ export default function Profile({ me, onMe, onLogout }: {
     onLogout();
   };
 
-  const useLocation = () => {
-    if (!navigator.geolocation) return setError("Location isn't available on this device.");
-    setLocating(true);
-    setError(null);
-    navigator.geolocation.getCurrentPosition(
-      async (pos) => {
-        const { latitude: lat, longitude: lng } = pos.coords;
-        setCoords({ lat, lng });
-        try {
-          const { address } = await api.reverseGeocode(lat, lng);
-          setAddress(address && address.trim() ? address : "");
-        } catch {
-          /* keep existing */
-        } finally {
-          setLocating(false);
-        }
-      },
-      () => {
-        setLocating(false);
-        setError("Couldn't get your location. Please allow location access and try again.");
-      },
-      { enableHighAccuracy: true, timeout: 10000 },
-    );
+  const onPick = (p: PickedLocation) => {
+    setCoords({ lat: p.lat, lng: p.lng });
+    if (p.address) setAddress(p.address);
   };
 
   const save = async () => {
@@ -227,12 +207,10 @@ export default function Profile({ me, onMe, onLogout }: {
             <label htmlFor="pname">Your name <span className="req">*</span></label>
             <input id="pname" value={name} onChange={(e) => setName(e.target.value)} />
             <label>Your location (feed is centered here) <span className="req">*</span></label>
-            <button type="button" className="secondary" disabled={locating} onClick={useLocation}>
-              {locating ? "Locating…" : "📍 Use my current location"}
-            </button>
-            <p className="loc-ok">
-              ✓ {address || (coords.lat || coords.lng ? "Location set" : "No location yet")}
-            </p>
+            <LocationPicker
+              value={coords.lat || coords.lng ? { lat: coords.lat, lng: coords.lng, address } : null}
+              onChange={onPick}
+            />
             <button disabled={busy} onClick={save}>{busy ? "Saving…" : "Save changes"}</button>
             <button className="link" onClick={() => {
               setEditing(false);
