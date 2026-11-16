@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { api, setToken, type Me } from "../lib/api";
+import { api, setToken, type Me, type Role } from "../lib/api";
 import AppHeader from "../components/AppHeader";
 import { downscaleToJpeg } from "../lib/image";
 import { enablePush, disablePush, isPushEnabled, pushPermission } from "../lib/push";
@@ -72,8 +72,10 @@ export default function Profile({ me, onMe, onLogout }: {
   };
 
   const [switching, setSwitching] = useState(false);
-  const switchMode = async () => {
-    const next = me.activeRole === "cook" ? "consumer" : "cook";
+  const [sheetOpen, setSheetOpen] = useState(false);
+  const switchTo = async (next: Role) => {
+    setSheetOpen(false);
+    if (next === me.activeRole || switching) return;
     setSwitching(true);
     try {
       onMe(await api.setRole(next));
@@ -179,7 +181,7 @@ export default function Profile({ me, onMe, onLogout }: {
                 <span className="mode-cell">
                   <strong>{me.activeRole === "cook" ? "🍳 Cook" : "🍽️ Consumer"}</strong>
                   <button className="icon-btn small-icon" aria-label="Switch mode"
-                          disabled={switching} onClick={switchMode} title="Switch mode">
+                          disabled={switching} onClick={() => setSheetOpen(true)} title="Switch mode">
                     <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor"
                          strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                       <path d="M17 1l4 4-4 4" /><path d="M3 11V9a4 4 0 0 1 4-4h14" />
@@ -244,6 +246,29 @@ export default function Profile({ me, onMe, onLogout }: {
 
         {error && <p className="error">{error}</p>}
       </div>
+
+      {sheetOpen && (
+        <div className="sheet-overlay" onClick={() => setSheetOpen(false)}>
+          <div className="sheet" onClick={(e) => e.stopPropagation()}>
+            <div className="sheet-handle" />
+            <h3>Switch mode</h3>
+            <button
+              className={`sheet-option ${me.activeRole === "consumer" ? "selected" : ""}`}
+              onClick={() => switchTo("consumer")}
+            >
+              <span>🍽️ Order food</span>
+              {me.activeRole === "consumer" && <span className="tick">✓</span>}
+            </button>
+            <button
+              className={`sheet-option ${me.activeRole === "cook" ? "selected" : ""}`}
+              onClick={() => switchTo("cook")}
+            >
+              <span>🍳 Cook &amp; sell</span>
+              {me.activeRole === "cook" && <span className="tick">✓</span>}
+            </button>
+          </div>
+        </div>
+      )}
     </>
   );
 }
