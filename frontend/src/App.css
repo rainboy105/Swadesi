@@ -641,7 +641,7 @@ select {
 /* Segmented mode switch (Order food / Cook & sell) */
 .segmented {
   display: flex;
-  gap: 6px;
+  gap: 4px;
   background: var(--sunk);
   padding: 6px;
   border-radius: 16px;
@@ -653,8 +653,11 @@ select {
   color: var(--ink-600);
   box-shadow: none;
   border-radius: 12px;
-  padding: 11px 10px;
-  font-size: 0.98rem;
+  padding: 11px 4px;
+  font-size: 0.94rem;
+  /* icon and label stay side by side on one line, never stacked */
+  white-space: nowrap;
+  min-width: 0;
 }
 
 .segmented .seg:hover:not(:disabled) {
