@@ -1024,8 +1024,8 @@ button.small {
   gap: 12px;
   width: 100%;
   text-align: left;
-  background: var(--sunk);
-  border: none;
+  background: var(--card);
+  border: 1px solid var(--line, #e6e0f0);
   border-radius: 16px;
   padding: 10px 12px;
   color: inherit;
@@ -1034,7 +1034,7 @@ button.small {
 }
 
 .menu-pick:hover {
-  filter: brightness(0.98);
+  background: var(--sunk);
 }
 
 /* Cook's menu item card: edit icon pinned top-right, Hide/Remove in a row at the bottom. */
