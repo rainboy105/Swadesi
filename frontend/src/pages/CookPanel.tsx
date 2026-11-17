@@ -656,14 +656,16 @@ export default function CookPanel({ me, onMe, view }: {
 
       {error && <p className="error">{error}</p>}
 
-      {/* My listings */}
-      {loading ? (
+      {/* My listings — only active ones; past (order time over) and closed items drop off. */}
+      {(() => {
+        const activeListings = listings.filter((l) => l.status === "open" && !l.expired);
+        return loading ? (
         <p className="hint">Loading your listings…</p>
-      ) : listings.length === 0 ? (
-        <p className="hint">No listings yet. Post what you're cooking today.</p>
+      ) : activeListings.length === 0 ? (
+        <p className="hint">No active listings. Post what you're cooking today.</p>
       ) : (
         <div className="list">
-          {listings.map((l) => {
+          {activeListings.map((l) => {
             const cutoff = timeOf(l.orderBy);
             const scheduled = l.availableFrom != null && new Date(l.availableFrom).getTime() > Date.now();
             return (
@@ -704,7 +706,8 @@ export default function CookPanel({ me, onMe, view }: {
             );
           })}
         </div>
-      )}
+      );
+      })()}
     </div>
   );
 }
