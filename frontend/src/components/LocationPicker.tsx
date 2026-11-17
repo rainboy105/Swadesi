@@ -130,7 +130,9 @@ export default function LocationPicker({
     setSearching(true);
     const t = setTimeout(async () => {
       try {
-        const r = await api.searchPlaces(q);
+        // Bias results toward what the map is currently showing (local-first).
+        const c = mapRef.current?.getCenter();
+        const r = await api.searchPlaces(q, c ? { lat: c.lat, lng: c.lng } : undefined);
         setHits(r);
         setOpen(true);
       } catch {

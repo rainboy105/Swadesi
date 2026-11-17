@@ -76,6 +76,8 @@ jobs:
           VAPID_PUBLIC_KEY: ${{ secrets.VAPID_PUBLIC_KEY }}
           VAPID_PRIVATE_KEY: ${{ secrets.VAPID_PRIVATE_KEY }}
           VAPID_SUBJECT: ${{ secrets.VAPID_SUBJECT }}
+          # Ola Maps (place autocomplete). Blank keeps the value on the box.
+          OLA_MAPS_API_KEY: ${{ secrets.OLA_MAPS_API_KEY }}
         run: bash deploy/aws/send-ssm-deploy.sh
 
       - name: Smoke test (public health)
