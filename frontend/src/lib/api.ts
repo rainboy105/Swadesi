@@ -241,6 +241,9 @@ export const api = {
       method: "POST",
       body: JSON.stringify(p),
     }),
+  /** Consumer cancels an order the cook hasn't started preparing; a paid order is refunded. */
+  cancelOrder: (orderId: string) =>
+    call<Order>(`/api/v1/orders/${orderId}/cancel`, { method: "POST" }),
   cancelUnpaidOrder: (orderId: string) =>
     fetch(`${BASE}/api/v1/orders/${orderId}/cancel-unpaid`, {
       method: "POST",

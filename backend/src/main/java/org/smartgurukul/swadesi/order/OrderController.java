@@ -218,6 +218,46 @@ public class OrderController {
         listings.release(o.getListingId(), o.getQty(), OffsetDateTime.now());
     }
 
+    /**
+     * Consumer cancels their own order. Allowed only before the cook starts preparing
+     * (requested or accepted). Releases the servings, refunds a paid order in full and tells
+     * the cook.
+     */
+    @PostMapping("/{id}/cancel")
+    @Transactional
+    public OrderResponse cancelByConsumer(@AuthenticationPrincipal AuthenticatedUser auth,
+                                          @PathVariable UUID id) {
+        OffsetDateTime now = OffsetDateTime.now();
+        FoodOrder o = orders.findById(id)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Order not found"));
+        if (!o.getConsumerId().equals(auth.id())) {
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Not your order");
+        }
+        String st = o.getStatus();
+        if (!"requested".equals(st) && !"accepted".equals(st)) {
+            throw new ResponseStatusException(HttpStatus.CONFLICT,
+                    "preparing".equals(st) || "ready".equals(st)
+                            ? "The cook has already started preparing this order, so it can't be cancelled."
+                            : "This order can't be cancelled.");
+        }
+        o.setStatus("cancelled");
+        o.setUpdatedAt(now);
+        orders.save(o);
+        listings.release(o.getListingId(), o.getQty(), now); // give the servings back
+
+        if (o.isPaid() && o.getRazorpayPaymentId() != null && o.getAmountPaise() != null) {
+            razorpay.refund(o.getRazorpayPaymentId(), o.getAmountPaise());
+        }
+        Listing l = listings.findById(o.getListingId()).orElse(null);
+        if (l != null) {
+            users.findById(l.getCookId()).ifPresent(cook -> notify(cook.getPhone(),
+                    "Swaadesi order cancelled by the customer: " + o.getQty() + " × " + l.getTitle()
+                            + (o.getConsumerName() != null ? " (" + o.getConsumerName() + ")" : "")
+                            + ". No need to prepare it."));
+        }
+        return toResponse(o, l, true);
+    }
+
     private void notifyCookNewOrder(Listing l, User consumer, int qty) {
         users.findById(l.getCookId()).ifPresent(cook -> notify(cook.getPhone(),
                 "New Swaadesi order: " + qty + " × " + l.getTitle()

@@ -19,6 +19,7 @@ export default function FeedPanel({ view, me, onMe }: {
   // Dishes requested from cooks' menus; shown alongside orders in one activity list.
   const [requests, setRequests] = useState<DishRequest[]>([]);
   const [payingId, setPayingId] = useState<string | null>(null);
+  const [cancellingId, setCancellingId] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [qty, setQty] = useState<Record<string, number>>({});
   const [placing, setPlacing] = useState<string | null>(null);
@@ -164,6 +165,21 @@ export default function FeedPanel({ view, me, onMe }: {
     ...pastReqs.map((r) => ({ kind: "request" as const, at: r.createdAt, r })),
   ].sort((a, b) => Date.parse(b.at) - Date.parse(a.at));
 
+  // Cancel an order the cook hasn't started preparing (waiting or accepted); refunded in full.
+  const cancelOrder = async (o: Order) => {
+    if (!window.confirm(`Cancel your order of ${o.qty} × ${o.listingTitle}? Any payment will be refunded.`)) return;
+    setCancellingId(o.id);
+    setError(null);
+    try {
+      await api.cancelOrder(o.id);
+      await fetchData(true);
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "Could not cancel the order.");
+    } finally {
+      setCancellingId(null);
+    }
+  };
+
   const payRequest = async (r: DishRequest) => {
     if (!r.listingId || r.pricePerServing == null) return;
     setPayingId(r.id);
@@ -219,11 +235,18 @@ export default function FeedPanel({ view, me, onMe }: {
                 <PickupMap cookLat={o.cookLat!} cookLng={o.cookLng!} title={o.listingTitle} />
               </>
             )}
+            {(o.status === "requested" || o.status === "accepted") && (
+              <button className="secondary danger" disabled={cancellingId === o.id} onClick={() => cancelOrder(o)}>
+                {cancellingId === o.id ? "Cancelling…" : "Cancel order"}
+              </button>
+            )}
+            {error && <p className="error">{error}</p>}
             {!showMap && (
               <p className="hint">
                 {o.status === "requested" ? "Waiting for the cook to accept. The pickup map appears once accepted."
                   : o.status === "completed" ? "Order picked up. Enjoy your meal! 🍴"
                   : o.status === "rejected" ? "This order was declined; any payment is refunded."
+                  : o.status === "cancelled" ? "You cancelled this order; any payment is refunded."
                   : ""}
               </p>
             )}
