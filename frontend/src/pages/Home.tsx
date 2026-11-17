@@ -18,9 +18,12 @@ export default function Home({ me, onMe }: { me: Me; onMe: (me: Me) => void }) {
   const [consumerTab, setConsumerTab] = useState<"feed" | "orders" | "cooks">("feed");
   const [cookTab, setCookTab] = useState<"kitchen" | "orders" | "menu">("kitchen");
   const role = me.activeRole;
-  const [pendingReq, setPendingReq] = useState(0);
+  const [pendingReq, setPendingReq] = useState(0);   // cook: new (pending) requests
+  const [payableReq, setPayableReq] = useState(0);   // consumer: accepted requests awaiting payment
+  // Within the Orders tab, switch between the Orders list and the Requests list.
+  const [ordersSub, setOrdersSub] = useState<"orders" | "requests">("orders");
 
-  // Badge the cook's Requests tab with the count of new (pending) requests.
+  // Badge the cook's Requests with the count of new (pending) requests.
   useEffect(() => {
     if (role !== "cook") {
       setPendingReq(0);
@@ -42,7 +45,31 @@ export default function Home({ me, onMe }: { me: Me; onMe: (me: Me) => void }) {
       active = false;
       clearInterval(id);
     };
-  }, [role, cookTab]);
+  }, [role, cookTab, ordersSub]);
+
+  // Badge the consumer's Requests with the count accepted and awaiting payment.
+  useEffect(() => {
+    if (role !== "consumer") {
+      setPayableReq(0);
+      return;
+    }
+    let active = true;
+    const fetchCount = () =>
+      api
+        .myRequests()
+        .then((rs) => {
+          if (active) setPayableReq(rs.filter((r) => r.status === "accepted").length);
+        })
+        .catch(() => {});
+    fetchCount();
+    const id = setInterval(() => {
+      if (document.visibilityState === "visible") fetchCount();
+    }, 15000);
+    return () => {
+      active = false;
+      clearInterval(id);
+    };
+  }, [role, consumerTab, ordersSub]);
 
   const switchTo = async (next: Role) => {
     setSheetOpen(false);
@@ -75,6 +102,19 @@ export default function Home({ me, onMe }: { me: Me; onMe: (me: Me) => void }) {
       ? setConsumerTab(k as "feed" | "orders" | "cooks")
       : setCookTab(k as "kitchen" | "orders" | "menu");
 
+  // Sub-toggle inside the Orders tab: Orders | Requests (with a count badge).
+  const ordersSubBar = (badge: number) => (
+    <div className="segmented sub" role="tablist" aria-label="Orders or requests">
+      <button className={ordersSub === "orders" ? "seg active" : "seg"} onClick={() => setOrdersSub("orders")}>
+        Orders
+      </button>
+      <button className={ordersSub === "requests" ? "seg active" : "seg"} onClick={() => setOrdersSub("requests")}>
+        Requests
+        {badge > 0 && <span className="tab-badge">{badge}</span>}
+      </button>
+    </div>
+  );
+
   return (
     <>
       <AppHeader
@@ -95,8 +135,8 @@ export default function Home({ me, onMe }: { me: Me; onMe: (me: Me) => void }) {
               onClick={() => setTab(s.key)}
             >
               {s.label}
-              {role === "cook" && s.key === "orders" && pendingReq > 0 && (
-                <span className="tab-badge">{pendingReq}</span>
+              {s.key === "orders" && (role === "cook" ? pendingReq : payableReq) > 0 && (
+                <span className="tab-badge">{role === "cook" ? pendingReq : payableReq}</span>
               )}
             </button>
           ))}
@@ -107,8 +147,10 @@ export default function Home({ me, onMe }: { me: Me; onMe: (me: Me) => void }) {
             <CooksPanel />
           ) : consumerTab === "orders" ? (
             <>
-              <FeedPanel view="orders" me={me} onMe={onMe} />
-              <MyRequests />
+              {ordersSubBar(payableReq)}
+              {ordersSub === "orders"
+                ? <FeedPanel view="orders" me={me} onMe={onMe} />
+                : <MyRequests />}
             </>
           ) : (
             <FeedPanel view={consumerTab} me={me} onMe={onMe} />
@@ -117,8 +159,10 @@ export default function Home({ me, onMe }: { me: Me; onMe: (me: Me) => void }) {
           <MenuManager />
         ) : cookTab === "orders" ? (
           <>
-            <CookRequests />
-            <CookPanel me={me} onMe={onMe} view="orders" />
+            {ordersSubBar(pendingReq)}
+            {ordersSub === "orders"
+              ? <CookPanel me={me} onMe={onMe} view="orders" />
+              : <CookRequests />}
           </>
         ) : (
           <CookPanel me={me} onMe={onMe} view="kitchen" />

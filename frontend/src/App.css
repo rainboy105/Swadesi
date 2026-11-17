@@ -668,6 +668,16 @@ select {
   box-shadow: 0 3px 10px rgba(59, 23, 130, 0.12);
 }
 
+/* Secondary toggle inside a tab (Orders | Requests): a touch smaller, spaced below the main one. */
+.segmented.sub {
+  margin-top: 12px;
+}
+
+.segmented.sub .seg {
+  padding: 8px 10px;
+  font-size: 0.92rem;
+}
+
 .mode-panel {
   display: flex;
   flex-direction: column;
