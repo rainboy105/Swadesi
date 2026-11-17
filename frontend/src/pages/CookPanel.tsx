@@ -246,6 +246,8 @@ export default function CookPanel({ me, onMe, view }: {
     const p = parseInt(price, 10);
     const s = parseInt(servings, 10);
     if (!title.trim()) return setError("What are you cooking?");
+    if (title.trim().length > 20) return setError("Dish name can be at most 20 characters.");
+    if (description.trim().length > 200) return setError("Description can be at most 200 characters.");
     if (!Number.isFinite(p) || p < 0) return setError("Enter a price per serving (₹).");
     if (!Number.isFinite(s) || s < 1) return setError("How many servings can you make?");
     if (!orderBy) return setError("Set an order-by time (the cutoff for orders).");
@@ -682,9 +684,11 @@ export default function CookPanel({ me, onMe, view }: {
         <div className="form-block">
           {editingId && <strong className="form-title">Edit dish</strong>}
           <label>Dish <span className="req">*</span></label>
-          <input placeholder="e.g. Veg Thali" value={title} onChange={(e) => setTitle(e.target.value)} autoFocus />
+          <input placeholder="e.g. Veg Thali" maxLength={20} value={title} onChange={(e) => setTitle(e.target.value)} autoFocus />
+          <span className="char-count">{title.length}/20</span>
           <label>Description (optional)</label>
-          <input placeholder="Dal, rice, 2 sabzi, roti" value={description} onChange={(e) => setDescription(e.target.value)} />
+          <input placeholder="Dal, rice, 2 sabzi, roti" maxLength={200} value={description} onChange={(e) => setDescription(e.target.value)} />
+          <span className="char-count">{description.length}/200</span>
           <label>Food type <span className="req">*</span></label>
           <div className="foodtype-toggle">
             {(["veg", "nonveg"] as FoodType[]).map((ft) => (

@@ -28,8 +28,8 @@ import org.springframework.web.server.ResponseStatusException;
 public class MenuController {
 
     public record MenuItemBody(
-            @NotBlank @Size(max = 120) String name,
-            @Size(max = 500) String description,
+            @NotBlank @Size(max = 20, message = "Dish name can be at most 20 characters.") String name,
+            @Size(max = 200, message = "Description can be at most 200 characters.") String description,
             String foodType,
             @Min(0) @Max(100000) Integer pricePerServing,
             Boolean available) {}

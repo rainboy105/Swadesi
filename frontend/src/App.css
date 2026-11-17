@@ -2012,3 +2012,11 @@ button.small {
 .loc-map-wrap {
   isolation: isolate;
 }
+
+/* Small "12/20" counter under a length-limited field. */
+.char-count {
+  align-self: flex-end;
+  margin-top: -4px;
+  font-size: 0.75rem;
+  color: var(--ink-400, #8b8799);
+}

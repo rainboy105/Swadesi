@@ -32,8 +32,8 @@ import org.springframework.web.server.ResponseStatusException;
 public class ListingController {
 
     public record CreateRequest(
-            @NotBlank @Size(max = 120) String title,
-            @Size(max = 500) String description,
+            @NotBlank @Size(max = 20, message = "Dish name can be at most 20 characters.") String title,
+            @Size(max = 200, message = "Description can be at most 200 characters.") String description,
             @Min(0) @Max(100000) int pricePerServing,
             @Min(1) @Max(500) int maxServings,
             OffsetDateTime readyBy,

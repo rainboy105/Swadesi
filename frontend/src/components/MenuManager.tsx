@@ -58,6 +58,8 @@ export default function MenuManager() {
 
   const submit = async () => {
     if (!name.trim()) return setError("What's the dish called?");
+    if (name.trim().length > 20) return setError("Dish name can be at most 20 characters.");
+    if (description.trim().length > 200) return setError("Description can be at most 200 characters.");
     const p = price.trim() ? parseInt(price, 10) : null;
     if (p != null && (!Number.isFinite(p) || p < 0)) return setError("Enter a valid price, or leave it blank.");
     setBusy(true);
@@ -118,9 +120,11 @@ export default function MenuManager() {
         <div className="form-block">
           {editingId && <strong className="form-title">Edit item</strong>}
           <label>Dish <span className="req">*</span></label>
-          <input placeholder="e.g. Paneer Thali" value={name} onChange={(e) => setName(e.target.value)} autoFocus />
+          <input placeholder="e.g. Paneer Thali" maxLength={20} value={name} onChange={(e) => setName(e.target.value)} autoFocus />
+          <span className="char-count">{name.length}/20</span>
           <label>Description (optional)</label>
-          <input placeholder="Dal, rice, 2 sabzi, roti" value={description} onChange={(e) => setDescription(e.target.value)} />
+          <input placeholder="Dal, rice, 2 sabzi, roti" maxLength={200} value={description} onChange={(e) => setDescription(e.target.value)} />
+          <span className="char-count">{description.length}/200</span>
           <label>Food type <span className="req">*</span></label>
           <div className="foodtype-toggle">
             {(["veg", "nonveg"] as FoodType[]).map((ft) => (
