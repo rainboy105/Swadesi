@@ -40,10 +40,19 @@ public class MenuController {
 
     private final MenuItemRepository menu;
     private final MenuPhotoRepository photos;
+    private final org.smartgurukul.swadesi.request.DishRequestRepository requests;
+    private final org.smartgurukul.swadesi.listing.ListingRepository listings;
+    private final org.smartgurukul.swadesi.push.PushService push;
 
-    public MenuController(MenuItemRepository menu, MenuPhotoRepository photos) {
+    public MenuController(MenuItemRepository menu, MenuPhotoRepository photos,
+                          org.smartgurukul.swadesi.request.DishRequestRepository requests,
+                          org.smartgurukul.swadesi.listing.ListingRepository listings,
+                          org.smartgurukul.swadesi.push.PushService push) {
         this.menu = menu;
         this.photos = photos;
+        this.requests = requests;
+        this.listings = listings;
+        this.push = push;
     }
 
     private static String normalizeFoodType(String ft) {
@@ -87,7 +96,33 @@ public class MenuController {
     @DeleteMapping("/{id}")
     @ResponseStatus(HttpStatus.NO_CONTENT)
     public void delete(@AuthenticationPrincipal AuthenticatedUser auth, @PathVariable UUID id) {
-        menu.delete(owned(auth, id));
+        MenuItem item = owned(auth, id);
+        cancelUnpaidRequests(item);
+        menu.delete(item);
+    }
+
+    /**
+     * The dish is leaving the menu, so requests for it that aren't paid yet (waiting for the
+     * cook, or accepted but unpaid) are cancelled and the customers told. Paid requests are
+     * already orders and are left alone.
+     */
+    private void cancelUnpaidRequests(MenuItem item) {
+        OffsetDateTime now = OffsetDateTime.now();
+        for (org.smartgurukul.swadesi.request.DishRequest r
+                : requests.findByMenuItemIdAndStatusIn(item.getId(), List.of("pending", "accepted"))) {
+            if (r.getListingId() != null) {
+                listings.findById(r.getListingId()).ifPresent(l -> {
+                    l.setStatus("closed");
+                    l.setUpdatedAt(now);
+                    listings.save(l);
+                });
+            }
+            r.setStatus("cancelled");
+            r.setUpdatedAt(now);
+            requests.save(r);
+            push.notifyUsers(List.of(r.getConsumerId()), "Request cancelled",
+                    r.getDishName() + " is no longer on the menu, so your request was cancelled.", "/");
+        }
     }
 
     /** Cook uploads (or replaces) a menu item's photo. Stored as bytes; served publicly. */

@@ -272,7 +272,31 @@ public class RequestController {
             r.setUpdatedAt(OffsetDateTime.now());
             return requests.save(r);
         }
-        return r;
+        return expireIfUnpaid(r);
+    }
+
+    /** An accepted request the customer hasn't paid for within this long is cancelled. */
+    private static final java.time.Duration UNPAID_REQUEST_TTL = java.time.Duration.ofHours(24);
+
+    /**
+     * Auto-cancel an accepted request that was never paid. Checked whenever requests are listed.
+     * Skipped while a payment is in progress for it.
+     */
+    private DishRequest expireIfUnpaid(DishRequest r) {
+        OffsetDateTime now = OffsetDateTime.now();
+        if (r.getUpdatedAt() == null || r.getUpdatedAt().plus(UNPAID_REQUEST_TTL).isAfter(now)) return r;
+        for (org.smartgurukul.swadesi.order.FoodOrder o
+                : orders.findByListingIdInOrderByCreatedAtDesc(List.of(r.getListingId()))) {
+            if ("pending_payment".equals(o.getStatus())) return r; // checkout open right now
+        }
+        listings.findById(r.getListingId()).ifPresent(l -> {
+            l.setStatus("closed");
+            l.setUpdatedAt(now);
+            listings.save(l);
+        });
+        r.setStatus("cancelled");
+        r.setUpdatedAt(now);
+        return requests.save(r);
     }
 
     private static RequestResponse toResponse(DishRequest r) {
