@@ -1075,6 +1075,15 @@ button.small {
   flex: 1;
 }
 
+.menu-card-actions button.secondary {
+  background: #e7e5ea;
+  color: #4b4a52;
+}
+
+.menu-card-actions button.secondary:hover:not(:disabled) {
+  background: #dcdae1;
+}
+
 /* Consumer menu rows: thumbnail + dish info + inline qty/Request, all on one line. */
 .menu-row {
   display: flex;
