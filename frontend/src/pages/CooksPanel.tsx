@@ -130,11 +130,6 @@ export default function CooksPanel() {
   // ---- Directory ----
   return (
     <div className="mode-panel">
-      <div className="panel-head">
-        <span className="tile">👩‍🍳</span>
-        <h1>Cooks near you</h1>
-      </div>
-
       {loadingCooks || loadingProfile ? (
         <p className="hint">Loading cooks nearby…</p>
       ) : cooks.length === 0 ? (

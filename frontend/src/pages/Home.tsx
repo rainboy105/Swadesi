@@ -83,9 +83,9 @@ export default function Home({ me, onMe }: { me: Me; onMe: (me: Me) => void }) {
   const sections =
     role === "consumer"
       ? [
-          { key: "feed", label: "My Feed" },
-          { key: "orders", label: "My Orders" },
-          { key: "cooks", label: "Cooks" },
+          { key: "feed", label: "🍽️ Feed" },
+          { key: "orders", label: "📦 Orders" },
+          { key: "cooks", label: "👩‍🍳 Cooks" },
         ]
       : [
           { key: "kitchen", label: "🍳 Kitchen" },

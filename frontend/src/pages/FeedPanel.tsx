@@ -362,11 +362,6 @@ export default function FeedPanel({ view, me, onMe }: {
   const visible = foodFilter === "all" ? items : items.filter((it) => it.foodType === foodFilter);
   return (
     <div className="mode-panel">
-      <div className="panel-head">
-        <span className="tile">🍽️</span>
-        <h1>Food near you</h1>
-      </div>
-
       <div className="feed-locnote">
         📍 Showing food near <strong>{me.addressText ?? "your saved society"}</strong>.
         Somewhere else? Update your location in profile.
