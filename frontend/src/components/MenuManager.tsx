@@ -18,6 +18,14 @@ export default function MenuManager() {
   const [error, setError] = useState<string | null>(null);
   const fileRef = useRef<HTMLInputElement>(null);
 
+  // Search (toggled by the header icon): matches dish name or description.
+  const [searchOpen, setSearchOpen] = useState(false);
+  const [query, setQuery] = useState("");
+  const q = query.trim().toLowerCase();
+  const shown = q
+    ? items.filter((m) => m.name.toLowerCase().includes(q) || (m.description ?? "").toLowerCase().includes(q))
+    : items;
+
   const load = () => {
     setLoading(true);
     api.myMenu().then(setItems).catch(() => setItems([])).finally(() => setLoading(false));
@@ -95,7 +103,18 @@ export default function MenuManager() {
       <div className="panel-head">
         <span className="tile marigold">📋</span>
         <h1>Your menu</h1>
+        <button className="icon-btn small-icon" aria-label="Search menu" aria-pressed={searchOpen}
+                onClick={() => { setSearchOpen((v) => !v); setQuery(""); }}>
+          <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor"
+               strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <circle cx="11" cy="11" r="7" /><path d="M21 21l-4.3-4.3" />
+          </svg>
+        </button>
       </div>
+      {searchOpen && (
+        <input type="search" autoFocus placeholder="Search by name or description…"
+               value={query} onChange={(e) => setQuery(e.target.value)} />
+      )}
       <p className="hint">Dishes customers can request from your profile. Set the price when you accept a request.</p>
 
       {!showForm && <button onClick={openCreate}>+ Add a menu item</button>}
@@ -140,9 +159,11 @@ export default function MenuManager() {
         <p className="hint">Loading your menu…</p>
       ) : items.length === 0 ? (
         <p className="hint">No menu items yet. Add dishes customers can request.</p>
+      ) : shown.length === 0 ? (
+        <p className="hint">No menu items match “{query.trim()}”.</p>
       ) : (
         <div className="list">
-          {items.map((m) => (
+          {shown.map((m) => (
             <div className={`menu-card ${m.available ? "" : "dim"}`} key={m.id}>
               <button className="icon-btn small-icon menu-edit" aria-label="Edit item" onClick={() => startEdit(m)}>
                 <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor"
