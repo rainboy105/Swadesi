@@ -38,7 +38,8 @@ public class RequestController {
             @NotNull UUID cookId,
             @NotBlank @Size(max = 120) String dishName,
             @Min(1) @Max(50) int qty,
-            @Size(max = 500) String note) {}
+            @Size(max = 500) String note,
+            UUID menuItemId) {}
 
     public record AcceptRequest(@Min(0) @Max(100000) int pricePerServing) {}
 
@@ -53,14 +54,17 @@ public class RequestController {
     private final UserRepository users;
     private final PushService push;
     private final WhatsAppSender whatsApp;
+    private final org.smartgurukul.swadesi.menu.MenuItemRepository menu;
 
     public RequestController(DishRequestRepository requests, ListingRepository listings,
-                            UserRepository users, PushService push, WhatsAppSender whatsApp) {
+                            UserRepository users, PushService push, WhatsAppSender whatsApp,
+                            org.smartgurukul.swadesi.menu.MenuItemRepository menu) {
         this.requests = requests;
         this.listings = listings;
         this.users = users;
         this.push = push;
         this.whatsApp = whatsApp;
+        this.menu = menu;
     }
 
     private void notifyWhatsApp(String phone, String text) {
@@ -92,7 +96,16 @@ public class RequestController {
         r.setConsumerPhone(consumer.getPhone());
         r.setCookId(cook.getId());
         r.setCookName(cook.getName());
-        r.setDishName(req.dishName().trim());
+        String dishName = req.dishName().trim();
+        // If raised from a menu item, validate it belongs to this cook and trust its name.
+        if (req.menuItemId() != null) {
+            org.smartgurukul.swadesi.menu.MenuItem item = menu.findById(req.menuItemId()).orElse(null);
+            if (item != null && item.getCookId().equals(cook.getId())) {
+                r.setMenuItemId(item.getId());
+                dishName = item.getName();
+            }
+        }
+        r.setDishName(dishName);
         r.setQty(req.qty());
         r.setNote(req.note() == null || req.note().isBlank() ? null : req.note().trim());
         r.setStatus("pending");

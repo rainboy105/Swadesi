@@ -3,11 +3,16 @@ package org.smartgurukul.swadesi.request;
 import java.time.OffsetDateTime;
 import java.util.ArrayList;
 import java.util.Comparator;
+import java.util.LinkedHashSet;
 import java.util.List;
+import java.util.Set;
 import java.util.UUID;
 import org.smartgurukul.swadesi.listing.Listing;
 import org.smartgurukul.swadesi.listing.ListingController;
 import org.smartgurukul.swadesi.listing.ListingRepository;
+import org.smartgurukul.swadesi.menu.MenuController;
+import org.smartgurukul.swadesi.menu.MenuController.MenuItemView;
+import org.smartgurukul.swadesi.menu.MenuItemRepository;
 import org.smartgurukul.swadesi.security.AuthenticatedUser;
 import org.smartgurukul.swadesi.user.User;
 import org.smartgurukul.swadesi.user.UserRepository;
@@ -27,21 +32,25 @@ public class CookDirectoryController {
     /** Same range as the new-dish push notifications. */
     private static final double RANGE_METERS = 10000;
 
-    public record CookNearby(String cookId, String cookName, int distanceMeters, int dishCount) {}
+    public record CookNearby(String cookId, String cookName, int distanceMeters, int dishCount,
+                             int menuCount) {}
 
     public record CookListingItem(String id, String title, String description, int pricePerServing,
                                   String foodType, boolean hasPhoto, String status, boolean expired,
                                   OffsetDateTime createdAt) {}
 
     public record CookProfile(String cookId, String cookName, Integer distanceMeters,
-                              List<CookListingItem> dishes) {}
+                              List<MenuItemView> menu, List<CookListingItem> dishes) {}
 
     private final ListingRepository listings;
     private final UserRepository users;
+    private final MenuItemRepository menu;
 
-    public CookDirectoryController(ListingRepository listings, UserRepository users) {
+    public CookDirectoryController(ListingRepository listings, UserRepository users,
+                                   MenuItemRepository menu) {
         this.listings = listings;
         this.users = users;
+        this.menu = menu;
     }
 
     /** Cooks within 10 km of the viewer who have at least one public listing. */
@@ -56,20 +65,36 @@ public class CookDirectoryController {
         double latDelta = RANGE_METERS / 111_320.0;
         double lngDelta = RANGE_METERS / (111_320.0 * Math.cos(Math.toRadians(lat)));
 
-        List<CookNearby> out = new ArrayList<>();
-        for (UUID cookId : listings.findCookIdsInBox(me.getId(),
+        // Candidate cooks: anyone with a public listing in range, OR anyone with a menu whose
+        // saved location is in range (so a cook with only a menu is still discoverable).
+        Set<UUID> candidates = new LinkedHashSet<>(listings.findCookIdsInBox(me.getId(),
+                lat - latDelta, lat + latDelta, lng - lngDelta, lng + lngDelta));
+        Set<UUID> menuCooks = new java.util.HashSet<>(menu.findCookIdsWithMenu());
+        for (User u : users.findInBox(me.getId(),
                 lat - latDelta, lat + latDelta, lng - lngDelta, lng + lngDelta)) {
+            if (menuCooks.contains(u.getId())) candidates.add(u.getId());
+        }
+
+        List<CookNearby> out = new ArrayList<>();
+        for (UUID cookId : candidates) {
             List<Listing> dishes = listings.findByCookIdAndRequestOnlyFalseOrderByCreatedAtDesc(cookId);
-            if (dishes.isEmpty()) continue;
-            // Distance to the cook's nearest listing location.
+            long menuCount = menu.countByCookIdAndAvailableTrue(cookId);
+            if (dishes.isEmpty() && menuCount == 0) continue;
+
+            // Distance = nearest listing if any, else the cook's saved user location.
             double best = Double.MAX_VALUE;
             for (Listing d : dishes) {
                 best = Math.min(best, ListingController.haversineMeters(lat, lng, d.getLat(), d.getLng()));
             }
-            if (best > RANGE_METERS) continue;
             User cook = users.findById(cookId).orElse(null);
+            if (best == Double.MAX_VALUE && cook != null && cook.getLat() != null && cook.getLng() != null) {
+                best = ListingController.haversineMeters(lat, lng, cook.getLat(), cook.getLng());
+            }
+            if (best == Double.MAX_VALUE || best > RANGE_METERS) continue;
+
             String name = cook != null && cook.getName() != null ? cook.getName() : "A home cook";
-            out.add(new CookNearby(cookId.toString(), name, (int) Math.round(best), dishes.size()));
+            out.add(new CookNearby(cookId.toString(), name, (int) Math.round(best),
+                    dishes.size(), (int) menuCount));
         }
         out.sort(Comparator.comparingInt(CookNearby::distanceMeters));
         return out;
@@ -95,7 +120,15 @@ public class CookDirectoryController {
                         ListingController.haversineMeters(me.getLat(), me.getLng(), l.getLat(), l.getLng()));
             }
         }
+        // Menu-only cook (no listings): fall back to the cook's saved location for distance.
+        if (dist == null && me != null && me.getLat() != null && me.getLng() != null
+                && cook.getLat() != null && cook.getLng() != null) {
+            dist = (int) Math.round(
+                    ListingController.haversineMeters(me.getLat(), me.getLng(), cook.getLat(), cook.getLng()));
+        }
+        List<MenuItemView> menuItems = menu.findByCookIdAndAvailableTrueOrderByCreatedAtDesc(cookId)
+                .stream().map(MenuController::toView).toList();
         String name = cook.getName() != null ? cook.getName() : "A home cook";
-        return new CookProfile(cookId.toString(), name, dist, dishes);
+        return new CookProfile(cookId.toString(), name, dist, menuItems, dishes);
     }
 }

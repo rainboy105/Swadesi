@@ -30,6 +30,7 @@ export default function CooksPanel({ onOrdered }: { onOrdered?: () => void }) {
 
   // Request form.
   const [dishName, setDishName] = useState("");
+  const [menuItemId, setMenuItemId] = useState<string | null>(null);
   const [qty, setQty] = useState(1);
   const [note, setNote] = useState("");
   const [submitting, setSubmitting] = useState(false);
@@ -58,7 +59,7 @@ export default function CooksPanel({ onOrdered }: { onOrdered?: () => void }) {
 
   const openCook = async (c: CookNearby) => {
     setLoadingProfile(true);
-    setDishName(""); setQty(1); setNote(""); setFormMsg(null);
+    setDishName(""); setMenuItemId(null); setQty(1); setNote(""); setFormMsg(null);
     try {
       setProfile(await api.cookProfile(c.cookId));
     } catch {
@@ -79,9 +80,10 @@ export default function CooksPanel({ onOrdered }: { onOrdered?: () => void }) {
         dishName: dishName.trim(),
         qty,
         note: note.trim() || null,
+        menuItemId,
       });
       setFormMsg("✅ Request sent! You'll be notified when the cook responds.");
-      setDishName(""); setQty(1); setNote("");
+      setDishName(""); setMenuItemId(null); setQty(1); setNote("");
     } catch (e) {
       setFormMsg(e instanceof Error ? e.message : "Could not send the request.");
     } finally {
@@ -120,7 +122,8 @@ export default function CooksPanel({ onOrdered }: { onOrdered?: () => void }) {
         <div className="form-block">
           <strong className="form-title">Request a dish</strong>
           <label>Dish you'd like <span className="req">*</span></label>
-          <input placeholder="e.g. Paneer Thali" value={dishName} onChange={(e) => setDishName(e.target.value)} />
+          <input placeholder="e.g. Paneer Thali" value={dishName}
+                 onChange={(e) => { setDishName(e.target.value); setMenuItemId(null); }} />
           <label>Servings</label>
           <div className="stepper" style={{ alignSelf: "flex-start" }}>
             <button disabled={qty <= 1} onClick={() => setQty(Math.max(1, qty - 1))}>−</button>
@@ -135,9 +138,42 @@ export default function CooksPanel({ onOrdered }: { onOrdered?: () => void }) {
           {formMsg && <p className={formMsg.startsWith("✅") ? "loc-ok" : "error"}>{formMsg}</p>}
         </div>
 
+        {profile.menu.length > 0 && (
+          <>
+            <label style={{ marginTop: 8 }}>Menu</label>
+            <div className="list">
+              {profile.menu.map((m) => {
+                const selected = menuItemId === m.id;
+                return (
+                  <div className="listing" key={m.id} style={{ display: "block" }}>
+                    <div className="listing-main">
+                      <strong>
+                        <span className={`veg-mark ${m.foodType}`} aria-hidden="true" />
+                        {m.name}
+                      </strong>
+                      {m.description && <span className="muted">{m.description}</span>}
+                      <span className="meta">
+                        {m.pricePerServing != null ? `~₹${m.pricePerServing}/serving` : "Price on request"}
+                      </span>
+                      <button className={selected ? "small" : "secondary small"}
+                              style={{ marginTop: 8, alignSelf: "flex-start" }}
+                              onClick={() => {
+                                setDishName(m.name); setMenuItemId(m.id);
+                                window.scrollTo({ top: 0, behavior: "smooth" });
+                              }}>
+                        {selected ? "✓ Selected" : "Request this"}
+                      </button>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </>
+        )}
+
         {profile.dishes.length > 0 && (
           <>
-            <label style={{ marginTop: 8 }}>Dishes {profile.cookName.split(" ")[0]} has made</label>
+            <label style={{ marginTop: 8 }}>Recently cooked by {profile.cookName.split(" ")[0]}</label>
             <div className="list">
               {profile.dishes.map((d) => (
                 <div className="listing" key={d.id}>
@@ -154,7 +190,7 @@ export default function CooksPanel({ onOrdered }: { onOrdered?: () => void }) {
                     {d.description && <span className="muted">{d.description}</span>}
                     <span className="meta">₹{d.pricePerServing}/serving</span>
                     <button className="secondary small" style={{ marginTop: 8, alignSelf: "flex-start" }}
-                            onClick={() => { setDishName(d.title); window.scrollTo({ top: 0, behavior: "smooth" }); }}>
+                            onClick={() => { setDishName(d.title); setMenuItemId(null); window.scrollTo({ top: 0, behavior: "smooth" }); }}>
                       Request this
                     </button>
                   </div>
@@ -191,7 +227,8 @@ export default function CooksPanel({ onOrdered }: { onOrdered?: () => void }) {
               <button className="order-row-btn" key={c.cookId} onClick={() => openCook(c)}>
                 <div className="orb-main">
                   <strong>{c.cookName}</strong>
-                  <span className="muted">{dist(c.distanceMeters)} · {c.dishCount} dish{c.dishCount === 1 ? "" : "es"}</span>
+                  <span className="muted">{dist(c.distanceMeters)}
+                    {c.menuCount > 0 ? ` · ${c.menuCount} on menu` : ` · ${c.dishCount} dish${c.dishCount === 1 ? "" : "es"}`}</span>
                 </div>
                 <span className="chev">›</span>
               </button>

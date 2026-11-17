@@ -46,7 +46,9 @@ async function call<T>(path: string, options: RequestInit = {}): Promise<T> {
     }
     throw new ApiError(resp.status, message);
   }
-  return (await resp.json()) as T;
+  if (resp.status === 204) return undefined as T;
+  const text = await resp.text();
+  return (text ? JSON.parse(text) : undefined) as T;
 }
 
 export interface LoginResponse {
@@ -151,8 +153,17 @@ export const api = {
   // --- Cooks directory & dish requests ---
   cooksNearby: () => call<CookNearby[]>("/api/v1/cooks/nearby"),
   cookProfile: (id: string) => call<CookProfile>(`/api/v1/cooks/${id}`),
-  createRequest: (body: { cookId: string; dishName: string; qty: number; note?: string | null }) =>
+  createRequest: (body: { cookId: string; dishName: string; qty: number; note?: string | null; menuItemId?: string | null }) =>
     call<DishRequest>("/api/v1/requests", { method: "POST", body: JSON.stringify(body) }),
+
+  // --- Cook's menu ---
+  myMenu: () => call<MenuItem[]>("/api/v1/menu/mine"),
+  addMenuItem: (body: MenuItemBody) =>
+    call<MenuItem>("/api/v1/menu", { method: "POST", body: JSON.stringify(body) }),
+  updateMenuItem: (id: string, body: MenuItemBody) =>
+    call<MenuItem>(`/api/v1/menu/${id}`, { method: "PUT", body: JSON.stringify(body) }),
+  deleteMenuItem: (id: string) =>
+    call<void>(`/api/v1/menu/${id}`, { method: "DELETE" }),
   myRequests: () => call<DishRequest[]>("/api/v1/requests/mine"),
   incomingRequests: () => call<DishRequest[]>("/api/v1/requests/incoming"),
   acceptRequest: (id: string, pricePerServing: number) =>
@@ -328,6 +339,17 @@ export interface CookNearby {
   cookName: string;
   distanceMeters: number;
   dishCount: number;
+  menuCount: number;
+}
+
+export interface MenuItem {
+  id: string;
+  name: string;
+  description: string | null;
+  foodType: FoodType;
+  pricePerServing: number | null;
+  available: boolean;
+  createdAt: string;
 }
 
 export interface CookListingItem {
@@ -346,7 +368,16 @@ export interface CookProfile {
   cookId: string;
   cookName: string;
   distanceMeters: number | null;
+  menu: MenuItem[];
   dishes: CookListingItem[];
+}
+
+export interface MenuItemBody {
+  name: string;
+  description?: string | null;
+  foodType: FoodType;
+  pricePerServing?: number | null;
+  available?: boolean;
 }
 
 export type RequestStatus =

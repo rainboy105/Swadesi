@@ -34,6 +34,10 @@ public class DishRequest {
     @Column(name = "dish_name", nullable = false)
     private String dishName;
 
+    /** The menu item this request was raised from, if any (free-text requests leave this null). */
+    @Column(name = "menu_item_id")
+    private UUID menuItemId;
+
     @Column(name = "qty", nullable = false)
     private int qty;
 
@@ -75,6 +79,8 @@ public class DishRequest {
     public void setCookName(String cookName) { this.cookName = cookName; }
     public String getDishName() { return dishName; }
     public void setDishName(String dishName) { this.dishName = dishName; }
+    public UUID getMenuItemId() { return menuItemId; }
+    public void setMenuItemId(UUID menuItemId) { this.menuItemId = menuItemId; }
     public int getQty() { return qty; }
     public void setQty(int qty) { this.qty = qty; }
     public String getNote() { return note; }

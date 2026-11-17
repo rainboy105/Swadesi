@@ -5,6 +5,7 @@ import CookPanel from "./CookPanel";
 import FeedPanel from "./FeedPanel";
 import CooksPanel from "./CooksPanel";
 import CookRequests from "./CookRequests";
+import MenuManager from "../components/MenuManager";
 
 /**
  * Home. Buy/sell mode is chosen from a bottom sheet (the swap icon top-right). The top toggle
@@ -14,7 +15,7 @@ export default function Home({ me, onMe }: { me: Me; onMe: (me: Me) => void }) {
   const [switching, setSwitching] = useState(false);
   const [sheetOpen, setSheetOpen] = useState(false);
   const [consumerTab, setConsumerTab] = useState<"feed" | "orders" | "cooks">("feed");
-  const [cookTab, setCookTab] = useState<"kitchen" | "orders" | "requests">("kitchen");
+  const [cookTab, setCookTab] = useState<"kitchen" | "orders" | "menu">("kitchen");
   const role = me.activeRole;
   const [pendingReq, setPendingReq] = useState(0);
 
@@ -65,13 +66,13 @@ export default function Home({ me, onMe }: { me: Me; onMe: (me: Me) => void }) {
       : [
           { key: "kitchen", label: "Kitchen" },
           { key: "orders", label: "Orders" },
-          { key: "requests", label: "Requests" },
+          { key: "menu", label: "Menu" },
         ];
   const activeTab = role === "consumer" ? consumerTab : cookTab;
   const setTab = (k: string) =>
     role === "consumer"
       ? setConsumerTab(k as "feed" | "orders" | "cooks")
-      : setCookTab(k as "kitchen" | "orders" | "requests");
+      : setCookTab(k as "kitchen" | "orders" | "menu");
 
   return (
     <>
@@ -93,7 +94,7 @@ export default function Home({ me, onMe }: { me: Me; onMe: (me: Me) => void }) {
               onClick={() => setTab(s.key)}
             >
               {s.label}
-              {s.key === "requests" && pendingReq > 0 && (
+              {role === "cook" && s.key === "orders" && pendingReq > 0 && (
                 <span className="tab-badge">{pendingReq}</span>
               )}
             </button>
@@ -106,10 +107,15 @@ export default function Home({ me, onMe }: { me: Me; onMe: (me: Me) => void }) {
           ) : (
             <FeedPanel view={consumerTab} me={me} onMe={onMe} />
           )
-        ) : cookTab === "requests" ? (
-          <CookRequests />
+        ) : cookTab === "menu" ? (
+          <MenuManager />
+        ) : cookTab === "orders" ? (
+          <>
+            <CookRequests />
+            <CookPanel me={me} onMe={onMe} view="orders" />
+          </>
         ) : (
-          <CookPanel me={me} onMe={onMe} view={cookTab} />
+          <CookPanel me={me} onMe={onMe} view="kitchen" />
         )}
       </div>
 
