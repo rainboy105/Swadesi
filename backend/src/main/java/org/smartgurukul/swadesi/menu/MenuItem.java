@@ -36,6 +36,9 @@ public class MenuItem {
     @Column(name = "available", nullable = false)
     private boolean available = true;
 
+    @Column(name = "has_photo", nullable = false)
+    private boolean hasPhoto = false;
+
     @Column(name = "created_at", nullable = false, updatable = false)
     private OffsetDateTime createdAt;
 
@@ -56,6 +59,8 @@ public class MenuItem {
     public void setPricePerServing(Integer pricePerServing) { this.pricePerServing = pricePerServing; }
     public boolean isAvailable() { return available; }
     public void setAvailable(boolean available) { this.available = available; }
+    public boolean isHasPhoto() { return hasPhoto; }
+    public void setHasPhoto(boolean hasPhoto) { this.hasPhoto = hasPhoto; }
     public OffsetDateTime getCreatedAt() { return createdAt; }
     public void setCreatedAt(OffsetDateTime createdAt) { this.createdAt = createdAt; }
     public OffsetDateTime getUpdatedAt() { return updatedAt; }

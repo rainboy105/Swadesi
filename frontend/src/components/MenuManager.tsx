@@ -1,5 +1,6 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { api, type FoodType, type MenuItem } from "../lib/api";
+import { downscaleToJpeg } from "../lib/image";
 
 /** Cook: publish a menu of dishes customers can request (independent of dated listings). */
 export default function MenuManager() {
@@ -11,8 +12,11 @@ export default function MenuManager() {
   const [description, setDescription] = useState("");
   const [foodType, setFoodType] = useState<FoodType>("veg");
   const [price, setPrice] = useState("");
+  const [photo, setPhoto] = useState<File | null>(null);
+  const [photoPreview, setPhotoPreview] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const fileRef = useRef<HTMLInputElement>(null);
 
   const load = () => {
     setLoading(true);
@@ -22,7 +26,13 @@ export default function MenuManager() {
 
   const resetForm = () => {
     setName(""); setDescription(""); setFoodType("veg"); setPrice("");
+    setPhoto(null); setPhotoPreview(null);
     setEditingId(null); setError(null);
+  };
+
+  const pickPhoto = (f: File | null) => {
+    setPhoto(f);
+    setPhotoPreview(f ? URL.createObjectURL(f) : null);
   };
 
   const openCreate = () => { resetForm(); setShowForm(true); };
@@ -33,6 +43,7 @@ export default function MenuManager() {
     setDescription(m.description ?? "");
     setFoodType(m.foodType);
     setPrice(m.pricePerServing != null ? String(m.pricePerServing) : "");
+    setPhoto(null); setPhotoPreview(null);
     setShowForm(true);
     setError(null);
   };
@@ -45,8 +56,12 @@ export default function MenuManager() {
     setError(null);
     const body = { name: name.trim(), description: description.trim() || null, foodType, pricePerServing: p };
     try {
-      if (editingId) await api.updateMenuItem(editingId, body);
-      else await api.addMenuItem(body);
+      const saved = editingId ? await api.updateMenuItem(editingId, body) : await api.addMenuItem(body);
+      if (photo) {
+        try {
+          await api.uploadMenuPhoto(saved.id, await downscaleToJpeg(photo));
+        } catch { /* keep the item even if the photo fails */ }
+      }
       resetForm();
       setShowForm(false);
       await load();
@@ -104,6 +119,14 @@ export default function MenuManager() {
           </div>
           <label>Indicative price / serving (₹, optional)</label>
           <input inputMode="numeric" placeholder="120" value={price} onChange={(e) => setPrice(e.target.value)} />
+          <label>Photo {editingId ? "(replace, optional)" : "(optional)"}</label>
+          <input ref={fileRef} type="file" accept="image/*"
+                 onChange={(e) => pickPhoto(e.target.files?.[0] ?? null)} />
+          {photoPreview
+            ? <img className="photo-preview" src={photoPreview} alt="Dish preview" />
+            : editingId && items.find((i) => i.id === editingId)?.hasPhoto
+              ? <img className="photo-preview" src={api.menuPhotoUrl(editingId)} alt="Current photo" />
+              : null}
           <button disabled={busy} onClick={submit}>
             {busy ? "Saving…" : editingId ? "Save changes" : "Add to menu"}
           </button>
@@ -121,6 +144,11 @@ export default function MenuManager() {
         <div className="list">
           {items.map((m) => (
             <div className={`listing ${m.available ? "" : "dim"}`} key={m.id}>
+              {m.hasPhoto ? (
+                <img className="listing-thumb" src={api.menuPhotoUrl(m.id)} alt={m.name} />
+              ) : (
+                <div className="listing-thumb placeholder" aria-hidden="true">🍲</div>
+              )}
               <div className="listing-main">
                 <strong>
                   <span className={`veg-mark ${m.foodType}`} aria-label={m.foodType === "veg" ? "Veg" : "Non-veg"} />

@@ -164,6 +164,17 @@ export const api = {
     call<MenuItem>(`/api/v1/menu/${id}`, { method: "PUT", body: JSON.stringify(body) }),
   deleteMenuItem: (id: string) =>
     call<void>(`/api/v1/menu/${id}`, { method: "DELETE" }),
+  menuPhotoUrl: (id: string) => `${BASE}/api/public/menu/${id}/photo`,
+  uploadMenuPhoto: async (id: string, file: Blob) => {
+    const form = new FormData();
+    form.append("file", file, "dish.jpg");
+    const headers: Record<string, string> = {};
+    const token = getToken();
+    if (token) headers["Authorization"] = `Bearer ${token}`;
+    const resp = await fetch(`${BASE}/api/v1/menu/${id}/photo`, { method: "POST", headers, body: form });
+    if (!resp.ok) throw new ApiError(resp.status, "Could not upload photo");
+    return (await resp.json()) as MenuItem;
+  },
   myRequests: () => call<DishRequest[]>("/api/v1/requests/mine"),
   incomingRequests: () => call<DishRequest[]>("/api/v1/requests/incoming"),
   acceptRequest: (id: string, pricePerServing: number) =>
@@ -349,6 +360,7 @@ export interface MenuItem {
   foodType: FoodType;
   pricePerServing: number | null;
   available: boolean;
+  hasPhoto: boolean;
   createdAt: string;
 }
 

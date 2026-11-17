@@ -35,12 +35,15 @@ public class MenuController {
             Boolean available) {}
 
     public record MenuItemView(String id, String name, String description, String foodType,
-                               Integer pricePerServing, boolean available, OffsetDateTime createdAt) {}
+                               Integer pricePerServing, boolean available, boolean hasPhoto,
+                               OffsetDateTime createdAt) {}
 
     private final MenuItemRepository menu;
+    private final MenuPhotoRepository photos;
 
-    public MenuController(MenuItemRepository menu) {
+    public MenuController(MenuItemRepository menu, MenuPhotoRepository photos) {
         this.menu = menu;
+        this.photos = photos;
     }
 
     private static String normalizeFoodType(String ft) {
@@ -49,7 +52,7 @@ public class MenuController {
 
     public static MenuItemView toView(MenuItem m) {
         return new MenuItemView(m.getId().toString(), m.getName(), m.getDescription(), m.getFoodType(),
-                m.getPricePerServing(), m.isAvailable(), m.getCreatedAt());
+                m.getPricePerServing(), m.isAvailable(), m.isHasPhoto(), m.getCreatedAt());
     }
 
     /** The cook's own full menu (available and hidden items). */
@@ -85,6 +88,35 @@ public class MenuController {
     @ResponseStatus(HttpStatus.NO_CONTENT)
     public void delete(@AuthenticationPrincipal AuthenticatedUser auth, @PathVariable UUID id) {
         menu.delete(owned(auth, id));
+    }
+
+    /** Cook uploads (or replaces) a menu item's photo. Stored as bytes; served publicly. */
+    @PostMapping("/{id}/photo")
+    public MenuItemView uploadPhoto(@AuthenticationPrincipal AuthenticatedUser auth,
+                                    @PathVariable UUID id,
+                                    @org.springframework.web.bind.annotation.RequestParam("file")
+                                    org.springframework.web.multipart.MultipartFile file) {
+        MenuItem m = owned(auth, id);
+        String ct = file.getContentType();
+        if (ct == null || !ct.startsWith("image/")) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Please upload an image");
+        }
+        if (file.getSize() > 5_000_000) {
+            throw new ResponseStatusException(HttpStatus.PAYLOAD_TOO_LARGE, "Image too large (max 5 MB)");
+        }
+        try {
+            MenuPhoto p = photos.findById(id).orElseGet(MenuPhoto::new);
+            p.setMenuItemId(id);
+            p.setData(file.getBytes());
+            p.setContentType(ct);
+            p.setCreatedAt(OffsetDateTime.now());
+            photos.save(p);
+        } catch (java.io.IOException e) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Could not read the image");
+        }
+        m.setHasPhoto(true);
+        m.setUpdatedAt(OffsetDateTime.now());
+        return toView(menu.save(m));
     }
 
     private MenuItem owned(AuthenticatedUser auth, UUID id) {

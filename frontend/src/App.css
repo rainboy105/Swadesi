@@ -992,6 +992,61 @@ button.small {
   font-weight: 600;
 }
 
+/* Consumer menu rows: thumbnail + dish info + inline qty/Request, all on one line. */
+.menu-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  background: var(--sunk);
+  border-radius: 16px;
+  padding: 12px 14px;
+}
+
+.menu-row-main {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  flex: 1;
+  min-width: 0;
+}
+
+.menu-row-main strong {
+  display: flex;
+  align-items: center;
+}
+
+.menu-row-cta {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-shrink: 0;
+}
+
+.stepper.tiny button {
+  width: 26px;
+  height: 26px;
+  font-size: 1rem;
+}
+
+.stepper.tiny span {
+  min-width: 20px;
+}
+
+.menu-requested {
+  color: var(--teal-600, #0f9d8f);
+  font-weight: 600;
+  font-size: 0.9rem;
+  white-space: nowrap;
+}
+
+@media (max-width: 420px) {
+  .menu-row-cta {
+    flex-direction: column;
+    align-items: flex-end;
+    gap: 6px;
+  }
+}
+
 .order-actions {
   display: flex;
   flex-direction: column;

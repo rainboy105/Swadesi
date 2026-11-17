@@ -28,12 +28,9 @@ export default function CooksPanel({ onOrdered }: { onOrdered?: () => void }) {
   const [profile, setProfile] = useState<CookProfile | null>(null);
   const [loadingProfile, setLoadingProfile] = useState(false);
 
-  // Request form.
-  const [dishName, setDishName] = useState("");
-  const [menuItemId, setMenuItemId] = useState<string | null>(null);
-  const [qty, setQty] = useState(1);
-  const [note, setNote] = useState("");
-  const [submitting, setSubmitting] = useState(false);
+  // Per-menu-item request state: chosen servings, in-flight/sent status, and any error.
+  const [qtyById, setQtyById] = useState<Record<string, number>>({});
+  const [reqState, setReqState] = useState<Record<string, "sending" | "done">>({});
   const [formMsg, setFormMsg] = useState<string | null>(null);
 
   // My requests.
@@ -59,7 +56,7 @@ export default function CooksPanel({ onOrdered }: { onOrdered?: () => void }) {
 
   const openCook = async (c: CookNearby) => {
     setLoadingProfile(true);
-    setDishName(""); setMenuItemId(null); setQty(1); setNote(""); setFormMsg(null);
+    setQtyById({}); setReqState({}); setFormMsg(null);
     try {
       setProfile(await api.cookProfile(c.cookId));
     } catch {
@@ -69,25 +66,25 @@ export default function CooksPanel({ onOrdered }: { onOrdered?: () => void }) {
     }
   };
 
-  const submitRequest = async () => {
+  const qtyOf = (id: string) => qtyById[id] ?? 1;
+  const setQty = (id: string, n: number) =>
+    setQtyById((q) => ({ ...q, [id]: Math.max(1, Math.min(50, n)) }));
+
+  const requestItem = async (item: { id: string; name: string }) => {
     if (!profile) return;
-    if (!dishName.trim()) return setFormMsg("Enter the dish you'd like.");
-    setSubmitting(true);
+    setReqState((s) => ({ ...s, [item.id]: "sending" }));
     setFormMsg(null);
     try {
       await api.createRequest({
         cookId: profile.cookId,
-        dishName: dishName.trim(),
-        qty,
-        note: note.trim() || null,
-        menuItemId,
+        dishName: item.name,
+        qty: qtyOf(item.id),
+        menuItemId: item.id,
       });
-      setFormMsg("✅ Request sent! You'll be notified when the cook responds.");
-      setDishName(""); setMenuItemId(null); setQty(1); setNote("");
+      setReqState((s) => ({ ...s, [item.id]: "done" }));
     } catch (e) {
+      setReqState((s) => { const c = { ...s }; delete c[item.id]; return c; });
       setFormMsg(e instanceof Error ? e.message : "Could not send the request.");
-    } finally {
-      setSubmitting(false);
     }
   };
 
@@ -119,34 +116,24 @@ export default function CooksPanel({ onOrdered }: { onOrdered?: () => void }) {
         </div>
         {profile.distanceMeters != null && <p className="hint">📍 {dist(profile.distanceMeters)}</p>}
 
-        <div className="form-block">
-          <strong className="form-title">Request a dish</strong>
-          <label>Dish you'd like <span className="req">*</span></label>
-          <input placeholder="e.g. Paneer Thali" value={dishName}
-                 onChange={(e) => { setDishName(e.target.value); setMenuItemId(null); }} />
-          <label>Servings</label>
-          <div className="stepper" style={{ alignSelf: "flex-start" }}>
-            <button disabled={qty <= 1} onClick={() => setQty(Math.max(1, qty - 1))}>−</button>
-            <span>{qty}</span>
-            <button disabled={qty >= 50} onClick={() => setQty(Math.min(50, qty + 1))}>+</button>
-          </div>
-          <label>Note (optional)</label>
-          <input placeholder="e.g. less spicy, by 1 PM tomorrow" value={note} onChange={(e) => setNote(e.target.value)} />
-          <button disabled={submitting} onClick={submitRequest}>
-            {submitting ? "Sending…" : "Send request"}
-          </button>
-          {formMsg && <p className={formMsg.startsWith("✅") ? "loc-ok" : "error"}>{formMsg}</p>}
-        </div>
+        {formMsg && <p className="error">{formMsg}</p>}
 
-        {profile.menu.length > 0 && (
+        {profile.menu.length === 0 ? (
+          <p className="hint">{profile.cookName.split(" ")[0]} hasn't added any menu items yet.</p>
+        ) : (
           <>
-            <label style={{ marginTop: 8 }}>Menu</label>
+            <label style={{ marginTop: 8 }}>Menu — tap Request to ask {profile.cookName.split(" ")[0]} to cook it</label>
             <div className="list">
               {profile.menu.map((m) => {
-                const selected = menuItemId === m.id;
+                const state = reqState[m.id];
                 return (
-                  <div className="listing" key={m.id} style={{ display: "block" }}>
-                    <div className="listing-main">
+                  <div className="menu-row" key={m.id}>
+                    {m.hasPhoto ? (
+                      <img className="listing-thumb" src={api.menuPhotoUrl(m.id)} alt={m.name} />
+                    ) : (
+                      <div className="listing-thumb placeholder" aria-hidden="true">🍲</div>
+                    )}
+                    <div className="menu-row-main">
                       <strong>
                         <span className={`veg-mark ${m.foodType}`} aria-hidden="true" />
                         {m.name}
@@ -155,47 +142,27 @@ export default function CooksPanel({ onOrdered }: { onOrdered?: () => void }) {
                       <span className="meta">
                         {m.pricePerServing != null ? `~₹${m.pricePerServing}/serving` : "Price on request"}
                       </span>
-                      <button className={selected ? "small" : "secondary small"}
-                              style={{ marginTop: 8, alignSelf: "flex-start" }}
-                              onClick={() => {
-                                setDishName(m.name); setMenuItemId(m.id);
-                                window.scrollTo({ top: 0, behavior: "smooth" });
-                              }}>
-                        {selected ? "✓ Selected" : "Request this"}
-                      </button>
+                    </div>
+                    <div className="menu-row-cta">
+                      {state === "done" ? (
+                        <span className="menu-requested">✓ Requested</span>
+                      ) : (
+                        <>
+                          <div className="stepper tiny">
+                            <button disabled={qtyOf(m.id) <= 1} onClick={() => setQty(m.id, qtyOf(m.id) - 1)}>−</button>
+                            <span>{qtyOf(m.id)}</span>
+                            <button disabled={qtyOf(m.id) >= 50} onClick={() => setQty(m.id, qtyOf(m.id) + 1)}>+</button>
+                          </div>
+                          <button className="small" disabled={state === "sending"}
+                                  onClick={() => requestItem(m)}>
+                            {state === "sending" ? "…" : "Request"}
+                          </button>
+                        </>
+                      )}
                     </div>
                   </div>
                 );
               })}
-            </div>
-          </>
-        )}
-
-        {profile.dishes.length > 0 && (
-          <>
-            <label style={{ marginTop: 8 }}>Recently cooked by {profile.cookName.split(" ")[0]}</label>
-            <div className="list">
-              {profile.dishes.map((d) => (
-                <div className="listing" key={d.id}>
-                  {d.hasPhoto ? (
-                    <img className="listing-thumb" src={api.listingPhotoUrl(d.id)} alt={d.title} />
-                  ) : (
-                    <div className="listing-thumb placeholder" aria-hidden="true">🍲</div>
-                  )}
-                  <div className="listing-main">
-                    <strong>
-                      <span className={`veg-mark ${d.foodType}`} aria-hidden="true" />
-                      {d.title}
-                    </strong>
-                    {d.description && <span className="muted">{d.description}</span>}
-                    <span className="meta">₹{d.pricePerServing}/serving</span>
-                    <button className="secondary small" style={{ marginTop: 8, alignSelf: "flex-start" }}
-                            onClick={() => { setDishName(d.title); setMenuItemId(null); window.scrollTo({ top: 0, behavior: "smooth" }); }}>
-                      Request this
-                    </button>
-                  </div>
-                </div>
-              ))}
             </div>
           </>
         )}
