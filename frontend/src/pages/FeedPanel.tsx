@@ -277,9 +277,20 @@ export default function FeedPanel({ view, me, onMe }: {
                       <span className="ol-meta ol-who">{r.cookName ?? ""}</span>
                     </div>
                     {r.status === "accepted" && r.listingId ? (
-                      <button className="small" disabled={payingId === r.id} onClick={() => payRequest(r)}>
-                        {payingId === r.id ? "…" : `Pay ₹${(r.pricePerServing ?? 0) * r.qty}`}
-                      </button>
+                      <>
+                        <button className="small" disabled={payingId === r.id} onClick={() => payRequest(r)}>
+                          {payingId === r.id ? "…" : `Pay ₹${(r.pricePerServing ?? 0) * r.qty}`}
+                        </button>
+                        <button className="link" aria-label="Cancel request" disabled={payingId === r.id}
+                                onClick={() => {
+                                  if (!window.confirm(`Cancel your request for ${r.qty} × ${r.dishName}?`)) return;
+                                  api.cancelRequest(r.id)
+                                    .catch((e) => setError(e instanceof Error ? e.message : "Could not cancel."))
+                                    .then(() => fetchData(true));
+                                }}>
+                          Cancel
+                        </button>
+                      </>
                     ) : (
                       <>
                         <span className="status-pill s-requested">⏳ Waiting</span>

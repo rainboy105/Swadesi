@@ -224,12 +224,36 @@ public class RequestController {
         if (!r.getConsumerId().equals(auth.id())) {
             throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Not your request");
         }
-        if (!"pending".equals(r.getStatus())) {
-            throw new ResponseStatusException(HttpStatus.CONFLICT, "Only a pending request can be cancelled.");
+        // Cancellable until it is paid: while waiting for the cook, or accepted but not yet paid.
+        r = closeIfPaid(r);
+        boolean wasAccepted = "accepted".equals(r.getStatus());
+        if (!"pending".equals(r.getStatus()) && !wasAccepted) {
+            throw new ResponseStatusException(HttpStatus.CONFLICT,
+                    "fulfilled".equals(r.getStatus())
+                            ? "This request is already paid — cancel the order instead."
+                            : "This request can no longer be cancelled.");
+        }
+        OffsetDateTime now = OffsetDateTime.now();
+        // An accepted request has a private listing to pay against; close it so it can't be paid.
+        if (wasAccepted && r.getListingId() != null) {
+            listings.findById(r.getListingId()).ifPresent(l -> {
+                l.setStatus("closed");
+                l.setUpdatedAt(now);
+                listings.save(l);
+            });
         }
         r.setStatus("cancelled");
-        r.setUpdatedAt(OffsetDateTime.now());
-        return toResponse(requests.save(r));
+        r.setUpdatedAt(now);
+        DishRequest saved = requests.save(r);
+        String who = saved.getConsumerName() == null ? "The customer" : saved.getConsumerName();
+        push.notifyUsers(List.of(saved.getCookId()), "Request cancelled",
+                who + " cancelled the request for " + saved.getQty() + " × " + saved.getDishName(), "/");
+        if (wasAccepted) {
+            users.findById(saved.getCookId()).ifPresent(cook -> notifyWhatsApp(cook.getPhone(),
+                    "Swaadesi request cancelled by the customer: " + saved.getQty() + " × "
+                            + saved.getDishName() + " (" + who + "). No need to prepare it."));
+        }
+        return toResponse(saved);
     }
 
     /**
