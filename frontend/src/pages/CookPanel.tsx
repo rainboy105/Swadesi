@@ -550,7 +550,7 @@ export default function CookPanel({ me, onMe, view }: {
                     <span className={`veg-mark ${pickedMenu.foodType}`} aria-hidden="true" /> {pickedMenu.name}
                   </strong>
                   <span className="muted">
-                    {pickedMenu.pricePerServing != null ? `₹${pickedMenu.pricePerServing}` : "No price"} · name, price & photo reused
+                    {pickedMenu.pricePerServing != null ? `₹${pickedMenu.pricePerServing}` : "No price"}
                   </span>
                 </div>
               </div>
