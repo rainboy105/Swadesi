@@ -1908,41 +1908,68 @@ button.small {
   color: var(--ink-600);
 }
 
-/* One-line order summary: dish · quantity · person (· status pill beside it). */
+/* One-line order summary: dish · quantity · person · status. Sized small so all four fit on
+   a phone; a long dish name wraps onto a second line instead of being cut with "…". */
 .order-line {
   flex: 1;
   min-width: 0;
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: 6px;
 }
 
 .order-line strong {
   font-family: var(--font-display);
-  font-size: 1rem;
+  font-size: 0.88rem;
+  line-height: 1.25;
   color: var(--ink-900);
   min-width: 0;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
+  overflow-wrap: anywhere;
 }
 
 .order-line .ol-meta {
   flex-shrink: 0;
   color: var(--ink-600);
-  font-size: 0.88rem;
+  font-size: 0.8rem;
   white-space: nowrap;
 }
 
 .order-line .ol-who {
-  flex-shrink: 4;   /* the customer/cook name gives way before the dish name does */
-  min-width: 3ch;
-  overflow: hidden;
-  text-overflow: ellipsis;
+  flex-shrink: 1;
+  min-width: 0;
+  white-space: normal;
+  overflow-wrap: anywhere;
+  line-height: 1.25;
 }
 
 .order-line .status-pill {
   margin-left: auto;
+}
+
+/* Compact status pill wherever it sits beside a one-line order summary. */
+.order-line .status-pill,
+.order-row-btn .status-pill {
+  font-size: 0.7rem;
+  padding: 3px 7px;
+}
+
+.order-row-btn:has(.order-line) {
+  gap: 6px;
+  padding: 12px 10px;
+}
+
+.order-row-btn:has(.order-line) .chev {
+  font-size: 0.9rem;
+}
+
+.order-row-btn:has(.order-line) button.small {
+  padding: 7px 10px;
+  font-size: 0.8rem;
+}
+
+.order-row-btn:has(.order-line) button.link {
+  font-size: 0.78rem;
+  padding: 4px 2px;
 }
 
 /* Slim header pinned to the top once the page is scrolled: brand top-left with the mode

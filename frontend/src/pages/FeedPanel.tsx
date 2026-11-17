@@ -149,6 +149,14 @@ export default function FeedPanel({ view, me, onMe }: {
     completed: "✅ Completed",
   };
 
+  // Shorter labels for the one-line list rows (the details screen keeps the full ones).
+  const shortStatus: Record<OrderStatus, string> = {
+    ...statusLabel,
+    pending_payment: "💳 Unpaid",
+    requested: "⏳ Waiting",
+    ready: "🛍️ Ready",
+  };
+
   const activeStatuses: OrderStatus[] = ["requested", "accepted", "preparing", "ready"];
   const active = orders.filter((o) => activeStatuses.includes(o.status));
   // Hide transient unpaid orders; everything else resolved goes to history.
@@ -309,7 +317,7 @@ export default function FeedPanel({ view, me, onMe }: {
                       <span className="ol-meta">× {o.qty}</span>
                       <span className="ol-meta ol-who">{o.cookName ?? ""}</span>
                     </div>
-                    <span className={`status-pill s-${o.status}`}>{statusLabel[o.status]}</span>
+                    <span className={`status-pill s-${o.status}`}>{shortStatus[o.status]}</span>
                     <span className="chev">›</span>
                   </button>
                 ))}
@@ -326,7 +334,7 @@ export default function FeedPanel({ view, me, onMe }: {
                         <span className="ol-meta">× {row.o.qty}</span>
                         <span className="ol-meta ol-who">{row.o.cookName ?? ""}</span>
                       </div>
-                      <span className={`status-pill s-${row.o.status}`}>{statusLabel[row.o.status]}</span>
+                      <span className={`status-pill s-${row.o.status}`}>{shortStatus[row.o.status]}</span>
                       <span className="chev">›</span>
                     </button>
                   ) : (
