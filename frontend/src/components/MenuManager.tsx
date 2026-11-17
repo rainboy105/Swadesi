@@ -90,10 +90,6 @@ export default function MenuManager() {
 
   return (
     <div className="mode-panel">
-      <div className="panel-head">
-        <span className="tile marigold">📋</span>
-        <h1>Your menu</h1>
-      </div>
       <p className="hint">Dishes customers can request from your profile. Set the price when you accept a request.</p>
 
       {/* Add button with the search icon beside it; tapping search swaps the button for a search bar. */}

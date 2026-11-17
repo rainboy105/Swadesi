@@ -548,11 +548,6 @@ export default function CookPanel({ me, onMe, view }: {
   // ---- Kitchen view: UPI + create + my listings ----
   return (
     <div className="mode-panel">
-      <div className="panel-head">
-        <span className="tile marigold">🍳</span>
-        <h1>Your kitchen</h1>
-      </div>
-
       {/* Cooks need a UPI to get paid when an order is picked up. */}
       {!me.upiId ? (
         <div className="upi-setup">

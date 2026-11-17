@@ -88,9 +88,9 @@ export default function Home({ me, onMe }: { me: Me; onMe: (me: Me) => void }) {
           { key: "cooks", label: "Cooks" },
         ]
       : [
-          { key: "kitchen", label: "Kitchen" },
-          { key: "orders", label: "Orders" },
-          { key: "menu", label: "Menu" },
+          { key: "kitchen", label: "🍳 Kitchen" },
+          { key: "orders", label: "📦 Orders" },
+          { key: "menu", label: "📋 Menu" },
         ];
   const activeTab = role === "consumer" ? consumerTab : cookTab;
   const setTab = (k: string) =>
