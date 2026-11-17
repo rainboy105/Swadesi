@@ -25,12 +25,15 @@ export default function LocationPicker({
   savedCoords,
   savedLabel = "Use my society",
   defaultCenter = [20.5937, 78.9629], // India, if nothing else is known
+  autoLocate = false,
 }: {
   value: PickedLocation | null;
   onChange: (v: PickedLocation) => void;
   savedCoords?: { lat: number; lng: number } | null;
   savedLabel?: string;
   defaultCenter?: [number, number];
+  /** On first open with no value/saved point, jump straight to the user's GPS location. */
+  autoLocate?: boolean;
 }) {
   const ref = useRef<HTMLDivElement>(null);
   const mapRef = useRef<L.Map | null>(null);
@@ -105,6 +108,10 @@ export default function LocationPicker({
     if (value) moveTo(value.lat, value.lng, false);
     // Leaflet needs a size recalc once its container is laid out.
     setTimeout(() => map.invalidateSize(), 0);
+    // Fresh pick (onboarding): jump to the user's GPS so they land on their own society.
+    if (autoLocate && !value && !savedCoords) {
+      setTimeout(() => useGps(), 120);
+    }
     return () => {
       map.remove();
       mapRef.current = null;

@@ -53,7 +53,7 @@ export default function Onboarding({ onDone }: { onDone: (me: Me) => void }) {
         />
 
         <label>Your location <span className="req">*</span></label>
-        <LocationPicker value={coords ? { ...coords, address: area } : null} onChange={onPick} />
+        <LocationPicker value={coords ? { ...coords, address: area } : null} onChange={onPick} autoLocate />
         <p className="hint">Search, tap the map, or use the 📍 button. We use this only to show home-cooked food near you.</p>
 
         <button disabled={busy} onClick={save}>
