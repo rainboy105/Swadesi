@@ -80,16 +80,6 @@ export default function MenuManager() {
     }
   };
 
-  const toggleAvailable = async (m: MenuItem) => {
-    try {
-      await api.updateMenuItem(m.id, {
-        name: m.name, description: m.description, foodType: m.foodType,
-        pricePerServing: m.pricePerServing, available: !m.available,
-      });
-      await load();
-    } catch { /* ignore */ }
-  };
-
   const remove = async (m: MenuItem) => {
     if (!window.confirm(`Remove "${m.name}" from your menu?`)) return;
     try {
@@ -103,21 +93,30 @@ export default function MenuManager() {
       <div className="panel-head">
         <span className="tile marigold">📋</span>
         <h1>Your menu</h1>
-        <button className="icon-btn small-icon" aria-label="Search menu" aria-pressed={searchOpen}
-                onClick={() => { setSearchOpen((v) => !v); setQuery(""); }}>
-          <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor"
-               strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-            <circle cx="11" cy="11" r="7" /><path d="M21 21l-4.3-4.3" />
-          </svg>
-        </button>
       </div>
-      {searchOpen && (
-        <input type="search" autoFocus placeholder="Search by name or description…"
-               value={query} onChange={(e) => setQuery(e.target.value)} />
-      )}
       <p className="hint">Dishes customers can request from your profile. Set the price when you accept a request.</p>
 
-      {!showForm && <button onClick={openCreate}>+ Add a menu item</button>}
+      {/* Add button with the search icon beside it; tapping search swaps the button for a search bar. */}
+      {!showForm && (
+        <div className="menu-toolbar">
+          {searchOpen ? (
+            <input type="search" autoFocus placeholder="Search by name or description…"
+                   value={query} onChange={(e) => setQuery(e.target.value)} />
+          ) : (
+            <button onClick={openCreate}>+ Add a menu item</button>
+          )}
+          <button className="icon-btn small-icon" aria-pressed={searchOpen}
+                  aria-label={searchOpen ? "Close search" : "Search menu"}
+                  onClick={() => { setSearchOpen((v) => !v); setQuery(""); }}>
+            <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor"
+                 strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              {searchOpen
+                ? <path d="M6 6l12 12M18 6L6 18" />
+                : <><circle cx="11" cy="11" r="7" /><path d="M21 21l-4.3-4.3" /></>}
+            </svg>
+          </button>
+        </div>
+      )}
 
       {showForm && (
         <div className="form-block">
@@ -165,12 +164,6 @@ export default function MenuManager() {
         <div className="list">
           {shown.map((m) => (
             <div className={`menu-card ${m.available ? "" : "dim"}`} key={m.id}>
-              <button className="icon-btn small-icon menu-edit" aria-label="Edit item" onClick={() => startEdit(m)}>
-                <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor"
-                     strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                  <path d="M12 20h9" /><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4Z" />
-                </svg>
-              </button>
               <div className="menu-card-top">
                 {m.hasPhoto ? (
                   <img className="listing-thumb" src={api.menuPhotoUrl(m.id)} alt={m.name} />
@@ -190,9 +183,7 @@ export default function MenuManager() {
                 </div>
               </div>
               <div className="menu-card-actions">
-                <button className="secondary small" onClick={() => toggleAvailable(m)}>
-                  {m.available ? "Hide" : "Show"}
-                </button>
+                <button className="secondary small" onClick={() => startEdit(m)}>Edit</button>
                 <button className="secondary small" onClick={() => remove(m)}>Remove</button>
               </div>
             </div>
