@@ -995,26 +995,26 @@ button.small {
 /* Red close (✕) pinned to the top-right of a form panel. */
 .form-close {
   position: absolute;
-  top: 10px;
-  right: 10px;
-  width: 30px;
-  height: 30px;
+  top: 12px;
+  right: 12px;
+  width: 32px;
+  height: 32px;
   padding: 0;
   border-radius: 50%;
   border: none;
-  background: #fee2e2;
+  background: #fde8e8;
   color: #dc2626;
-  font-size: 0.95rem;
-  line-height: 1;
   display: flex;
   align-items: center;
   justify-content: center;
-  box-shadow: none;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
+  transition: background 0.15s ease, transform 0.12s ease;
 }
 
 .form-close:hover {
-  filter: brightness(0.96);
-  background: #fecaca;
+  background: #dc2626;
+  color: #fff;
+  transform: scale(1.06);
 }
 
 /* Tappable row for picking a dish to list: thumbnail + name/price. */

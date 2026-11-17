@@ -502,7 +502,10 @@ export default function CookPanel({ me, onMe, view }: {
       {showPicker && (
         <div className="form-block" style={{ position: "relative" }}>
           <button className="form-close" aria-label="Close"
-                  onClick={() => { setShowPicker(false); setPickedMenu(null); }}>✕</button>
+                  onClick={() => { setShowPicker(false); setPickedMenu(null); }}>
+            <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor"
+                 strokeWidth="2.4" strokeLinecap="round"><path d="M6 6l12 12M18 6L6 18" /></svg>
+          </button>
           <strong className="form-title">List a dish</strong>
           {!pickedMenu ? (
             <>
@@ -524,7 +527,7 @@ export default function CookPanel({ me, onMe, view }: {
                             <span className={`veg-mark ${m.foodType}`} aria-hidden="true" /> {m.name}
                           </strong>
                           <span className="muted">
-                            {m.pricePerServing != null ? `~₹${m.pricePerServing}/serving` : "No price set"}
+                            {m.pricePerServing != null ? `₹${m.pricePerServing}` : "No price set"}
                           </span>
                         </div>
                         <span className="chev">›</span>
@@ -547,7 +550,7 @@ export default function CookPanel({ me, onMe, view }: {
                     <span className={`veg-mark ${pickedMenu.foodType}`} aria-hidden="true" /> {pickedMenu.name}
                   </strong>
                   <span className="muted">
-                    {pickedMenu.pricePerServing != null ? `₹${pickedMenu.pricePerServing}/serving` : "No price"} · name, price & photo reused
+                    {pickedMenu.pricePerServing != null ? `₹${pickedMenu.pricePerServing}` : "No price"} · name, price & photo reused
                   </span>
                 </div>
               </div>
