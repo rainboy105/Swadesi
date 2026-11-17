@@ -68,8 +68,10 @@ public class RazorpayWebhookController {
             if (rzpOrderId.isBlank()) {
                 rzpOrderId = root.path("payload").path("order").path("entity").path("id").asText("");
             }
-            boolean paidEvent = event.equals("payment.captured") || event.equals("order.paid")
-                    || event.equals("payment.authorized");
+            // Only a CAPTURED payment means money is actually taken. An 'authorized' payment is
+            // merely on hold and may never be captured (or gets auto-refunded), so treating it as
+            // paid falsely tells the cook an order was placed. Order 'order.paid' implies capture.
+            boolean paidEvent = event.equals("payment.captured") || event.equals("order.paid");
             if (paidEvent && !rzpOrderId.isBlank()) {
                 markPaid(rzpOrderId, paymentId);
             }
