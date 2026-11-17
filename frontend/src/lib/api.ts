@@ -164,6 +164,8 @@ export const api = {
     call<MenuItem>(`/api/v1/menu/${id}`, { method: "PUT", body: JSON.stringify(body) }),
   deleteMenuItem: (id: string) =>
     call<void>(`/api/v1/menu/${id}`, { method: "DELETE" }),
+  listFromMenu: (menuItemId: string, body: { availableFrom?: string | null; orderBy: string; maxServings: number }) =>
+    call<Listing>(`/api/v1/listings/from-menu/${menuItemId}`, { method: "POST", body: JSON.stringify(body) }),
   menuPhotoUrl: (id: string) => `${BASE}/api/public/menu/${id}/photo`,
   uploadMenuPhoto: async (id: string, file: Blob) => {
     const form = new FormData();
@@ -318,6 +320,7 @@ export interface Listing {
   remaining: number;
   readyBy: string | null;
   orderBy: string | null;
+  availableFrom: string | null;
   status: "open" | "closed";
   foodType: FoodType;
   hasPhoto: boolean;

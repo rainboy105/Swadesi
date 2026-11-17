@@ -44,6 +44,10 @@ public class Listing {
     @Column(name = "order_by")
     private OffsetDateTime orderBy;
 
+    /** Opening time: before this the dish is hidden from the feed. Null = open immediately. */
+    @Column(name = "available_from")
+    private OffsetDateTime availableFrom;
+
     @Column(name = "status", nullable = false)
     private String status = "open";
 
@@ -98,6 +102,8 @@ public class Listing {
     public void setReadyBy(OffsetDateTime readyBy) { this.readyBy = readyBy; }
     public OffsetDateTime getOrderBy() { return orderBy; }
     public void setOrderBy(OffsetDateTime orderBy) { this.orderBy = orderBy; }
+    public OffsetDateTime getAvailableFrom() { return availableFrom; }
+    public void setAvailableFrom(OffsetDateTime availableFrom) { this.availableFrom = availableFrom; }
     public String getStatus() { return status; }
     public void setStatus(String status) { this.status = status; }
     public String getFoodType() { return foodType; }

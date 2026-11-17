@@ -38,16 +38,24 @@ public class ListingController {
             @Min(1) @Max(500) int maxServings,
             OffsetDateTime readyBy,
             OffsetDateTime orderBy,
+            OffsetDateTime availableFrom,
             String foodType,
             Double pickupLat,
             Double pickupLng,
             @Size(max = 300) String pickupAddress) {}
 
+    /** Create a listing straight from a saved menu item: only the time window + servings are new. */
+    public record FromMenuRequest(
+            OffsetDateTime availableFrom,
+            OffsetDateTime orderBy,
+            @Min(1) @Max(500) int maxServings) {}
+
     /** A listing as its own cook sees it. {@code expired} = past its order cutoff. */
     public record ListingResponse(String id, String title, String description, int pricePerServing,
                                   int maxServings, int remaining, OffsetDateTime readyBy,
-                                  OffsetDateTime orderBy, String status, String foodType,
-                                  boolean hasPhoto, boolean expired, double pickupLat, double pickupLng,
+                                  OffsetDateTime orderBy, OffsetDateTime availableFrom, String status,
+                                  String foodType, boolean hasPhoto, boolean expired,
+                                  double pickupLat, double pickupLng,
                                   String pickupAddress, OffsetDateTime createdAt) {}
 
     /** A listing in the consumer's vicinity feed, with cook name and distance. */
@@ -62,17 +70,85 @@ public class ListingController {
     private final ListingPhotoRepository photos;
     private final UserRepository users;
     private final org.smartgurukul.swadesi.push.PushService push;
+    private final org.smartgurukul.swadesi.menu.MenuItemRepository menuItems;
+    private final org.smartgurukul.swadesi.menu.MenuPhotoRepository menuPhotos;
     private final double radiusMeters;
 
     public ListingController(ListingRepository listings, ListingPhotoRepository photos,
                              UserRepository users,
                              org.smartgurukul.swadesi.push.PushService push,
+                             org.smartgurukul.swadesi.menu.MenuItemRepository menuItems,
+                             org.smartgurukul.swadesi.menu.MenuPhotoRepository menuPhotos,
                              @Value("${swadesi.vicinity.radius-meters:500}") double radiusMeters) {
         this.listings = listings;
         this.photos = photos;
         this.users = users;
         this.push = push;
+        this.menuItems = menuItems;
+        this.menuPhotos = menuPhotos;
         this.radiusMeters = radiusMeters;
+    }
+
+    /**
+     * Cook lists a saved menu item for a time window — no re-typing the dish. Copies the item's
+     * name, description, food type, price and photo; the cook supplies only opening/ending time
+     * and servings.
+     */
+    @PostMapping("/from-menu/{menuItemId}")
+    public ListingResponse listFromMenu(@AuthenticationPrincipal AuthenticatedUser auth,
+                                        @PathVariable UUID menuItemId,
+                                        @Valid @RequestBody FromMenuRequest req) {
+        User cook = users.findById(auth.id())
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Unknown user"));
+        org.smartgurukul.swadesi.menu.MenuItem item = menuItems.findById(menuItemId)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Menu item not found"));
+        if (!item.getCookId().equals(cook.getId())) {
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Not your menu item");
+        }
+        OffsetDateTime now = OffsetDateTime.now();
+        if (req.orderBy() == null || !req.orderBy().isAfter(now)) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Set an ending (order-by) time in the future.");
+        }
+        if (req.availableFrom() != null && req.orderBy().isBefore(req.availableFrom())) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Ending time must be after the opening time.");
+        }
+        if (item.getPricePerServing() == null) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST,
+                    "Add a price to this menu item before listing it.");
+        }
+
+        Listing l = new Listing();
+        l.setId(UUID.randomUUID());
+        l.setCookId(cook.getId());
+        l.setCookName(cook.getName());
+        l.setTitle(item.getName());
+        l.setDescription(item.getDescription());
+        l.setPricePerServing(item.getPricePerServing());
+        l.setMaxServings(req.maxServings());
+        l.setServingsClaimed(0);
+        l.setOrderBy(req.orderBy());
+        l.setAvailableFrom(req.availableFrom());
+        l.setFoodType(item.getFoodType());
+        l.setStatus("open");
+        applyKitchenOrSocietyPickup(l, cook);
+        l.setCreatedAt(now);
+        l.setUpdatedAt(now);
+
+        // Copy the menu item's photo onto the listing, if it has one.
+        if (item.isHasPhoto()) {
+            menuPhotos.findById(item.getId()).ifPresent(mp -> {
+                ListingPhoto lp = new ListingPhoto();
+                lp.setListingId(l.getId());
+                lp.setData(mp.getData());
+                lp.setContentType(mp.getContentType());
+                lp.setCreatedAt(now);
+                photos.save(lp);
+                l.setHasPhoto(true);
+            });
+        }
+        Listing saved = listings.save(l);
+        if (isOpenNow(saved, now)) notifyNearbyConsumers(saved, cook);
+        return toResponse(saved);
     }
 
     /** Cook uploads (or replaces) the dish photo. Stored as bytes; served publicly. */
@@ -128,13 +204,14 @@ public class ListingController {
         l.setServingsClaimed(0);
         l.setReadyBy(req.readyBy());
         l.setOrderBy(req.orderBy());
+        l.setAvailableFrom(req.availableFrom());
         l.setFoodType(normalizeFoodType(req.foodType()));
         l.setStatus("open");
         applyPickup(l, cook, req);
         l.setCreatedAt(now);
         l.setUpdatedAt(now);
         Listing saved = listings.save(l);
-        notifyNearbyConsumers(saved, cook);
+        if (isOpenNow(saved, now)) notifyNearbyConsumers(saved, cook);
         return toResponse(saved);
     }
 
@@ -236,6 +313,7 @@ public class ListingController {
         l.setMaxServings(req.maxServings());
         l.setReadyBy(req.readyBy());
         l.setOrderBy(req.orderBy());
+        l.setAvailableFrom(req.availableFrom());
         l.setFoodType(normalizeFoodType(req.foodType()));
         User cook = users.findById(auth.id())
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Unknown user"));
@@ -288,6 +366,13 @@ public class ListingController {
         return l.getOrderBy() != null && !l.getOrderBy().isAfter(OffsetDateTime.now());
     }
 
+    /** Open to consumers right now: past its opening time (if any) and not past its cutoff. */
+    private static boolean isOpenNow(Listing l, OffsetDateTime now) {
+        boolean opened = l.getAvailableFrom() == null || !l.getAvailableFrom().isAfter(now);
+        boolean notClosed = l.getOrderBy() == null || l.getOrderBy().isAfter(now);
+        return opened && notClosed;
+    }
+
     /** The vicinity feed: open listings within the radius of the viewer's location. */
     @GetMapping("/nearby")
     public List<FeedItem> nearby(@AuthenticationPrincipal AuthenticatedUser auth) {
@@ -321,8 +406,8 @@ public class ListingController {
     private static ListingResponse toResponse(Listing l) {
         return new ListingResponse(l.getId().toString(), l.getTitle(), l.getDescription(),
                 l.getPricePerServing(), l.getMaxServings(), l.remaining(), l.getReadyBy(),
-                l.getOrderBy(), l.getStatus(), l.getFoodType(), l.isHasPhoto(), isExpired(l),
-                l.getLat(), l.getLng(), l.getPickupAddress(), l.getCreatedAt());
+                l.getOrderBy(), l.getAvailableFrom(), l.getStatus(), l.getFoodType(), l.isHasPhoto(),
+                isExpired(l), l.getLat(), l.getLng(), l.getPickupAddress(), l.getCreatedAt());
     }
 
     public static double haversineMeters(double lat1, double lon1, double lat2, double lon2) {

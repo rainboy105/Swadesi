@@ -552,6 +552,7 @@ export default function CookPanel({ me, onMe, view }: {
         <div className="list">
           {listings.map((l) => {
             const cutoff = timeOf(l.orderBy);
+            const scheduled = l.availableFrom != null && new Date(l.availableFrom).getTime() > Date.now();
             return (
               <div className={`listing ${l.status === "closed" || l.expired ? "dim" : ""}`} key={l.id}>
                 {l.hasPhoto ? (
@@ -569,6 +570,7 @@ export default function CookPanel({ me, onMe, view }: {
                   <span className="meta">
                     ₹{l.pricePerServing}/serving · {l.remaining}/{l.maxServings} left
                     {cutoff ? ` · order by ${cutoff}` : ""}
+                    {scheduled ? ` · opens ${prettyWhen(toLocalInput(l.availableFrom))}` : ""}
                     {l.expired ? " · order time passed" : l.status === "closed" ? " · closed" : ""}
                   </span>
                 </div>

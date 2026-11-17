@@ -42,6 +42,7 @@ public interface ListingRepository extends JpaRepository<Listing, UUID> {
               and l.servingsClaimed < l.maxServings
               and l.cookId <> :viewer
               and (l.orderBy is null or l.orderBy > :now)
+              and (l.availableFrom is null or l.availableFrom <= :now)
               and l.lat between :minLat and :maxLat
               and l.lng between :minLng and :maxLng
             """)
