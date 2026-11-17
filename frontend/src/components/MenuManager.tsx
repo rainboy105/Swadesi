@@ -18,53 +18,11 @@ export default function MenuManager() {
   const [error, setError] = useState<string | null>(null);
   const fileRef = useRef<HTMLInputElement>(null);
 
-  // "List this dish" scheduler (opening/ending time + servings) for one item.
-  const [listId, setListId] = useState<string | null>(null);
-  const [closeAt, setCloseAt] = useState("");
-  const [servings, setServings] = useState("10");
-  const [listBusy, setListBusy] = useState(false);
-  const [listErr, setListErr] = useState<string | null>(null);
-  const [listMsg, setListMsg] = useState<string | null>(null);
-
   const load = () => {
     setLoading(true);
     api.myMenu().then(setItems).catch(() => setItems([])).finally(() => setLoading(false));
   };
   useEffect(load, []);
-
-  const fmtLocal = (d: Date) => {
-    const p = (n: number) => String(n).padStart(2, "0");
-    return `${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())}T${p(d.getHours())}:${p(d.getMinutes())}`;
-  };
-
-  const openListForm = (m: MenuItem) => {
-    setListId(m.id);
-    setListErr(null); setListMsg(null);
-    setServings("10");
-    const close = new Date(Date.now() + 2 * 60 * 60 * 1000);
-    close.setMinutes(0, 0, 0);
-    setCloseAt(fmtLocal(close));
-  };
-
-  const listNow = async (m: MenuItem) => {
-    if (m.pricePerServing == null) return setListErr("Add a price to this item first (edit it).");
-    if (!closeAt) return setListErr("Set an ending time (when orders close).");
-    const s = parseInt(servings, 10);
-    if (!Number.isFinite(s) || s < 1) return setListErr("How many servings can you make?");
-    const closeIso = new Date(closeAt).toISOString();
-    if (new Date(closeIso).getTime() <= Date.now()) return setListErr("Ending time must be in the future.");
-    setListBusy(true);
-    setListErr(null);
-    try {
-      await api.listFromMenu(m.id, { availableFrom: null, orderBy: closeIso, maxServings: s });
-      setListId(null);
-      setListMsg(`✅ Listed “${m.name}”.`);
-    } catch (e) {
-      setListErr(e instanceof Error ? e.message : "Could not list this dish.");
-    } finally {
-      setListBusy(false);
-    }
-  };
 
   const resetForm = () => {
     setName(""); setDescription(""); setFoodType("veg"); setPrice("");
@@ -184,7 +142,6 @@ export default function MenuManager() {
         <p className="hint">No menu items yet. Add dishes customers can request.</p>
       ) : (
         <div className="list">
-          {listMsg && <p className="loc-ok">{listMsg}</p>}
           {items.map((m) => (
             <div key={m.id}>
             <div className={`listing ${m.available ? "" : "dim"}`}>
@@ -205,36 +162,13 @@ export default function MenuManager() {
                 </span>
               </div>
               <div className="order-actions">
-                <button className="small" onClick={() => (listId === m.id ? setListId(null) : openListForm(m))}>
-                  {listId === m.id ? "Close" : "List"}
-                </button>
-                <button className="icon-btn small-icon" aria-label="Edit item" onClick={() => startEdit(m)}>
-                  <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor"
-                       strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                    <path d="M12 20h9" /><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4Z" />
-                  </svg>
-                </button>
+                <button className="secondary small" onClick={() => startEdit(m)}>Edit</button>
                 <button className="secondary small" onClick={() => toggleAvailable(m)}>
                   {m.available ? "Hide" : "Show"}
                 </button>
-                <button className="link" onClick={() => remove(m)}>Remove</button>
+                <button className="secondary small" onClick={() => remove(m)}>Remove</button>
               </div>
             </div>
-
-            {listId === m.id && (
-              <div className="form-block">
-                <strong className="form-title">List “{m.name}” for a time slot</strong>
-                <span className="muted">Name, price{m.hasPhoto ? ", photo" : ""} and type are reused from your menu.</span>
-                <label>Ending time <span className="req">*</span> <span style={{ fontWeight: 400 }}>(orders close)</span></label>
-                <input type="datetime-local" value={closeAt} onChange={(e) => setCloseAt(e.target.value)} />
-                <label>Servings (cap) <span className="req">*</span></label>
-                <input inputMode="numeric" placeholder="10" value={servings} onChange={(e) => setServings(e.target.value)} />
-                <button disabled={listBusy} onClick={() => listNow(m)}>
-                  {listBusy ? "Listing…" : "List this dish"}
-                </button>
-                {listErr && <p className="error">{listErr}</p>}
-              </div>
-            )}
             </div>
           ))}
         </div>
