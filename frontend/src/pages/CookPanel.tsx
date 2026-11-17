@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import { api, type Listing, type Order, type Me, type FoodType } from "../lib/api";
+import { api, type Listing, type Order, type Me, type FoodType, type MenuItem } from "../lib/api";
 import { downscaleToJpeg } from "../lib/image";
 import LocationPicker, { type PickedLocation } from "../components/LocationPicker";
 import ShareButton from "../components/ShareButton";
@@ -42,6 +42,15 @@ export default function CookPanel({ me, onMe, view }: {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const fileRef = useRef<HTMLInputElement>(null);
+
+  // "List a dish" = pick from the menu, then set timing + servings (manual entry still available).
+  const [showPicker, setShowPicker] = useState(false);
+  const [menuItems, setMenuItems] = useState<MenuItem[]>([]);
+  const [pickedMenu, setPickedMenu] = useState<MenuItem | null>(null);
+  const [slotOpenAt, setSlotOpenAt] = useState("");
+  const [slotServings, setSlotServings] = useState("10");
+  const [slotBusy, setSlotBusy] = useState(false);
+  const [slotErr, setSlotErr] = useState<string | null>(null);
 
   // Pickup location for the dish being created/edited, and whether the map is open.
   const [pickup, setPickup] = useState<PickedLocation | null>(null);
@@ -144,6 +153,46 @@ export default function CookPanel({ me, onMe, view }: {
     setOrderBy(defaultOrderBy());
     setPickup(defaultPickup()); // default pickup = kitchen (or society)
     setShowForm(true);
+  };
+
+  // Open the menu picker: choose a saved dish, then just set its time window + servings.
+  const openPicker = () => {
+    setSlotErr(null);
+    setPickedMenu(null);
+    api.myMenu().then((m) => setMenuItems(m.filter((i) => i.available))).catch(() => setMenuItems([]));
+    setShowPicker(true);
+  };
+
+  const pickMenu = (m: MenuItem) => {
+    setSlotErr(null);
+    setPickedMenu(m);
+    setSlotOpenAt("");               // blank = available now
+    setSlotServings("10");
+    setOrderBy(defaultOrderBy());    // reuse the day/time dropdowns for the ending time
+  };
+
+  const listPicked = async () => {
+    if (!pickedMenu) return;
+    if (pickedMenu.pricePerServing == null) return setSlotErr("Add a price to this dish first (in Menu).");
+    const s = parseInt(slotServings, 10);
+    if (!Number.isFinite(s) || s < 1) return setSlotErr("How many servings can you make?");
+    if (!orderBy) return setSlotErr("Set an ending (order-by) time.");
+    const closeIso = new Date(orderBy).toISOString();
+    if (new Date(closeIso).getTime() <= Date.now()) return setSlotErr("Ending time must be in the future.");
+    const openIso = slotOpenAt ? new Date(slotOpenAt).toISOString() : null;
+    if (openIso && new Date(closeIso) <= new Date(openIso)) return setSlotErr("Ending time must be after the opening time.");
+    setSlotBusy(true);
+    setSlotErr(null);
+    try {
+      await api.listFromMenu(pickedMenu.id, { availableFrom: openIso, orderBy: closeIso, maxServings: s });
+      setShowPicker(false);
+      setPickedMenu(null);
+      await load();
+    } catch (e) {
+      setSlotErr(e instanceof Error ? e.message : "Could not list this dish.");
+    } finally {
+      setSlotBusy(false);
+    }
   };
 
   const startEdit = (l: Listing) => {
@@ -459,7 +508,71 @@ export default function CookPanel({ me, onMe, view }: {
         </div>
       )}
 
-      {!showForm && <button onClick={openCreate}>+ List a dish</button>}
+      {!showForm && !showPicker && <button onClick={openPicker}>+ List a dish</button>}
+
+      {showPicker && (
+        <div className="form-block">
+          <strong className="form-title">List a dish</strong>
+          {!pickedMenu ? (
+            <>
+              {menuItems.length === 0 ? (
+                <p className="hint">Your menu is empty. Add dishes in the Menu tab, or type one manually below.</p>
+              ) : (
+                <>
+                  <span className="muted">Choose from your menu:</span>
+                  <div className="list">
+                    {menuItems.map((m) => (
+                      <button className="order-row-btn" key={m.id} onClick={() => pickMenu(m)}>
+                        <div className="orb-main">
+                          <strong>
+                            <span className={`veg-mark ${m.foodType}`} aria-hidden="true" /> {m.name}
+                          </strong>
+                          <span className="muted">
+                            {m.pricePerServing != null ? `~₹${m.pricePerServing}/serving` : "No price set"}
+                          </span>
+                        </div>
+                        <span className="chev">›</span>
+                      </button>
+                    ))}
+                  </div>
+                </>
+              )}
+              <button className="link" onClick={() => { setShowPicker(false); openCreate(); }}>
+                Type a new dish manually
+              </button>
+              <button className="link" onClick={() => setShowPicker(false)}>Cancel</button>
+            </>
+          ) : (
+            <>
+              <span className="muted">
+                <span className={`veg-mark ${pickedMenu.foodType}`} aria-hidden="true" /> <strong>{pickedMenu.name}</strong>
+                {pickedMenu.pricePerServing != null ? ` · ₹${pickedMenu.pricePerServing}/serving` : ""} — name, price & photo reused.
+              </span>
+              <label>Opening time <span style={{ fontWeight: 400 }}>(leave blank = available now)</span></label>
+              <input type="datetime-local" value={slotOpenAt} onChange={(e) => setSlotOpenAt(e.target.value)} />
+              <label>Order by <span className="req">*</span> <span style={{ fontWeight: 400 }}>(orders close at this time)</span></label>
+              <div className="dt-row">
+                <select value={dayPart(orderBy)} onChange={(e) => setDay(e.target.value)}>
+                  {dayOptions.map((o) => (<option key={o.value} value={o.value}>{o.label}</option>))}
+                </select>
+                <select value={timePart(orderBy)} onChange={(e) => setTime(e.target.value)}>
+                  {timeOptions(dayPart(orderBy) || dayOptions[0].value).map((o) => (
+                    <option key={o.value} value={o.value}>{o.label}</option>
+                  ))}
+                </select>
+              </div>
+              {orderBy && <span className="when-note">⏰ Orders close {prettyWhen(orderBy)}</span>}
+              <label>Servings (cap) <span className="req">*</span></label>
+              <input inputMode="numeric" placeholder="10" value={slotServings} onChange={(e) => setSlotServings(e.target.value)} />
+              <button disabled={slotBusy} onClick={listPicked}>
+                {slotBusy ? "Listing…" : "List this dish"}
+              </button>
+              <button className="link" onClick={() => setPickedMenu(null)}>← Choose a different dish</button>
+              {slotErr && <p className="error">{slotErr}</p>}
+            </>
+          )}
+        </div>
+      )}
 
       {showForm && (
         <div className="form-block">
