@@ -41,7 +41,8 @@ public class RequestController {
             @Size(max = 500) String note,
             UUID menuItemId) {}
 
-    public record AcceptRequest(@Min(0) @Max(100000) int pricePerServing) {}
+    /** Price is optional: a request raised from a priced menu item is accepted at that price. */
+    public record AcceptRequest(@Min(0) @Max(100000) Integer pricePerServing) {}
 
     public record RequestResponse(String id, String dishName, int qty, String note, String status,
                                   Integer pricePerServing, String cookName, String consumerName,
@@ -106,6 +107,7 @@ public class RequestController {
             if (item != null && item.getCookId().equals(cook.getId())) {
                 r.setMenuItemId(item.getId());
                 dishName = item.getName();
+                r.setPricePerServing(item.getPricePerServing()); // the menu price, shown to the cook
             }
         }
         r.setDishName(dishName);
@@ -142,7 +144,7 @@ public class RequestController {
     @PostMapping("/{id}/accept")
     public RequestResponse accept(@AuthenticationPrincipal AuthenticatedUser auth,
                                   @PathVariable UUID id,
-                                  @Valid @RequestBody AcceptRequest body) {
+                                  @Valid @RequestBody(required = false) AcceptRequest body) {
         DishRequest r = requests.findById(id)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Request not found"));
         if (!r.getCookId().equals(auth.id())) {
@@ -154,6 +156,15 @@ public class RequestController {
         User cook = users.findById(auth.id())
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Unknown user"));
         OffsetDateTime now = OffsetDateTime.now();
+        // Price: what the cook entered, else the menu price captured when the request was made.
+        Integer chosen = body != null && body.pricePerServing() != null
+                ? body.pricePerServing() : r.getPricePerServing();
+        if (chosen == null) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Enter a price per serving.");
+        }
+        int price = chosen;
+        org.smartgurukul.swadesi.menu.MenuItem item = r.getMenuItemId() == null
+                ? null : menu.findById(r.getMenuItemId()).orElse(null);
 
         Listing l = new Listing();
         l.setId(UUID.randomUUID());
@@ -161,11 +172,11 @@ public class RequestController {
         l.setCookName(cook.getName());
         l.setTitle(r.getDishName());
         l.setDescription("Requested by " + (r.getConsumerName() == null ? "a customer" : r.getConsumerName()));
-        l.setPricePerServing(body.pricePerServing());
+        l.setPricePerServing(price);
         l.setMaxServings(r.getQty());
         l.setServingsClaimed(0);
         l.setStatus("open");
-        l.setFoodType("veg");
+        l.setFoodType(item != null ? item.getFoodType() : "veg");
         l.setRequestOnly(true);
         ListingController.applyKitchenOrSocietyPickup(l, cook);
         l.setCreatedAt(now);
@@ -173,11 +184,11 @@ public class RequestController {
         listings.save(l);
 
         r.setStatus("accepted");
-        r.setPricePerServing(body.pricePerServing());
+        r.setPricePerServing(price);
         r.setListingId(l.getId());
         r.setUpdatedAt(now);
         DishRequest saved = requests.save(r);
-        int total = body.pricePerServing() * r.getQty();
+        int total = price * r.getQty();
         push.notifyUsers(List.of(r.getConsumerId()), "Request accepted ✅",
                 cook.getName() + " will make " + r.getDishName() + " — pay ₹" + total + " to confirm", "/");
         return toResponse(saved);

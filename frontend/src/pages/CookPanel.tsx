@@ -330,8 +330,12 @@ export default function CookPanel({ me, onMe, view }: {
   };
 
   const acceptRequest = async (r: DishRequest) => {
-    const p = parseInt(reqPrice[r.id] ?? "", 10);
-    if (!Number.isFinite(p) || p < 0) return setReqErr("Enter a price per serving.");
+    // Menu requests carry the menu price; only older/unpriced ones need the cook to enter one.
+    let p: number | null = null;
+    if (r.pricePerServing == null) {
+      p = parseInt(reqPrice[r.id] ?? "", 10);
+      if (!Number.isFinite(p) || p < 0) return setReqErr("Enter a price per serving.");
+    }
     setReqBusy(r.id);
     setReqErr(null);
     try {
@@ -375,9 +379,9 @@ export default function CookPanel({ me, onMe, view }: {
   );
   const history = orders.filter((o) => o.status === "completed" || o.status === "rejected" || o.status === "cancelled");
   const histLabel: Record<string, string> = {
-    completed: "🍴 Completed",
+    completed: "✅ Completed",
     rejected: "❌ Declined",
-    cancelled: "Cancelled",
+    cancelled: "🚫 Cancelled",
   };
   const timeOf = (iso: string | null) =>
     iso ? new Date(iso).toLocaleTimeString([], { hour: "numeric", minute: "2-digit" }) : null;
@@ -402,11 +406,14 @@ export default function CookPanel({ me, onMe, view }: {
             <div className="order-card-meta">
               <span>Qty <b>{r.qty}</b></span>
               <span>Customer <b>{r.consumerName ?? "Customer"}</b></span>
+              {r.pricePerServing != null && <span>₹<b>{r.pricePerServing * r.qty}</b></span>}
             </div>
             {r.note && <span className="muted">“{r.note}”</span>}
-            <input inputMode="numeric" placeholder="Your price / serving (₹)"
-                   value={reqPrice[r.id] ?? ""}
-                   onChange={(e) => setReqPrice({ ...reqPrice, [r.id]: e.target.value })} />
+            {r.pricePerServing == null && (
+              <input inputMode="numeric" placeholder="Your price / serving (₹)"
+                     value={reqPrice[r.id] ?? ""}
+                     onChange={(e) => setReqPrice({ ...reqPrice, [r.id]: e.target.value })} />
+            )}
             <div className="order-row">
               <button className="small" disabled={reqBusy === r.id} onClick={() => acceptRequest(r)}>
                 {reqBusy === r.id ? "…" : "Accept"}
@@ -525,7 +532,7 @@ export default function CookPanel({ me, onMe, view }: {
               ...pastReqs.map((r) => ({
                 id: r.id, at: r.createdAt, dish: r.dishName, qty: r.qty,
                 customer: r.consumerName,
-                status: r.status === "rejected" ? "❌ Request declined" : "Request cancelled",
+                status: r.status === "rejected" ? "❌ Declined" : "🚫 Cancelled",
                 cls: `s-${r.status}`,
               })),
             ]

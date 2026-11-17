@@ -144,8 +144,8 @@ export default function FeedPanel({ view, me, onMe }: {
     preparing: "👨‍🍳 Preparing",
     ready: "🛍️ Ready for pickup",
     rejected: "❌ Declined",
-    cancelled: "Cancelled",
-    completed: "🍴 Completed",
+    cancelled: "🚫 Cancelled",
+    completed: "✅ Completed",
   };
 
   const activeStatuses: OrderStatus[] = ["requested", "accepted", "preparing", "ready"];
@@ -299,7 +299,7 @@ export default function FeedPanel({ view, me, onMe }: {
                         <span className="muted">Request · {row.r.cookName ?? ""} · {when(row.r.createdAt)}</span>
                       </div>
                       <span className={`status-pill s-${row.r.status}`}>
-                        {row.r.status === "rejected" ? "❌ Declined" : "Cancelled"}
+                        {row.r.status === "rejected" ? "❌ Declined" : "🚫 Cancelled"}
                       </span>
                     </div>
                   ),

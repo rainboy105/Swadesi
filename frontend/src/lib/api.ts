@@ -179,10 +179,10 @@ export const api = {
   },
   myRequests: () => call<DishRequest[]>("/api/v1/requests/mine"),
   incomingRequests: () => call<DishRequest[]>("/api/v1/requests/incoming"),
-  acceptRequest: (id: string, pricePerServing: number) =>
+  acceptRequest: (id: string, pricePerServing?: number | null) =>
     call<DishRequest>(`/api/v1/requests/${id}/accept`, {
       method: "POST",
-      body: JSON.stringify({ pricePerServing }),
+      body: JSON.stringify({ pricePerServing: pricePerServing ?? null }),
     }),
   rejectRequest: (id: string) =>
     call<DishRequest>(`/api/v1/requests/${id}/reject`, { method: "POST" }),
