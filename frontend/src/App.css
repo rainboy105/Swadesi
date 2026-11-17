@@ -1037,6 +1037,44 @@ button.small {
   filter: brightness(0.98);
 }
 
+/* Cook's menu item card: edit icon pinned top-right, Hide/Remove in a row at the bottom. */
+.menu-card {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  background: var(--sunk);
+  border-radius: 16px;
+  padding: 14px 16px;
+}
+
+.menu-card.dim {
+  opacity: 0.55;
+}
+
+.menu-card-top {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  /* keep text clear of the top-right edit icon */
+  padding-right: 34px;
+}
+
+.menu-edit {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+}
+
+.menu-card-actions {
+  display: flex;
+  gap: 8px;
+}
+
+.menu-card-actions button {
+  flex: 1;
+}
+
 /* Consumer menu rows: thumbnail + dish info + inline qty/Request, all on one line. */
 .menu-row {
   display: flex;

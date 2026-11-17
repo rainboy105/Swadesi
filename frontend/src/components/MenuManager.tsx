@@ -143,32 +143,37 @@ export default function MenuManager() {
       ) : (
         <div className="list">
           {items.map((m) => (
-            <div key={m.id}>
-            <div className={`listing ${m.available ? "" : "dim"}`}>
-              {m.hasPhoto ? (
-                <img className="listing-thumb" src={api.menuPhotoUrl(m.id)} alt={m.name} />
-              ) : (
-                <div className="listing-thumb placeholder" aria-hidden="true">🍲</div>
-              )}
-              <div className="listing-main">
-                <strong>
-                  <span className={`veg-mark ${m.foodType}`} aria-label={m.foodType === "veg" ? "Veg" : "Non-veg"} />
-                  {m.name}
-                </strong>
-                {m.description && <span className="muted">{m.description}</span>}
-                <span className="meta">
-                  {m.pricePerServing != null ? `~₹${m.pricePerServing}/serving` : "Price on request"}
-                  {m.available ? "" : " · hidden"}
-                </span>
+            <div className={`menu-card ${m.available ? "" : "dim"}`} key={m.id}>
+              <button className="icon-btn small-icon menu-edit" aria-label="Edit item" onClick={() => startEdit(m)}>
+                <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor"
+                     strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M12 20h9" /><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4Z" />
+                </svg>
+              </button>
+              <div className="menu-card-top">
+                {m.hasPhoto ? (
+                  <img className="listing-thumb" src={api.menuPhotoUrl(m.id)} alt={m.name} />
+                ) : (
+                  <div className="listing-thumb placeholder" aria-hidden="true">🍲</div>
+                )}
+                <div className="listing-main">
+                  <strong>
+                    <span className={`veg-mark ${m.foodType}`} aria-label={m.foodType === "veg" ? "Veg" : "Non-veg"} />
+                    {m.name}
+                  </strong>
+                  {m.description && <span className="muted">{m.description}</span>}
+                  <span className="meta">
+                    {m.pricePerServing != null ? `~₹${m.pricePerServing}/serving` : "Price on request"}
+                    {m.available ? "" : " · hidden"}
+                  </span>
+                </div>
               </div>
-              <div className="order-actions">
-                <button className="secondary small" onClick={() => startEdit(m)}>Edit</button>
+              <div className="menu-card-actions">
                 <button className="secondary small" onClick={() => toggleAvailable(m)}>
                   {m.available ? "Hide" : "Show"}
                 </button>
                 <button className="secondary small" onClick={() => remove(m)}>Remove</button>
               </div>
-            </div>
             </div>
           ))}
         </div>
