@@ -1944,3 +1944,71 @@ button.small {
 .order-line .status-pill {
   margin-left: auto;
 }
+
+/* Slim header pinned to the top once the page is scrolled: brand top-left with the mode
+   line under it, actions on the right. The greeting stays behind in the full header. */
+.hero-compact {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  z-index: 40;
+  display: flex;
+  justify-content: center;
+  padding: 0 16px;
+  pointer-events: none;
+}
+
+.hero-compact-inner {
+  pointer-events: auto;
+  width: 100%;
+  max-width: 440px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  background: var(--card);
+  padding: 10px 18px;
+  border-radius: 0 0 18px 18px;
+  box-shadow: 0 6px 18px rgba(59, 23, 130, 0.14);
+  animation: hero-compact-in 0.18s ease-out;
+}
+
+.hero-compact-brand {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  min-width: 0;
+}
+
+.hero-compact-brand .logo-box {
+  font-size: 1.25rem;
+  line-height: 1.2;
+}
+
+.hero-compact-brand span {
+  font-size: 0.82rem;
+  color: var(--ink-600);
+}
+
+.hero-compact .icon-btn {
+  width: 36px;
+  height: 36px;
+}
+
+@keyframes hero-compact-in {
+  from { transform: translateY(-100%); }
+  to { transform: translateY(0); }
+}
+
+@media (max-width: 480px) {
+  .hero-compact {
+    padding: 0 10px;
+  }
+}
+
+/* Keep map layers beneath the pinned header. */
+.pickup-map,
+.loc-map-wrap {
+  isolation: isolate;
+}

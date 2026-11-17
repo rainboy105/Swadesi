@@ -1,3 +1,4 @@
+import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 
 /** The violet hero top bar with the brand and a profile icon (top-right -> /profile). */
@@ -8,6 +9,7 @@ export default function AppHeader({
   onBack,
   onSwap,
   avatarSrc,
+  compactOnScroll = false,
 }: {
   title: string;
   subtitle?: string;
@@ -15,9 +17,63 @@ export default function AppHeader({
   onBack?: () => void;
   onSwap?: () => void;
   avatarSrc?: string;
+  /** Once the page is scrolled, pin a slim bar (brand top-left, subtitle under it) to the top. */
+  compactOnScroll?: boolean;
 }) {
   const navigate = useNavigate();
+
+  // The slim bar is a separate fixed element, so showing it never shifts the page layout.
+  const [scrolled, setScrolled] = useState(false);
+  useEffect(() => {
+    if (!compactOnScroll) return;
+    const onScroll = () => setScrolled(window.scrollY > 110);
+    onScroll();
+    window.addEventListener("scroll", onScroll, { passive: true });
+    return () => window.removeEventListener("scroll", onScroll);
+  }, [compactOnScroll]);
+
+  const actions = (
+    <div className="hero-actions">
+      {onSwap && (
+        <button className="icon-btn" aria-label="Switch mode" onClick={onSwap}>
+          <svg viewBox="0 0 24 24" width="22" height="22" fill="none"
+               stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <path d="M7 4v13M7 4L4 7M7 4l3 3" />
+            <path d="M17 20V7M17 20l3-3M17 20l-3-3" />
+          </svg>
+        </button>
+      )}
+      {showProfile ? (
+        <button className="icon-btn avatar-btn" aria-label="Profile" onClick={() => navigate("/profile")}>
+          {avatarSrc ? (
+            <img className="avatar-mini" src={avatarSrc} alt="Profile" />
+          ) : (
+            <svg viewBox="0 0 24 24" width="22" height="22" fill="none"
+                 stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <circle cx="12" cy="8" r="4" />
+              <path d="M4 20c0-4 3.6-6 8-6s8 2 8 6" />
+            </svg>
+          )}
+        </button>
+      ) : (
+        !onSwap && <span className="icon-spacer" />
+      )}
+    </div>
+  );
+
   return (
+    <>
+    {compactOnScroll && scrolled && (
+      <div className="hero-compact">
+        <div className="hero-compact-inner">
+          <div className="hero-compact-brand">
+            <div className="logo-box">🍲 Swaadesi</div>
+            {subtitle && <span>{subtitle}</span>}
+          </div>
+          {actions}
+        </div>
+      </div>
+    )}
     <div className="hero">
       <div className="hero-bar">
         {onBack ? (
@@ -31,35 +87,11 @@ export default function AppHeader({
           <span className="icon-spacer" />
         )}
         <div className="logo-box">🍲 Swaadesi</div>
-        <div className="hero-actions">
-          {onSwap && (
-            <button className="icon-btn" aria-label="Switch mode" onClick={onSwap}>
-              <svg viewBox="0 0 24 24" width="22" height="22" fill="none"
-                   stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                <path d="M7 4v13M7 4L4 7M7 4l3 3" />
-                <path d="M17 20V7M17 20l3-3M17 20l-3-3" />
-              </svg>
-            </button>
-          )}
-          {showProfile ? (
-            <button className="icon-btn avatar-btn" aria-label="Profile" onClick={() => navigate("/profile")}>
-              {avatarSrc ? (
-                <img className="avatar-mini" src={avatarSrc} alt="Profile" />
-              ) : (
-                <svg viewBox="0 0 24 24" width="22" height="22" fill="none"
-                     stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                  <circle cx="12" cy="8" r="4" />
-                  <path d="M4 20c0-4 3.6-6 8-6s8 2 8 6" />
-                </svg>
-              )}
-            </button>
-          ) : (
-            !onSwap && <span className="icon-spacer" />
-          )}
-        </div>
+        {actions}
       </div>
       {title && <h2>{title}</h2>}
       {subtitle && <p>{subtitle}</p>}
     </div>
+    </>
   );
 }

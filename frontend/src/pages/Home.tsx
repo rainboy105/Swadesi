@@ -104,6 +104,7 @@ export default function Home({ me, onMe }: { me: Me; onMe: (me: Me) => void }) {
         title={`Namaste${me.name ? `, ${me.name.split(" ")[0]}` : ""} 👋`}
         subtitle={role === "cook" ? "You're in cook mode" : "You're in consumer mode"}
         onSwap={() => setSheetOpen(true)}
+        compactOnScroll
         avatarSrc={me.hasAvatar
           ? api.avatarUrl(me.id)
           : role === "cook" ? "/avatars/cook.svg?v=3" : "/avatars/consumer.svg?v=3"}
