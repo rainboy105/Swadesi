@@ -392,15 +392,19 @@ export default function CookPanel({ me, onMe, view }: {
           <p className="hint">No orders or requests yet. They'll show up here when customers order.</p>
         )}
 
-        {/* New requests: accept with a price, or decline. */}
+        {/* Every request and order is its own card: dish, quantity, customer, status. */}
         {newReqs.map((r) => (
-          <div className="form-block" key={r.id}>
-            <strong>{r.qty} × {r.dishName}</strong>
-            <span className="muted">
-              Request from {r.consumerName ?? "a customer"}{r.note ? ` · “${r.note}”` : ""}
-            </span>
-            <label>Your price / serving (₹)</label>
-            <input inputMode="numeric" placeholder="e.g. 120"
+          <div className="order-card" key={r.id}>
+            <div className="order-card-head">
+              <strong>{r.dishName}</strong>
+              <span className="status-pill s-ready">🆕 New request</span>
+            </div>
+            <div className="order-card-meta">
+              <span>Qty <b>{r.qty}</b></span>
+              <span>Customer <b>{r.consumerName ?? "Customer"}</b></span>
+            </div>
+            {r.note && <span className="muted">“{r.note}”</span>}
+            <input inputMode="numeric" placeholder="Your price / serving (₹)"
                    value={reqPrice[r.id] ?? ""}
                    onChange={(e) => setReqPrice({ ...reqPrice, [r.id]: e.target.value })} />
             <div className="order-row">
@@ -415,9 +419,16 @@ export default function CookPanel({ me, onMe, view }: {
         ))}
 
         {awaitingPay.map((r) => (
-          <div className="profile-row" key={r.id}>
-            <span>{r.qty} × {r.dishName}{r.consumerName ? ` · ${r.consumerName}` : ""}</span>
-            <strong>✅ Accepted · awaiting payment</strong>
+          <div className="order-card" key={r.id}>
+            <div className="order-card-head">
+              <strong>{r.dishName}</strong>
+              <span className="status-pill">⏳ Awaiting payment</span>
+            </div>
+            <div className="order-card-meta">
+              <span>Qty <b>{r.qty}</b></span>
+              <span>Customer <b>{r.consumerName ?? "Customer"}</b></span>
+              {r.pricePerServing != null && <span>₹<b>{r.pricePerServing * r.qty}</b></span>}
+            </div>
           </div>
         ))}
 
@@ -432,88 +443,103 @@ export default function CookPanel({ me, onMe, view }: {
             ready: "🛍️ Ready",
           };
           return (
-            <div className="dish-group" key={g.listingId}>
-              <div className="dish-group-head">
-                <strong>{g.title}</strong>
-                <span className="muted">{g.items.length} order{g.items.length > 1 ? "s" : ""}</span>
-              </div>
+            <div className="order-cards" key={g.listingId}>
+              {/* With several orders of one dish, one tap moves them all forward a step. */}
+              {g.items.length > 1 && (requested.length > 1 || accepted.length > 1 || preparing.length > 1) && (
+                <div className="dish-actions">
+                  {requested.length > 1 && (
+                    <button className="secondary small" onClick={() => bulkDecide(g.listingId, "accepted")}>
+                      Accept all {g.title} ({requested.length})
+                    </button>
+                  )}
+                  {accepted.length > 1 && (
+                    <button className="secondary small" onClick={() => bulkDecide(g.listingId, "preparing")}>
+                      Start preparing all ({accepted.length})
+                    </button>
+                  )}
+                  {preparing.length > 1 && (
+                    <button className="secondary small" onClick={() => bulkDecide(g.listingId, "ready")}>
+                      Mark all ready ({preparing.length})
+                    </button>
+                  )}
+                </div>
+              )}
 
-              {/* One tap moves every order of this dish forward a step. */}
-              <div className="dish-actions">
-                {requested.length > 0 && (
-                  <button className="small" onClick={() => bulkDecide(g.listingId, "accepted")}>
-                    Accept all ({requested.length})
-                  </button>
-                )}
-                {accepted.length > 0 && (
-                  <button className="small" onClick={() => bulkDecide(g.listingId, "preparing")}>
-                    Start preparing ({accepted.length})
-                  </button>
-                )}
-                {preparing.length > 0 && (
-                  <button className="small" onClick={() => bulkDecide(g.listingId, "ready")}>
-                    Mark all ready ({preparing.length})
-                  </button>
-                )}
-              </div>
-
-              {/* Each customer is a separate order with its own pickup code. */}
-              <div className="dish-orders">
-                {g.items.map((o) => (
-                  <div className="dish-order" key={o.id}>
-                    <div className="dish-order-row">
-                      <span className="dish-order-main">
-                        <strong>{o.qty} ×</strong> {o.consumerName ?? "Customer"}
-                      </span>
-                      <span className={`status-pill s-${o.status}`}>{statusText[o.status]}</span>
-                      {o.status === "requested" && (
-                        <button className="secondary small" onClick={() => decide(o, "rejected")}>Reject</button>
-                      )}
-                    </div>
-                    {o.status === "ready" && (
-                      <div className="pickup-confirm">
-                        <span className="muted">Enter {o.consumerName ?? "the customer"}'s pickup code:</span>
-                        <div className="order-row">
-                          <input
-                            inputMode="numeric"
-                            placeholder="4-digit code"
-                            value={codeInput[o.id] ?? ""}
-                            onChange={(e) => setCodeInput({ ...codeInput, [o.id]: e.target.value })}
-                          />
-                          <button className="small" onClick={() => decide(o, "completed", codeInput[o.id])}>
-                            Confirm pickup
-                          </button>
-                        </div>
-                        {codeErr[o.id] && <span className="error-inline">{codeErr[o.id]}</span>}
-                      </div>
-                    )}
+              {g.items.map((o) => (
+                <div className="order-card" key={o.id}>
+                  <div className="order-card-head">
+                    <strong>{o.listingTitle}</strong>
+                    <span className={`status-pill s-${o.status}`}>{statusText[o.status]}</span>
                   </div>
-                ))}
-              </div>
+                  <div className="order-card-meta">
+                    <span>Qty <b>{o.qty}</b></span>
+                    <span>Customer <b>{o.consumerName ?? "Customer"}</b></span>
+                  </div>
+                  {o.status === "requested" && (
+                    <div className="order-row">
+                      <button className="small" onClick={() => decide(o, "accepted")}>Accept</button>
+                      <button className="secondary small" onClick={() => decide(o, "rejected")}>Reject</button>
+                    </div>
+                  )}
+                  {o.status === "accepted" && (
+                    <div className="order-row">
+                      <button className="small" onClick={() => decide(o, "preparing")}>Start preparing</button>
+                    </div>
+                  )}
+                  {o.status === "preparing" && (
+                    <div className="order-row">
+                      <button className="small" onClick={() => decide(o, "ready")}>Mark ready</button>
+                    </div>
+                  )}
+                  {o.status === "ready" && (
+                    <div className="pickup-confirm">
+                      <span className="muted">Enter {o.consumerName ?? "the customer"}'s pickup code:</span>
+                      <div className="order-row">
+                        <input
+                          inputMode="numeric"
+                          placeholder="4-digit code"
+                          value={codeInput[o.id] ?? ""}
+                          onChange={(e) => setCodeInput({ ...codeInput, [o.id]: e.target.value })}
+                        />
+                        <button className="small" onClick={() => decide(o, "completed", codeInput[o.id])}>
+                          Confirm pickup
+                        </button>
+                      </div>
+                      {codeErr[o.id] && <span className="error-inline">{codeErr[o.id]}</span>}
+                    </div>
+                  )}
+                </div>
+              ))}
             </div>
           );
         })}
 
         {(history.length > 0 || pastReqs.length > 0) && (
-          <div className="orders-block history">
+          <div className="order-cards">
             <label>Past</label>
             {[
               ...history.map((o) => ({
-                id: o.id, at: o.createdAt,
-                text: `${o.qty} × ${o.listingTitle}${o.consumerName ? ` · ${o.consumerName}` : ""}`,
-                status: histLabel[o.status],
+                id: o.id, at: o.createdAt, dish: o.listingTitle, qty: o.qty,
+                customer: o.consumerName, status: histLabel[o.status], cls: `s-${o.status}`,
               })),
               ...pastReqs.map((r) => ({
-                id: r.id, at: r.createdAt,
-                text: `${r.qty} × ${r.dishName}${r.consumerName ? ` · ${r.consumerName}` : ""} (request)`,
-                status: r.status === "rejected" ? "❌ Declined" : "Cancelled by customer",
+                id: r.id, at: r.createdAt, dish: r.dishName, qty: r.qty,
+                customer: r.consumerName,
+                status: r.status === "rejected" ? "❌ Request declined" : "Request cancelled",
+                cls: `s-${r.status}`,
               })),
             ]
               .sort((a, b) => Date.parse(b.at) - Date.parse(a.at))
               .map((row) => (
-                <div className="profile-row" key={row.id}>
-                  <span>{row.text}</span>
-                  <strong>{row.status}</strong>
+                <div className="order-card past" key={row.id}>
+                  <div className="order-card-head">
+                    <strong>{row.dish}</strong>
+                    <span className={`status-pill ${row.cls}`}>{row.status}</span>
+                  </div>
+                  <div className="order-card-meta">
+                    <span>Qty <b>{row.qty}</b></span>
+                    <span>Customer <b>{row.customer ?? "Customer"}</b></span>
+                  </div>
                 </div>
               ))}
           </div>

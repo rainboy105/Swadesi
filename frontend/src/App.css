@@ -1870,3 +1870,25 @@ button.small {
   text-align: right;
   font-weight: 600;
 }
+
+/* Cook activity list: a stack of order/request cards. */
+.order-cards {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.order-card-meta b {
+  color: var(--ink-900);
+  font-weight: 600;
+}
+
+.order-card.past {
+  background: transparent;
+  border: 1px solid var(--line, #e6e0f0);
+}
+
+.order-card.past .order-card-head strong {
+  font-size: 0.98rem;
+  color: var(--ink-600);
+}
