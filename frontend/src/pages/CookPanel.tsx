@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import { api, type Listing, type Order, type Me, type FoodType, type MenuItem } from "../lib/api";
+import { api, type Listing, type Order, type Me, type FoodType, type MenuItem, type DishRequest } from "../lib/api";
 import { downscaleToJpeg } from "../lib/image";
 import LocationPicker, { type PickedLocation } from "../components/LocationPicker";
 import ShareButton from "../components/ShareButton";
@@ -28,6 +28,11 @@ export default function CookPanel({ me, onMe, view }: {
   };
   const [listings, setListings] = useState<Listing[]>([]);
   const [orders, setOrders] = useState<Order[]>([]);
+  // Incoming dish requests, shown with orders in one activity list.
+  const [requests, setRequests] = useState<DishRequest[]>([]);
+  const [reqPrice, setReqPrice] = useState<Record<string, string>>({});
+  const [reqBusy, setReqBusy] = useState<string | null>(null);
+  const [reqErr, setReqErr] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [showForm, setShowForm] = useState(false);
   const [title, setTitle] = useState("");
@@ -203,9 +208,14 @@ export default function CookPanel({ me, onMe, view }: {
   const fetchData = async (silent = false) => {
     if (!silent) setLoading(true);
     try {
-      const [mine, recv] = await Promise.all([api.myListings(), api.receivedOrders()]);
+      const [mine, recv, reqs] = await Promise.all([
+        api.myListings(),
+        api.receivedOrders(),
+        api.incomingRequests().catch(() => [] as DishRequest[]),
+      ]);
       setListings(mine);
       setOrders(recv);
+      setRequests(reqs);
     } catch {
       /* ignore */
     } finally {
@@ -319,6 +329,40 @@ export default function CookPanel({ me, onMe, view }: {
     }
   };
 
+  const acceptRequest = async (r: DishRequest) => {
+    const p = parseInt(reqPrice[r.id] ?? "", 10);
+    if (!Number.isFinite(p) || p < 0) return setReqErr("Enter a price per serving.");
+    setReqBusy(r.id);
+    setReqErr(null);
+    try {
+      await api.acceptRequest(r.id, p);
+      await fetchData(true);
+    } catch (e) {
+      setReqErr(e instanceof Error ? e.message : "Could not accept.");
+    } finally {
+      setReqBusy(null);
+    }
+  };
+
+  const rejectRequest = async (r: DishRequest) => {
+    setReqBusy(r.id);
+    setReqErr(null);
+    try {
+      await api.rejectRequest(r.id);
+      await fetchData(true);
+    } catch (e) {
+      setReqErr(e instanceof Error ? e.message : "Could not decline.");
+    } finally {
+      setReqBusy(null);
+    }
+  };
+
+  // Requests: new ones need a decision; accepted ones wait for the customer's payment. A paid
+  // request is already an order, so it isn't listed twice.
+  const newReqs = requests.filter((r) => r.status === "pending");
+  const awaitingPay = requests.filter((r) => r.status === "accepted");
+  const pastReqs = requests.filter((r) => r.status === "rejected" || r.status === "cancelled");
+
   const activeAll = orders.filter(
     (o) => o.status === "requested" || o.status === "accepted" || o.status === "preparing" || o.status === "ready",
   );
@@ -342,15 +386,40 @@ export default function CookPanel({ me, onMe, view }: {
   if (view === "orders") {
     return (
       <div className="mode-panel">
-        <div className="panel-head">
-          <span className="tile marigold">📦</span>
-          <h1>Orders</h1>
-          <button className="link refresh" onClick={load} aria-label="Refresh">↻</button>
-        </div>
+        {reqErr && <p className="error">{reqErr}</p>}
 
-        {dishGroups.length === 0 && history.length === 0 && (
-          <p className="hint">No orders yet. They'll show up here when customers order.</p>
+        {dishGroups.length === 0 && history.length === 0 && requests.length === 0 && (
+          <p className="hint">No orders or requests yet. They'll show up here when customers order.</p>
         )}
+
+        {/* New requests: accept with a price, or decline. */}
+        {newReqs.map((r) => (
+          <div className="form-block" key={r.id}>
+            <strong>{r.qty} × {r.dishName}</strong>
+            <span className="muted">
+              Request from {r.consumerName ?? "a customer"}{r.note ? ` · “${r.note}”` : ""}
+            </span>
+            <label>Your price / serving (₹)</label>
+            <input inputMode="numeric" placeholder="e.g. 120"
+                   value={reqPrice[r.id] ?? ""}
+                   onChange={(e) => setReqPrice({ ...reqPrice, [r.id]: e.target.value })} />
+            <div className="order-row">
+              <button className="small" disabled={reqBusy === r.id} onClick={() => acceptRequest(r)}>
+                {reqBusy === r.id ? "…" : "Accept"}
+              </button>
+              <button className="secondary small" disabled={reqBusy === r.id} onClick={() => rejectRequest(r)}>
+                Decline
+              </button>
+            </div>
+          </div>
+        ))}
+
+        {awaitingPay.map((r) => (
+          <div className="profile-row" key={r.id}>
+            <span>{r.qty} × {r.dishName}{r.consumerName ? ` · ${r.consumerName}` : ""}</span>
+            <strong>✅ Accepted · awaiting payment</strong>
+          </div>
+        ))}
 
         {dishGroups.map((g) => {
           const requested = g.items.filter((o) => o.status === "requested");
@@ -425,15 +494,28 @@ export default function CookPanel({ me, onMe, view }: {
           );
         })}
 
-        {history.length > 0 && (
+        {(history.length > 0 || pastReqs.length > 0) && (
           <div className="orders-block history">
-            <label>Past orders</label>
-            {history.map((o) => (
-              <div className="profile-row" key={o.id}>
-                <span>{o.qty} × {o.listingTitle}{o.consumerName ? ` · ${o.consumerName}` : ""}</span>
-                <strong>{histLabel[o.status]}</strong>
-              </div>
-            ))}
+            <label>Past</label>
+            {[
+              ...history.map((o) => ({
+                id: o.id, at: o.createdAt,
+                text: `${o.qty} × ${o.listingTitle}${o.consumerName ? ` · ${o.consumerName}` : ""}`,
+                status: histLabel[o.status],
+              })),
+              ...pastReqs.map((r) => ({
+                id: r.id, at: r.createdAt,
+                text: `${r.qty} × ${r.dishName}${r.consumerName ? ` · ${r.consumerName}` : ""} (request)`,
+                status: r.status === "rejected" ? "❌ Declined" : "Cancelled by customer",
+              })),
+            ]
+              .sort((a, b) => Date.parse(b.at) - Date.parse(a.at))
+              .map((row) => (
+                <div className="profile-row" key={row.id}>
+                  <span>{row.text}</span>
+                  <strong>{row.status}</strong>
+                </div>
+              ))}
           </div>
         )}
       </div>

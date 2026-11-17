@@ -4,8 +4,6 @@ import AppHeader from "../components/AppHeader";
 import CookPanel from "./CookPanel";
 import FeedPanel from "./FeedPanel";
 import CooksPanel from "./CooksPanel";
-import CookRequests from "./CookRequests";
-import MyRequests from "./MyRequests";
 import MenuManager from "../components/MenuManager";
 
 /**
@@ -20,8 +18,6 @@ export default function Home({ me, onMe }: { me: Me; onMe: (me: Me) => void }) {
   const role = me.activeRole;
   const [pendingReq, setPendingReq] = useState(0);   // cook: new (pending) requests
   const [payableReq, setPayableReq] = useState(0);   // consumer: accepted requests awaiting payment
-  // Within the Orders tab, switch between the Orders list and the Requests list.
-  const [ordersSub, setOrdersSub] = useState<"orders" | "requests">("orders");
 
   // Badge the cook's Requests with the count of new (pending) requests.
   useEffect(() => {
@@ -45,7 +41,7 @@ export default function Home({ me, onMe }: { me: Me; onMe: (me: Me) => void }) {
       active = false;
       clearInterval(id);
     };
-  }, [role, cookTab, ordersSub]);
+  }, [role, cookTab]);
 
   // Badge the consumer's Requests with the count accepted and awaiting payment.
   useEffect(() => {
@@ -69,7 +65,7 @@ export default function Home({ me, onMe }: { me: Me; onMe: (me: Me) => void }) {
       active = false;
       clearInterval(id);
     };
-  }, [role, consumerTab, ordersSub]);
+  }, [role, consumerTab]);
 
   const switchTo = async (next: Role) => {
     setSheetOpen(false);
@@ -102,19 +98,6 @@ export default function Home({ me, onMe }: { me: Me; onMe: (me: Me) => void }) {
       ? setConsumerTab(k as "feed" | "orders" | "cooks")
       : setCookTab(k as "kitchen" | "orders" | "menu");
 
-  // Sub-toggle inside the Orders tab: Orders | Requests (with a count badge).
-  const ordersSubBar = (badge: number) => (
-    <div className="segmented sub" role="tablist" aria-label="Orders or requests">
-      <button className={ordersSub === "orders" ? "seg active" : "seg"} onClick={() => setOrdersSub("orders")}>
-        Orders
-      </button>
-      <button className={ordersSub === "requests" ? "seg active" : "seg"} onClick={() => setOrdersSub("requests")}>
-        Requests
-        {badge > 0 && <span className="tab-badge">{badge}</span>}
-      </button>
-    </div>
-  );
-
   return (
     <>
       <AppHeader
@@ -145,27 +128,13 @@ export default function Home({ me, onMe }: { me: Me; onMe: (me: Me) => void }) {
         {role === "consumer" ? (
           consumerTab === "cooks" ? (
             <CooksPanel />
-          ) : consumerTab === "orders" ? (
-            <>
-              {ordersSubBar(payableReq)}
-              {ordersSub === "orders"
-                ? <FeedPanel view="orders" me={me} onMe={onMe} />
-                : <MyRequests />}
-            </>
           ) : (
             <FeedPanel view={consumerTab} me={me} onMe={onMe} />
           )
         ) : cookTab === "menu" ? (
           <MenuManager />
-        ) : cookTab === "orders" ? (
-          <>
-            {ordersSubBar(pendingReq)}
-            {ordersSub === "orders"
-              ? <CookPanel me={me} onMe={onMe} view="orders" />
-              : <CookRequests />}
-          </>
         ) : (
-          <CookPanel me={me} onMe={onMe} view="kitchen" />
+          <CookPanel me={me} onMe={onMe} view={cookTab} />
         )}
       </div>
 
