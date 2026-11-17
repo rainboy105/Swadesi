@@ -55,10 +55,13 @@ public class RequestController {
     private final PushService push;
     private final WhatsAppSender whatsApp;
     private final org.smartgurukul.swadesi.menu.MenuItemRepository menu;
+    private final org.smartgurukul.swadesi.order.FoodOrderRepository orders;
 
     public RequestController(DishRequestRepository requests, ListingRepository listings,
                             UserRepository users, PushService push, WhatsAppSender whatsApp,
-                            org.smartgurukul.swadesi.menu.MenuItemRepository menu) {
+                            org.smartgurukul.swadesi.menu.MenuItemRepository menu,
+                            org.smartgurukul.swadesi.order.FoodOrderRepository orders) {
+        this.orders = orders;
         this.requests = requests;
         this.listings = listings;
         this.users = users;
@@ -125,14 +128,14 @@ public class RequestController {
     @GetMapping("/mine")
     public List<RequestResponse> mine(@AuthenticationPrincipal AuthenticatedUser auth) {
         return requests.findByConsumerIdOrderByCreatedAtDesc(auth.id()).stream()
-                .map(RequestController::toResponse).toList();
+                .map(this::closeIfPaid).map(RequestController::toResponse).toList();
     }
 
     /** Requests addressed to the logged-in cook. */
     @GetMapping("/incoming")
     public List<RequestResponse> incoming(@AuthenticationPrincipal AuthenticatedUser auth) {
         return requests.findByCookIdOrderByCreatedAtDesc(auth.id()).stream()
-                .map(RequestController::toResponse).toList();
+                .map(this::closeIfPaid).map(RequestController::toResponse).toList();
     }
 
     /** Cook accepts a request with a price/serving; creates a private listing to pay against. */
@@ -216,6 +219,25 @@ public class RequestController {
         r.setStatus("cancelled");
         r.setUpdatedAt(OffsetDateTime.now());
         return toResponse(requests.save(r));
+    }
+
+    /**
+     * Safety net: an accepted request whose listing already has a placed (paid) order is really
+     * fulfilled. Repairs requests left "awaiting payment" when a payment was confirmed by a path
+     * that didn't close the request.
+     */
+    private DishRequest closeIfPaid(DishRequest r) {
+        if (!"accepted".equals(r.getStatus()) || r.getListingId() == null) return r;
+        for (org.smartgurukul.swadesi.order.FoodOrder o
+                : orders.findByListingIdInOrderByCreatedAtDesc(List.of(r.getListingId()))) {
+            String st = o.getStatus();
+            if ("pending_payment".equals(st) || "cancelled".equals(st)) continue;
+            r.setStatus("fulfilled");
+            r.setOrderId(o.getId());
+            r.setUpdatedAt(OffsetDateTime.now());
+            return requests.save(r);
+        }
+        return r;
     }
 
     private static RequestResponse toResponse(DishRequest r) {

@@ -156,6 +156,7 @@ public class OrderController {
     private void markRequestFulfilled(Listing l, FoodOrder o) {
         if (l == null || !l.isRequestOnly()) return;
         dishRequests.findByListingId(l.getId()).ifPresent(r -> {
+            if (!"accepted".equals(r.getStatus())) return; // already fulfilled, or no longer open
             r.setStatus("fulfilled");
             r.setOrderId(o.getId());
             r.setUpdatedAt(OffsetDateTime.now());
@@ -174,8 +175,9 @@ public class OrderController {
             throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Not your order");
         }
         if (!"pending_payment".equals(o.getStatus())) {
-            // Idempotent: already verified.
+            // Idempotent: already verified (the webhook or reconcile may have got there first).
             Listing l0 = listings.findById(o.getListingId()).orElse(null);
+            if (o.isPaid()) markRequestFulfilled(l0, o);
             return toResponse(o, l0, true);
         }
         if (!razorpay.verifySignature(req.razorpayOrderId(), req.razorpayPaymentId(), req.razorpaySignature())
@@ -251,6 +253,7 @@ public class OrderController {
         o.setStatus("requested");
         o.setUpdatedAt(OffsetDateTime.now());
         orders.save(o);
+        markRequestFulfilled(l, o);
         if (l != null) {
             users.findById(l.getCookId()).ifPresent(cook -> notify(cook.getPhone(),
                     "New Swaadesi order: " + o.getQty() + " × " + l.getTitle()

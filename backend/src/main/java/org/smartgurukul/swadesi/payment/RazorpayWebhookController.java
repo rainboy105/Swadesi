@@ -37,10 +37,13 @@ public class RazorpayWebhookController {
     private final ListingRepository listings;
     private final UserRepository users;
     private final WhatsAppSender whatsApp;
+    private final org.smartgurukul.swadesi.request.DishRequestRepository dishRequests;
 
     public RazorpayWebhookController(RazorpayService razorpay, FoodOrderRepository orders,
                                      ListingRepository listings, UserRepository users,
-                                     WhatsAppSender whatsApp) {
+                                     WhatsAppSender whatsApp,
+                                     org.smartgurukul.swadesi.request.DishRequestRepository dishRequests) {
+        this.dishRequests = dishRequests;
         this.razorpay = razorpay;
         this.orders = orders;
         this.listings = listings;
@@ -93,6 +96,17 @@ public class RazorpayWebhookController {
         orders.save(o);
 
         Listing l = listings.findById(o.getListingId()).orElse(null);
+        // If this order pays for an accepted dish request, close the request so it isn't shown
+        // as "awaiting payment" next to the order it became.
+        if (l != null && l.isRequestOnly()) {
+            dishRequests.findByListingId(l.getId()).ifPresent(r -> {
+                if (!"accepted".equals(r.getStatus())) return;
+                r.setStatus("fulfilled");
+                r.setOrderId(o.getId());
+                r.setUpdatedAt(now);
+                dishRequests.save(r);
+            });
+        }
         if (l != null) {
             users.findById(l.getCookId()).ifPresent(cook -> {
                 if (cook.getPhone() == null) return;
