@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 
 /** The violet hero top bar with the brand and a profile icon (top-right -> /profile). */
@@ -17,19 +17,31 @@ export default function AppHeader({
   onBack?: () => void;
   onSwap?: () => void;
   avatarSrc?: string;
-  /** Once the page is scrolled, pin a slim bar (brand top-left, subtitle under it) to the top. */
+  /** Collapse into a slim pinned bar as the page scrolls (brand top-left, subtitle under it). */
   compactOnScroll?: boolean;
 }) {
   const navigate = useNavigate();
 
-  // The slim bar is a separate fixed element, so showing it never shifts the page layout.
-  const [scrolled, setScrolled] = useState(false);
+  // Scroll-linked collapse: as the page scrolls through the first COLLAPSE px, the header
+  // shrinks to a slim pinned bar. Progress (0..1) is written straight to a CSS variable so the
+  // brand slides to the top-left and the greeting fades in step with the finger, no re-render.
+  const heroRef = useRef<HTMLDivElement>(null);
   useEffect(() => {
     if (!compactOnScroll) return;
-    const onScroll = () => setScrolled(window.scrollY > 110);
-    onScroll();
+    const COLLAPSE = 104; // must match --c on .hero.collapsing
+    let frame = 0;
+    const apply = () => {
+      frame = 0;
+      const p = Math.min(1, Math.max(0, window.scrollY / COLLAPSE));
+      heroRef.current?.style.setProperty("--p", p.toFixed(3));
+    };
+    const onScroll = () => { if (!frame) frame = requestAnimationFrame(apply); };
+    apply();
     window.addEventListener("scroll", onScroll, { passive: true });
-    return () => window.removeEventListener("scroll", onScroll);
+    return () => {
+      window.removeEventListener("scroll", onScroll);
+      if (frame) cancelAnimationFrame(frame);
+    };
   }, [compactOnScroll]);
 
   const actions = (
@@ -62,19 +74,7 @@ export default function AppHeader({
   );
 
   return (
-    <>
-    {compactOnScroll && scrolled && (
-      <div className="hero-compact">
-        <div className="hero-compact-inner">
-          <div className="hero-compact-brand">
-            <div className="logo-box">🍲 Swaadesi</div>
-            {subtitle && <span>{subtitle}</span>}
-          </div>
-          {actions}
-        </div>
-      </div>
-    )}
-    <div className="hero">
+    <div ref={heroRef} className={compactOnScroll ? "hero collapsing" : "hero"}>
       <div className="hero-bar">
         {onBack ? (
           <button className="icon-btn" aria-label="Back" onClick={onBack}>
@@ -92,6 +92,5 @@ export default function AppHeader({
       {title && <h2>{title}</h2>}
       {subtitle && <p>{subtitle}</p>}
     </div>
-    </>
   );
 }
