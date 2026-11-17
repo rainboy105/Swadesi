@@ -662,10 +662,14 @@ select {
   color: var(--ink-900);
 }
 
-.segmented .seg.active {
+/* The :hover variant matters on phones: a tapped tab keeps :hover, which would otherwise
+   win over .active and turn the selected tab transparent. */
+.segmented .seg.active,
+.segmented .seg.active:hover:not(:disabled) {
   background: var(--card);
   color: var(--violet-700);
   box-shadow: 0 3px 10px rgba(59, 23, 130, 0.12);
+  filter: none;
 }
 
 
