@@ -5,6 +5,7 @@ import CookPanel from "./CookPanel";
 import FeedPanel from "./FeedPanel";
 import CooksPanel from "./CooksPanel";
 import CookRequests from "./CookRequests";
+import MyRequests from "./MyRequests";
 import MenuManager from "../components/MenuManager";
 
 /**
@@ -103,7 +104,12 @@ export default function Home({ me, onMe }: { me: Me; onMe: (me: Me) => void }) {
 
         {role === "consumer" ? (
           consumerTab === "cooks" ? (
-            <CooksPanel onOrdered={() => setConsumerTab("orders")} />
+            <CooksPanel />
+          ) : consumerTab === "orders" ? (
+            <>
+              <FeedPanel view="orders" me={me} onMe={onMe} />
+              <MyRequests />
+            </>
           ) : (
             <FeedPanel view={consumerTab} me={me} onMe={onMe} />
           )

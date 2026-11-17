@@ -1,27 +1,10 @@
 import { useEffect, useState } from "react";
-import {
-  api,
-  type CookNearby,
-  type CookProfile,
-  type DishRequest,
-  type RequestStatus,
-} from "../lib/api";
-import { placeOrderFlow } from "../lib/placeOrder";
-
-const statusLabel: Record<RequestStatus, string> = {
-  pending: "⏳ Waiting for cook",
-  accepted: "✅ Accepted — pay to confirm",
-  rejected: "❌ Declined",
-  cancelled: "Cancelled",
-  fulfilled: "🍴 Ordered",
-};
+import { api, type CookNearby, type CookProfile } from "../lib/api";
 
 const dist = (m: number) => (m < 1000 ? `${m} m away` : `${(m / 1000).toFixed(1)} km away`);
 
-/** Consumer: discover nearby cooks, browse their past dishes, request a dish, and pay once accepted. */
-export default function CooksPanel({ onOrdered }: { onOrdered?: () => void }) {
-  const [sub, setSub] = useState<"cooks" | "requests">("cooks");
-
+/** Consumer: discover nearby cooks, browse their menu, and request a dish. */
+export default function CooksPanel() {
   // Directory + profile.
   const [cooks, setCooks] = useState<CookNearby[]>([]);
   const [loadingCooks, setLoadingCooks] = useState(true);
@@ -33,26 +16,15 @@ export default function CooksPanel({ onOrdered }: { onOrdered?: () => void }) {
   const [reqState, setReqState] = useState<Record<string, "sending" | "done">>({});
   const [formMsg, setFormMsg] = useState<string | null>(null);
 
-  // My requests.
-  const [requests, setRequests] = useState<DishRequest[]>([]);
-  const [loadingReq, setLoadingReq] = useState(false);
-  const [payingId, setPayingId] = useState<string | null>(null);
-  const [reqErr, setReqErr] = useState<string | null>(null);
-
   const loadCooks = () => {
     setLoadingCooks(true);
     api.cooksNearby().then(setCooks).catch(() => setCooks([])).finally(() => setLoadingCooks(false));
   };
-  const loadRequests = () => {
-    setLoadingReq(true);
-    api.myRequests().then(setRequests).catch(() => setRequests([])).finally(() => setLoadingReq(false));
-  };
 
   useEffect(() => {
-    if (sub === "cooks" && !profile) loadCooks();
-    if (sub === "requests") loadRequests();
+    if (!profile) loadCooks();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [sub]);
+  }, []);
 
   const openCook = async (c: CookNearby) => {
     setLoadingProfile(true);
@@ -88,23 +60,8 @@ export default function CooksPanel({ onOrdered }: { onOrdered?: () => void }) {
     }
   };
 
-  const pay = async (r: DishRequest) => {
-    if (!r.listingId || r.pricePerServing == null) return;
-    setPayingId(r.id);
-    setReqErr(null);
-    try {
-      await placeOrderFlow(r.listingId, r.qty, r.dishName);
-      await loadRequests();
-      onOrdered?.();
-    } catch (e) {
-      setReqErr(e instanceof Error ? e.message : "Payment could not be completed.");
-    } finally {
-      setPayingId(null);
-    }
-  };
-
   // ---- Cook profile + request form ----
-  if (sub === "cooks" && profile) {
+  if (profile) {
     return (
       <div className="mode-panel">
         <div className="panel-head">
@@ -170,7 +127,7 @@ export default function CooksPanel({ onOrdered }: { onOrdered?: () => void }) {
     );
   }
 
-  // ---- Directory / My requests ----
+  // ---- Directory ----
   return (
     <div className="mode-panel">
       <div className="panel-head">
@@ -178,65 +135,23 @@ export default function CooksPanel({ onOrdered }: { onOrdered?: () => void }) {
         <h1>Cooks near you</h1>
       </div>
 
-      <div className="foodtype-filter">
-        <button className={`ft-chip ${sub === "cooks" ? "on" : ""}`} onClick={() => setSub("cooks")}>Cooks</button>
-        <button className={`ft-chip ${sub === "requests" ? "on" : ""}`} onClick={() => setSub("requests")}>My requests</button>
-      </div>
-
-      {sub === "cooks" ? (
-        loadingCooks || loadingProfile ? (
-          <p className="hint">Loading cooks nearby…</p>
-        ) : cooks.length === 0 ? (
-          <p className="hint">No cooks found within 10 km yet. Check back soon!</p>
-        ) : (
-          <div className="list">
-            {cooks.map((c) => (
-              <button className="order-row-btn" key={c.cookId} onClick={() => openCook(c)}>
-                <div className="orb-main">
-                  <strong>{c.cookName}</strong>
-                  <span className="muted">{dist(c.distanceMeters)}
-                    {c.menuCount > 0 ? ` · ${c.menuCount} on menu` : ` · ${c.dishCount} dish${c.dishCount === 1 ? "" : "es"}`}</span>
-                </div>
-                <span className="chev">›</span>
-              </button>
-            ))}
-          </div>
-        )
+      {loadingCooks || loadingProfile ? (
+        <p className="hint">Loading cooks nearby…</p>
+      ) : cooks.length === 0 ? (
+        <p className="hint">No cooks found within 10 km yet. Check back soon!</p>
       ) : (
-        <>
-          {reqErr && <p className="error">{reqErr}</p>}
-          {loadingReq ? (
-            <p className="hint">Loading your requests…</p>
-          ) : requests.length === 0 ? (
-            <p className="hint">No requests yet. Find a cook and request a dish!</p>
-          ) : (
-            <div className="list">
-              {requests.map((r) => (
-                <div className="listing" key={r.id} style={{ display: "block" }}>
-                  <div className="listing-main">
-                    <strong>{r.qty} × {r.dishName}</strong>
-                    <span className="muted">{r.cookName ?? ""}{r.note ? ` · “${r.note}”` : ""}</span>
-                    <span className="meta">{statusLabel[r.status]}
-                      {r.status === "accepted" && r.pricePerServing != null
-                        ? ` · ₹${r.pricePerServing * r.qty} total` : ""}</span>
-                    {r.status === "accepted" && r.listingId && (
-                      <button className="small" style={{ marginTop: 10, alignSelf: "flex-start" }}
-                              disabled={payingId === r.id} onClick={() => pay(r)}>
-                        {payingId === r.id ? "…" : `Pay ₹${(r.pricePerServing ?? 0) * r.qty}`}
-                      </button>
-                    )}
-                    {r.status === "pending" && (
-                      <button className="link" style={{ alignSelf: "flex-start" }}
-                              onClick={() => api.cancelRequest(r.id).then(loadRequests)}>
-                        Cancel request
-                      </button>
-                    )}
-                  </div>
-                </div>
-              ))}
-            </div>
-          )}
-        </>
+        <div className="list">
+          {cooks.map((c) => (
+            <button className="order-row-btn" key={c.cookId} onClick={() => openCook(c)}>
+              <div className="orb-main">
+                <strong>{c.cookName}</strong>
+                <span className="muted">{dist(c.distanceMeters)}
+                  {c.menuCount > 0 ? ` · ${c.menuCount} on menu` : ` · ${c.dishCount} dish${c.dishCount === 1 ? "" : "es"}`}</span>
+              </div>
+              <span className="chev">›</span>
+            </button>
+          ))}
+        </div>
       )}
     </div>
   );
