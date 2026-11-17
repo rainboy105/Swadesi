@@ -148,13 +148,6 @@ export default function CookPanel({ me, onMe, view }: {
     setPickup(null); setPickupEditing(false);
   };
 
-  const openCreate = () => {
-    resetForm();
-    setOrderBy(defaultOrderBy());
-    setPickup(defaultPickup()); // default pickup = kitchen (or society)
-    setShowForm(true);
-  };
-
   // Open the menu picker: choose a saved dish, then just set its time window + servings.
   const openPicker = () => {
     setSlotErr(null);
@@ -511,19 +504,26 @@ export default function CookPanel({ me, onMe, view }: {
       {!showForm && !showPicker && <button onClick={openPicker}>+ List a dish</button>}
 
       {showPicker && (
-        <div className="form-block">
+        <div className="form-block" style={{ position: "relative" }}>
+          <button className="form-close" aria-label="Close"
+                  onClick={() => { setShowPicker(false); setPickedMenu(null); }}>✕</button>
           <strong className="form-title">List a dish</strong>
           {!pickedMenu ? (
             <>
               {menuItems.length === 0 ? (
-                <p className="hint">Your menu is empty. Add dishes in the Menu tab, or type one manually below.</p>
+                <p className="hint">Your menu is empty. Add dishes in the Menu tab first.</p>
               ) : (
                 <>
                   <span className="muted">Choose from your menu:</span>
                   <div className="list">
                     {menuItems.map((m) => (
-                      <button className="order-row-btn" key={m.id} onClick={() => pickMenu(m)}>
-                        <div className="orb-main">
+                      <button className="menu-pick" key={m.id} onClick={() => pickMenu(m)}>
+                        {m.hasPhoto ? (
+                          <img className="listing-thumb" src={api.menuPhotoUrl(m.id)} alt={m.name} />
+                        ) : (
+                          <div className="listing-thumb placeholder" aria-hidden="true">🍲</div>
+                        )}
+                        <div className="menu-row-main">
                           <strong>
                             <span className={`veg-mark ${m.foodType}`} aria-hidden="true" /> {m.name}
                           </strong>
@@ -537,17 +537,24 @@ export default function CookPanel({ me, onMe, view }: {
                   </div>
                 </>
               )}
-              <button className="link" onClick={() => { setShowPicker(false); openCreate(); }}>
-                Type a new dish manually
-              </button>
-              <button className="link" onClick={() => setShowPicker(false)}>Cancel</button>
             </>
           ) : (
             <>
-              <span className="muted">
-                <span className={`veg-mark ${pickedMenu.foodType}`} aria-hidden="true" /> <strong>{pickedMenu.name}</strong>
-                {pickedMenu.pricePerServing != null ? ` · ₹${pickedMenu.pricePerServing}/serving` : ""} — name, price & photo reused.
-              </span>
+              <div className="menu-pick" style={{ cursor: "default" }}>
+                {pickedMenu.hasPhoto ? (
+                  <img className="listing-thumb" src={api.menuPhotoUrl(pickedMenu.id)} alt={pickedMenu.name} />
+                ) : (
+                  <div className="listing-thumb placeholder" aria-hidden="true">🍲</div>
+                )}
+                <div className="menu-row-main">
+                  <strong>
+                    <span className={`veg-mark ${pickedMenu.foodType}`} aria-hidden="true" /> {pickedMenu.name}
+                  </strong>
+                  <span className="muted">
+                    {pickedMenu.pricePerServing != null ? `₹${pickedMenu.pricePerServing}/serving` : "No price"} · name, price & photo reused
+                  </span>
+                </div>
+              </div>
               <label>Opening time <span style={{ fontWeight: 400 }}>(leave blank = available now)</span></label>
               <input type="datetime-local" value={slotOpenAt} onChange={(e) => setSlotOpenAt(e.target.value)} />
               <label>Order by <span className="req">*</span> <span style={{ fontWeight: 400 }}>(orders close at this time)</span></label>

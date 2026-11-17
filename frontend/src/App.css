@@ -992,6 +992,51 @@ button.small {
   font-weight: 600;
 }
 
+/* Red close (✕) pinned to the top-right of a form panel. */
+.form-close {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  width: 30px;
+  height: 30px;
+  padding: 0;
+  border-radius: 50%;
+  border: none;
+  background: #fee2e2;
+  color: #dc2626;
+  font-size: 0.95rem;
+  line-height: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: none;
+}
+
+.form-close:hover {
+  filter: brightness(0.96);
+  background: #fecaca;
+}
+
+/* Tappable row for picking a dish to list: thumbnail + name/price. */
+.menu-pick {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  width: 100%;
+  text-align: left;
+  background: var(--sunk);
+  border: none;
+  border-radius: 16px;
+  padding: 10px 12px;
+  color: inherit;
+  box-shadow: none;
+  cursor: pointer;
+}
+
+.menu-pick:hover {
+  filter: brightness(0.98);
+}
+
 /* Consumer menu rows: thumbnail + dish info + inline qty/Request, all on one line. */
 .menu-row {
   display: flex;
