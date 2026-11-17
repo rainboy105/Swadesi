@@ -1896,3 +1896,40 @@ button.small {
   font-size: 0.98rem;
   color: var(--ink-600);
 }
+
+/* One-line order summary: dish · quantity · person (· status pill beside it). */
+.order-line {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.order-line strong {
+  font-family: var(--font-display);
+  font-size: 1rem;
+  color: var(--ink-900);
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.order-line .ol-meta {
+  flex-shrink: 0;
+  color: var(--ink-600);
+  font-size: 0.88rem;
+  white-space: nowrap;
+}
+
+.order-line .ol-who {
+  flex-shrink: 4;   /* the customer/cook name gives way before the dish name does */
+  min-width: 3ch;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.order-line .status-pill {
+  margin-left: auto;
+}

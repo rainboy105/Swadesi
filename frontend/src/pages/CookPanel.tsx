@@ -399,15 +399,12 @@ export default function CookPanel({ me, onMe, view }: {
         {/* Every request and order is its own card: dish, quantity, customer, status. */}
         {newReqs.map((r) => (
           <div className="order-card" key={r.id}>
-            <div className="order-card-head">
-              <strong>{r.dishName}</strong>
-              <span className="status-pill s-ready">🆕 New request</span>
-            </div>
-            <div className="order-card-meta">
-              <span>Qty <b>{r.qty}</b></span>
-              <span>Customer <b>{r.consumerName ?? "Customer"}</b></span>
-              {r.pricePerServing != null && <span>₹<b>{r.pricePerServing * r.qty}</b></span>}
-            </div>
+            <div className="order-line">
+<strong>{r.dishName}</strong>
+<span className="ol-meta">× {r.qty}</span>
+<span className="ol-meta ol-who">{r.consumerName ?? "Customer"}</span>
+<span className="status-pill s-ready">🆕 Request</span>
+</div>
             {r.note && <span className="muted">“{r.note}”</span>}
             {r.pricePerServing == null && (
               <input inputMode="numeric" placeholder="Your price / serving (₹)"
@@ -416,7 +413,7 @@ export default function CookPanel({ me, onMe, view }: {
             )}
             <div className="order-row">
               <button className="small" disabled={reqBusy === r.id} onClick={() => acceptRequest(r)}>
-                {reqBusy === r.id ? "…" : "Accept"}
+                {reqBusy === r.id ? "…" : r.pricePerServing != null ? `Accept · ₹${r.pricePerServing * r.qty}` : "Accept"}
               </button>
               <button className="secondary small" disabled={reqBusy === r.id} onClick={() => rejectRequest(r)}>
                 Decline
@@ -427,15 +424,12 @@ export default function CookPanel({ me, onMe, view }: {
 
         {awaitingPay.map((r) => (
           <div className="order-card" key={r.id}>
-            <div className="order-card-head">
-              <strong>{r.dishName}</strong>
-              <span className="status-pill">⏳ Awaiting payment</span>
-            </div>
-            <div className="order-card-meta">
-              <span>Qty <b>{r.qty}</b></span>
-              <span>Customer <b>{r.consumerName ?? "Customer"}</b></span>
-              {r.pricePerServing != null && <span>₹<b>{r.pricePerServing * r.qty}</b></span>}
-            </div>
+            <div className="order-line">
+<strong>{r.dishName}</strong>
+<span className="ol-meta">× {r.qty}</span>
+<span className="ol-meta ol-who">{r.consumerName ?? "Customer"}</span>
+<span className="status-pill">⏳ Unpaid</span>
+</div>
           </div>
         ))}
 
@@ -474,14 +468,12 @@ export default function CookPanel({ me, onMe, view }: {
 
               {g.items.map((o) => (
                 <div className="order-card" key={o.id}>
-                  <div className="order-card-head">
-                    <strong>{o.listingTitle}</strong>
-                    <span className={`status-pill s-${o.status}`}>{statusText[o.status]}</span>
-                  </div>
-                  <div className="order-card-meta">
-                    <span>Qty <b>{o.qty}</b></span>
-                    <span>Customer <b>{o.consumerName ?? "Customer"}</b></span>
-                  </div>
+                  <div className="order-line">
+<strong>{o.listingTitle}</strong>
+<span className="ol-meta">× {o.qty}</span>
+<span className="ol-meta ol-who">{o.consumerName ?? "Customer"}</span>
+<span className={`status-pill s-${o.status}`}>{statusText[o.status]}</span>
+</div>
                   {o.status === "requested" && (
                     <div className="order-row">
                       <button className="small" onClick={() => decide(o, "accepted")}>Accept</button>
@@ -539,14 +531,12 @@ export default function CookPanel({ me, onMe, view }: {
               .sort((a, b) => Date.parse(b.at) - Date.parse(a.at))
               .map((row) => (
                 <div className="order-card past" key={row.id}>
-                  <div className="order-card-head">
-                    <strong>{row.dish}</strong>
-                    <span className={`status-pill ${row.cls}`}>{row.status}</span>
-                  </div>
-                  <div className="order-card-meta">
-                    <span>Qty <b>{row.qty}</b></span>
-                    <span>Customer <b>{row.customer ?? "Customer"}</b></span>
-                  </div>
+                  <div className="order-line">
+<strong>{row.dish}</strong>
+<span className="ol-meta">× {row.qty}</span>
+<span className="ol-meta ol-who">{row.customer ?? "Customer"}</span>
+<span className={`status-pill ${row.cls}`}>{row.status}</span>
+</div>
                 </div>
               ))}
           </div>

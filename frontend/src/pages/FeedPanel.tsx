@@ -248,30 +248,32 @@ export default function FeedPanel({ view, me, onMe }: {
                 <label>Active</label>
                 {activeReqs.map((r) => (
                   <div key={r.id} className="order-row-btn active" style={{ cursor: "default" }}>
-                    <div className="orb-main">
-                      <strong>{r.qty} × {r.dishName}</strong>
-                      <span className="muted">Request · {r.cookName ?? ""} · {when(r.createdAt)}</span>
-                      {r.status === "pending" && (
-                        <button className="link" style={{ alignSelf: "flex-start" }}
-                                onClick={() => api.cancelRequest(r.id).then(() => fetchData(true))}>
-                          Cancel request
-                        </button>
-                      )}
+                    <div className="order-line">
+                      <strong>{r.dishName}</strong>
+                      <span className="ol-meta">× {r.qty}</span>
+                      <span className="ol-meta ol-who">{r.cookName ?? ""}</span>
                     </div>
                     {r.status === "accepted" && r.listingId ? (
                       <button className="small" disabled={payingId === r.id} onClick={() => payRequest(r)}>
                         {payingId === r.id ? "…" : `Pay ₹${(r.pricePerServing ?? 0) * r.qty}`}
                       </button>
                     ) : (
-                      <span className="status-pill s-requested">⏳ Waiting for cook</span>
+                      <>
+                        <span className="status-pill s-requested">⏳ Waiting</span>
+                        <button className="link" aria-label="Cancel request"
+                                onClick={() => api.cancelRequest(r.id).then(() => fetchData(true))}>
+                          Cancel
+                        </button>
+                      </>
                     )}
                   </div>
                 ))}
                 {active.map((o) => (
                   <button key={o.id} className="order-row-btn active" onClick={() => setSelectedId(o.id)}>
-                    <div className="orb-main">
-                      <strong>{o.qty} × {o.listingTitle}</strong>
-                      <span className="muted">{o.cookName ?? ""} · {when(o.createdAt)}</span>
+                    <div className="order-line">
+                      <strong>{o.listingTitle}</strong>
+                      <span className="ol-meta">× {o.qty}</span>
+                      <span className="ol-meta ol-who">{o.cookName ?? ""}</span>
                     </div>
                     <span className={`status-pill s-${o.status}`}>{statusLabel[o.status]}</span>
                     <span className="chev">›</span>
@@ -285,18 +287,20 @@ export default function FeedPanel({ view, me, onMe }: {
                 {pastRows.map((row) =>
                   row.kind === "order" ? (
                     <button key={row.o.id} className="order-row-btn" onClick={() => setSelectedId(row.o.id)}>
-                      <div className="orb-main">
-                        <strong>{row.o.qty} × {row.o.listingTitle}</strong>
-                        <span className="muted">{row.o.cookName ?? ""} · {when(row.o.createdAt)}</span>
+                      <div className="order-line">
+                        <strong>{row.o.listingTitle}</strong>
+                        <span className="ol-meta">× {row.o.qty}</span>
+                        <span className="ol-meta ol-who">{row.o.cookName ?? ""}</span>
                       </div>
                       <span className={`status-pill s-${row.o.status}`}>{statusLabel[row.o.status]}</span>
                       <span className="chev">›</span>
                     </button>
                   ) : (
                     <div key={row.r.id} className="order-row-btn" style={{ cursor: "default" }}>
-                      <div className="orb-main">
-                        <strong>{row.r.qty} × {row.r.dishName}</strong>
-                        <span className="muted">Request · {row.r.cookName ?? ""} · {when(row.r.createdAt)}</span>
+                      <div className="order-line">
+                        <strong>{row.r.dishName}</strong>
+                        <span className="ol-meta">× {row.r.qty}</span>
+                        <span className="ol-meta ol-who">{row.r.cookName ?? ""}</span>
                       </div>
                       <span className={`status-pill s-${row.r.status}`}>
                         {row.r.status === "rejected" ? "❌ Declined" : "🚫 Cancelled"}
