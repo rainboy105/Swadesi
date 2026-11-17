@@ -20,7 +20,6 @@ export default function MenuManager() {
 
   // "List this dish" scheduler (opening/ending time + servings) for one item.
   const [listId, setListId] = useState<string | null>(null);
-  const [openAt, setOpenAt] = useState("");
   const [closeAt, setCloseAt] = useState("");
   const [servings, setServings] = useState("10");
   const [listBusy, setListBusy] = useState(false);
@@ -44,7 +43,6 @@ export default function MenuManager() {
     setServings("10");
     const close = new Date(Date.now() + 2 * 60 * 60 * 1000);
     close.setMinutes(0, 0, 0);
-    setOpenAt("");                 // blank = available immediately
     setCloseAt(fmtLocal(close));
   };
 
@@ -55,12 +53,10 @@ export default function MenuManager() {
     if (!Number.isFinite(s) || s < 1) return setListErr("How many servings can you make?");
     const closeIso = new Date(closeAt).toISOString();
     if (new Date(closeIso).getTime() <= Date.now()) return setListErr("Ending time must be in the future.");
-    const openIso = openAt ? new Date(openAt).toISOString() : null;
-    if (openIso && new Date(closeIso) <= new Date(openIso)) return setListErr("Ending time must be after the opening time.");
     setListBusy(true);
     setListErr(null);
     try {
-      await api.listFromMenu(m.id, { availableFrom: openIso, orderBy: closeIso, maxServings: s });
+      await api.listFromMenu(m.id, { availableFrom: null, orderBy: closeIso, maxServings: s });
       setListId(null);
       setListMsg(`✅ Listed “${m.name}”.`);
     } catch (e) {
@@ -229,8 +225,6 @@ export default function MenuManager() {
               <div className="form-block">
                 <strong className="form-title">List “{m.name}” for a time slot</strong>
                 <span className="muted">Name, price{m.hasPhoto ? ", photo" : ""} and type are reused from your menu.</span>
-                <label>Opening time <span style={{ fontWeight: 400 }}>(leave blank = available now)</span></label>
-                <input type="datetime-local" value={openAt} onChange={(e) => setOpenAt(e.target.value)} />
                 <label>Ending time <span className="req">*</span> <span style={{ fontWeight: 400 }}>(orders close)</span></label>
                 <input type="datetime-local" value={closeAt} onChange={(e) => setCloseAt(e.target.value)} />
                 <label>Servings (cap) <span className="req">*</span></label>

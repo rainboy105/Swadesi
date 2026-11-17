@@ -47,7 +47,6 @@ export default function CookPanel({ me, onMe, view }: {
   const [showPicker, setShowPicker] = useState(false);
   const [menuItems, setMenuItems] = useState<MenuItem[]>([]);
   const [pickedMenu, setPickedMenu] = useState<MenuItem | null>(null);
-  const [slotOpenAt, setSlotOpenAt] = useState("");
   const [slotServings, setSlotServings] = useState("10");
   const [slotBusy, setSlotBusy] = useState(false);
   const [slotErr, setSlotErr] = useState<string | null>(null);
@@ -159,7 +158,6 @@ export default function CookPanel({ me, onMe, view }: {
   const pickMenu = (m: MenuItem) => {
     setSlotErr(null);
     setPickedMenu(m);
-    setSlotOpenAt("");               // blank = available now
     setSlotServings("10");
     setOrderBy(defaultOrderBy());    // reuse the day/time dropdowns for the ending time
   };
@@ -172,12 +170,10 @@ export default function CookPanel({ me, onMe, view }: {
     if (!orderBy) return setSlotErr("Set an ending (order-by) time.");
     const closeIso = new Date(orderBy).toISOString();
     if (new Date(closeIso).getTime() <= Date.now()) return setSlotErr("Ending time must be in the future.");
-    const openIso = slotOpenAt ? new Date(slotOpenAt).toISOString() : null;
-    if (openIso && new Date(closeIso) <= new Date(openIso)) return setSlotErr("Ending time must be after the opening time.");
     setSlotBusy(true);
     setSlotErr(null);
     try {
-      await api.listFromMenu(pickedMenu.id, { availableFrom: openIso, orderBy: closeIso, maxServings: s });
+      await api.listFromMenu(pickedMenu.id, { availableFrom: null, orderBy: closeIso, maxServings: s });
       setShowPicker(false);
       setPickedMenu(null);
       await load();
@@ -555,8 +551,6 @@ export default function CookPanel({ me, onMe, view }: {
                   </span>
                 </div>
               </div>
-              <label>Opening time <span style={{ fontWeight: 400 }}>(leave blank = available now)</span></label>
-              <input type="datetime-local" value={slotOpenAt} onChange={(e) => setSlotOpenAt(e.target.value)} />
               <label>Order by <span className="req">*</span> <span style={{ fontWeight: 400 }}>(orders close at this time)</span></label>
               <div className="dt-row">
                 <select value={dayPart(orderBy)} onChange={(e) => setDay(e.target.value)}>
@@ -674,7 +668,6 @@ export default function CookPanel({ me, onMe, view }: {
         <div className="list">
           {activeListings.map((l) => {
             const cutoff = timeOf(l.orderBy);
-            const scheduled = l.availableFrom != null && new Date(l.availableFrom).getTime() > Date.now();
             return (
               <div className={`listing ${l.status === "closed" || l.expired ? "dim" : ""}`} key={l.id}>
                 {l.hasPhoto ? (
@@ -692,7 +685,6 @@ export default function CookPanel({ me, onMe, view }: {
                   <span className="meta">
                     ₹{l.pricePerServing}/serving · {l.remaining}/{l.maxServings} left
                     {cutoff ? ` · order by ${cutoff}` : ""}
-                    {scheduled ? ` · opens ${prettyWhen(toLocalInput(l.availableFrom))}` : ""}
                     {l.expired ? " · order time passed" : l.status === "closed" ? " · closed" : ""}
                   </span>
                 </div>
