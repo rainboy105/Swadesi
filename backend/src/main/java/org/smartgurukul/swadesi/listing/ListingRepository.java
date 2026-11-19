@@ -12,6 +12,9 @@ public interface ListingRepository extends JpaRepository<Listing, UUID> {
 
     List<Listing> findByCookIdOrderByCreatedAtDesc(UUID cookId);
 
+    /** Listings flagged to repeat daily (the newest copy of each recurring dish). */
+    List<Listing> findByRecurringTrueAndRequestOnlyFalse();
+
     /** All public (non request-only) listings of a cook, newest first — the cook's menu history. */
     List<Listing> findByCookIdAndRequestOnlyFalseOrderByCreatedAtDesc(UUID cookId);
 

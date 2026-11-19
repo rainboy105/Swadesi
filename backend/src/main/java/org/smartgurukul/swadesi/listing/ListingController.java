@@ -42,13 +42,15 @@ public class ListingController {
             String foodType,
             Double pickupLat,
             Double pickupLng,
-            @Size(max = 300) String pickupAddress) {}
+            @Size(max = 300) String pickupAddress,
+            Boolean recurring) {}
 
     /** Create a listing straight from a saved menu item: only the time window + servings are new. */
     public record FromMenuRequest(
             OffsetDateTime availableFrom,
             OffsetDateTime orderBy,
-            @Min(1) @Max(500) int maxServings) {}
+            @Min(1) @Max(500) int maxServings,
+            Boolean recurring) {}
 
     /** A listing as its own cook sees it. {@code expired} = past its order cutoff. */
     public record ListingResponse(String id, String title, String description, int pricePerServing,
@@ -56,7 +58,7 @@ public class ListingController {
                                   OffsetDateTime orderBy, OffsetDateTime availableFrom, String status,
                                   String foodType, boolean hasPhoto, boolean expired,
                                   double pickupLat, double pickupLng,
-                                  String pickupAddress, OffsetDateTime createdAt) {}
+                                  String pickupAddress, OffsetDateTime createdAt, boolean recurring) {}
 
     /** A listing in the consumer's vicinity feed, with cook name and distance. */
     public record FeedItem(String id, String title, String description, int pricePerServing,
@@ -128,6 +130,7 @@ public class ListingController {
         l.setServingsClaimed(0);
         l.setOrderBy(req.orderBy());
         l.setAvailableFrom(req.availableFrom());
+        l.setRecurring(Boolean.TRUE.equals(req.recurring()));
         l.setFoodType(item.getFoodType());
         l.setStatus("open");
         applyKitchenOrSocietyPickup(l, cook);
@@ -205,6 +208,7 @@ public class ListingController {
         l.setReadyBy(req.readyBy());
         l.setOrderBy(req.orderBy());
         l.setAvailableFrom(req.availableFrom());
+        l.setRecurring(Boolean.TRUE.equals(req.recurring()));
         l.setFoodType(normalizeFoodType(req.foodType()));
         l.setStatus("open");
         applyPickup(l, cook, req);
@@ -216,7 +220,7 @@ public class ListingController {
     }
 
     /** Push "new dish nearby" to every user within 5 km of the dish (except the cook). */
-    private void notifyNearbyConsumers(Listing l, User cook) {
+    void notifyNearbyConsumers(Listing l, User cook) {
         try {
             double lat = l.getLat();
             double lng = l.getLng();
@@ -290,6 +294,23 @@ public class ListingController {
         return toResponse(listings.save(l));
     }
 
+    public record RecurringRequest(boolean recurring) {}
+
+    /** Switch "repeat daily" on or off for one of the cook's own listings. */
+    @PostMapping("/{id}/recurring")
+    public ListingResponse setRecurring(@AuthenticationPrincipal AuthenticatedUser auth,
+                                        @PathVariable UUID id,
+                                        @RequestBody RecurringRequest req) {
+        Listing l = listings.findById(id)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Listing not found"));
+        if (!l.getCookId().equals(auth.id())) {
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Not your listing");
+        }
+        l.setRecurring(req.recurring());
+        l.setUpdatedAt(OffsetDateTime.now());
+        return toResponse(listings.save(l));
+    }
+
     /** Edit one of the cook's own listings. Max servings can't drop below what's already claimed. */
     @org.springframework.web.bind.annotation.PutMapping("/{id}")
     public ListingResponse update(@AuthenticationPrincipal AuthenticatedUser auth,
@@ -314,6 +335,7 @@ public class ListingController {
         l.setReadyBy(req.readyBy());
         l.setOrderBy(req.orderBy());
         l.setAvailableFrom(req.availableFrom());
+        l.setRecurring(Boolean.TRUE.equals(req.recurring()));
         l.setFoodType(normalizeFoodType(req.foodType()));
         User cook = users.findById(auth.id())
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Unknown user"));
@@ -407,7 +429,8 @@ public class ListingController {
         return new ListingResponse(l.getId().toString(), l.getTitle(), l.getDescription(),
                 l.getPricePerServing(), l.getMaxServings(), l.remaining(), l.getReadyBy(),
                 l.getOrderBy(), l.getAvailableFrom(), l.getStatus(), l.getFoodType(), l.isHasPhoto(),
-                isExpired(l), l.getLat(), l.getLng(), l.getPickupAddress(), l.getCreatedAt());
+                isExpired(l), l.getLat(), l.getLng(), l.getPickupAddress(), l.getCreatedAt(),
+                l.isRecurring());
     }
 
     public static double haversineMeters(double lat1, double lon1, double lat2, double lon2) {

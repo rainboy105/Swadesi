@@ -2062,3 +2062,46 @@ button.secondary.danger {
 button.secondary.danger:hover:not(:disabled) {
   background: #fbd5d5;
 }
+
+/* A checkbox with a title and a short explanation beside it (e.g. Repeat daily). */
+.check-row {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  margin-top: 6px;
+  cursor: pointer;
+  text-transform: none;
+  letter-spacing: normal;
+}
+
+.check-row input[type="checkbox"] {
+  width: 20px;
+  height: 20px;
+  margin: 2px 0 0;
+  flex-shrink: 0;
+  accent-color: var(--violet-500);
+}
+
+.check-row > span {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.check-row strong {
+  font-size: 0.95rem;
+  color: var(--ink-900);
+}
+
+.check-row .muted {
+  font-size: 0.8rem;
+  font-weight: 400;
+}
+
+button.link.inline {
+  display: inline;
+  width: auto;
+  padding: 0;
+  font-size: inherit;
+  color: var(--violet-700);
+}

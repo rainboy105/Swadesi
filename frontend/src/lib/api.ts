@@ -164,7 +164,9 @@ export const api = {
     call<MenuItem>(`/api/v1/menu/${id}`, { method: "PUT", body: JSON.stringify(body) }),
   deleteMenuItem: (id: string) =>
     call<void>(`/api/v1/menu/${id}`, { method: "DELETE" }),
-  listFromMenu: (menuItemId: string, body: { availableFrom?: string | null; orderBy: string; maxServings: number }) =>
+  setListingRecurring: (id: string, recurring: boolean) =>
+    call<Listing>(`/api/v1/listings/${id}/recurring`, { method: "POST", body: JSON.stringify({ recurring }) }),
+  listFromMenu: (menuItemId: string, body: { availableFrom?: string | null; orderBy: string; maxServings: number; recurring?: boolean }) =>
     call<Listing>(`/api/v1/listings/from-menu/${menuItemId}`, { method: "POST", body: JSON.stringify(body) }),
   menuPhotoUrl: (id: string) => `${BASE}/api/public/menu/${id}/photo`,
   uploadMenuPhoto: async (id: string, file: Blob) => {
@@ -312,6 +314,8 @@ export interface ListingBody {
   pickupLat?: number | null;
   pickupLng?: number | null;
   pickupAddress?: string | null;
+  /** Repeat daily: list again every day at the same time with the same order-by time. */
+  recurring?: boolean;
 }
 
 export interface Listing {
@@ -332,6 +336,7 @@ export interface Listing {
   pickupLng: number;
   pickupAddress: string | null;
   createdAt: string;
+  recurring: boolean;
 }
 
 export interface DishDetail {

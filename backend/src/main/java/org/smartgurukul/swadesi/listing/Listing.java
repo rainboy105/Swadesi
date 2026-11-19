@@ -59,6 +59,10 @@ public class Listing {
     @Column(name = "request_only", nullable = false)
     private boolean requestOnly = false;
 
+    /** Repeat daily: re-listed every day at the same time until switched off. */
+    @Column(name = "recurring", nullable = false)
+    private boolean recurring = false;
+
     @Column(name = "has_photo", nullable = false)
     private boolean hasPhoto = false;
 
@@ -102,6 +106,8 @@ public class Listing {
     public void setReadyBy(OffsetDateTime readyBy) { this.readyBy = readyBy; }
     public OffsetDateTime getOrderBy() { return orderBy; }
     public void setOrderBy(OffsetDateTime orderBy) { this.orderBy = orderBy; }
+    public boolean isRecurring() { return recurring; }
+    public void setRecurring(boolean recurring) { this.recurring = recurring; }
     public OffsetDateTime getAvailableFrom() { return availableFrom; }
     public void setAvailableFrom(OffsetDateTime availableFrom) { this.availableFrom = availableFrom; }
     public String getStatus() { return status; }

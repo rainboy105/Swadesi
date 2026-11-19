@@ -53,6 +53,8 @@ export default function CookPanel({ me, onMe, view }: {
   const [menuItems, setMenuItems] = useState<MenuItem[]>([]);
   const [pickedMenu, setPickedMenu] = useState<MenuItem | null>(null);
   const [slotServings, setSlotServings] = useState("10");
+  // "Repeat daily" tick, shared by the list-from-menu form and the edit form.
+  const [recurring, setRecurring] = useState(false);
   const [slotBusy, setSlotBusy] = useState(false);
   const [slotErr, setSlotErr] = useState<string | null>(null);
 
@@ -164,6 +166,7 @@ export default function CookPanel({ me, onMe, view }: {
     setSlotErr(null);
     setPickedMenu(m);
     setSlotServings("10");
+    setRecurring(false);
     setOrderBy(defaultOrderBy());    // reuse the day/time dropdowns for the ending time
   };
 
@@ -178,7 +181,7 @@ export default function CookPanel({ me, onMe, view }: {
     setSlotBusy(true);
     setSlotErr(null);
     try {
-      await api.listFromMenu(pickedMenu.id, { availableFrom: null, orderBy: closeIso, maxServings: s });
+      await api.listFromMenu(pickedMenu.id, { availableFrom: null, orderBy: closeIso, maxServings: s, recurring });
       setShowPicker(false);
       setPickedMenu(null);
       await load();
@@ -197,6 +200,7 @@ export default function CookPanel({ me, onMe, view }: {
     setServings(String(l.maxServings));
     setOrderBy(toLocalInput(l.orderBy));
     setFoodType(l.foodType);
+    setRecurring(l.recurring);
     setPhoto(null); setPhotoPreview(null);
     // Keep this listing's existing pickup point unless the cook changes it.
     setPickup({ lat: l.pickupLat, lng: l.pickupLng, address: l.pickupAddress });
@@ -266,6 +270,7 @@ export default function CookPanel({ me, onMe, view }: {
       pickupLat: pickup.lat,
       pickupLng: pickup.lng,
       pickupAddress: pickup.address,
+      recurring,
     };
     try {
       if (editingId) {
@@ -670,6 +675,14 @@ export default function CookPanel({ me, onMe, view }: {
               {orderBy && <span className="when-note">⏰ Orders close {prettyWhen(orderBy)}</span>}
               <label>Servings (cap) <span className="req">*</span></label>
               <input inputMode="numeric" placeholder="10" value={slotServings} onChange={(e) => setSlotServings(e.target.value)} />
+              <label className="check-row">
+                <input type="checkbox" checked={recurring} onChange={(e) => setRecurring(e.target.checked)} />
+                <span>
+                  <strong>🔁 Repeat daily</strong>
+                  <span className="muted">Lists this dish again every day at the same time, with the same
+                    order-by time and servings — until you turn it off.</span>
+                </span>
+              </label>
               <button disabled={slotBusy} onClick={listPicked}>
                 {slotBusy ? "Listing…" : "List this dish"}
               </button>
@@ -747,6 +760,15 @@ export default function CookPanel({ me, onMe, view }: {
             />
           )}
 
+          <label className="check-row">
+                <input type="checkbox" checked={recurring} onChange={(e) => setRecurring(e.target.checked)} />
+                <span>
+                  <strong>🔁 Repeat daily</strong>
+                  <span className="muted">Lists this dish again every day at the same time, with the same
+                    order-by time and servings — until you turn it off.</span>
+                </span>
+              </label>
+
           <label>Photo {editingId ? "(replace, optional)" : "(optional)"}</label>
           <input
             ref={fileRef}
@@ -766,7 +788,7 @@ export default function CookPanel({ me, onMe, view }: {
 
       {/* My listings — only active ones; past (order time over) and closed items drop off. */}
       {(() => {
-        const activeListings = listings.filter((l) => l.status === "open" && !l.expired);
+        const activeListings = listings.filter((l) => (l.status === "open" && !l.expired) || l.recurring);
         return loading ? (
         <p className="hint">Loading your listings…</p>
       ) : activeListings.length === 0 ? (
@@ -794,6 +816,14 @@ export default function CookPanel({ me, onMe, view }: {
                     {cutoff ? ` · order by ${cutoff}` : ""}
                     {l.expired ? " · order time passed" : l.status === "closed" ? " · closed" : ""}
                   </span>
+                  {l.recurring && (
+                    <span className="meta">
+                      🔁 Repeats daily ·{" "}
+                      <button className="link inline" onClick={async () => {
+                        try { await api.setListingRecurring(l.id, false); await load(); } catch { /* ignore */ }
+                      }}>Stop</button>
+                    </span>
+                  )}
                 </div>
                 <div className="order-actions">
                   <button className="icon-btn small-icon" aria-label="Edit dish" onClick={() => startEdit(l)}>
